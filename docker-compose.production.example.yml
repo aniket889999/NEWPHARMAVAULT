@@ -1,0 +1,26 @@
+# Single-node academic deployment example. Do not place real secrets in this file.
+# Use a managed secret store or an ignored backend/.env.production file instead.
+services:
+  api:
+    build:
+      context: ./backend
+    env_file:
+      - ./backend/.env.production
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      DOCUMENT_STORAGE_ROOT: /var/lib/pharmavault/documents
+      TRUSTRAG_TESSDATA_PATH: /opt/tessdata
+      TRUSTRAG_LLM_ENABLED: "false"
+      TRUSTRAG_LLM_EXPORT_ALLOWED: "false"
+    ports:
+      # Keep the API private; terminate TLS at a managed gateway/reverse proxy.
+      - "127.0.0.1:5001:5001"
+    volumes:
+      - pharmavault_documents:/var/lib/pharmavault/documents
+      # Provision locally and mount read-only. It is intentionally not in the image.
+      - ./backend/tessdata:/opt/tessdata:ro
+    restart: unless-stopped
+
+volumes:
+  pharmavault_documents:

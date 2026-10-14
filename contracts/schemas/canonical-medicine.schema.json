@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pharmavault.example/schemas/canonical-medicine.schema.json",
+  "title": "CanonicalMedicine",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "brandName": { "type": "string" },
+    "genericName": { "type": "string" },
+    "strength": { "type": "string" },
+    "strengthUnit": { "type": "string" },
+    "dosageForm": { "type": "string" },
+    "manufacturer": { "type": "string" },
+    "regulatoryIdentifiers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "sourceVersion": { "type": "string" },
+    "catalogueVersion": { "type": "string" },
+    "sourceNote": { "type": "string" },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["id", "genericName", "dosageForm"],
+  "additionalProperties": false
+}

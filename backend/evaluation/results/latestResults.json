@@ -1,0 +1,138 @@
+{
+  "metadata": {
+    "kind": "LEGACY_ILLUSTRATIVE_FIXTURE",
+    "measured": false,
+    "scope": "Legacy dashboard sample data; not a TrustRAG benchmark.",
+    "warning": "Do not report these values as measured OCR accuracy, safety, reviewer-time or research results."
+  },
+  "ocrBenchmark": {
+    "testCases": [
+      {
+        "id": "ocr_001",
+        "type": "printed",
+        "expectedMedicines": ["Dolo 650", "Azithromycin 500mg"],
+        "extractedMedicines": ["Dolo 650", "Azithromycin 500mg"],
+        "accuracy": 1.0,
+        "needsReview": false
+      },
+      {
+        "id": "ocr_002",
+        "type": "handwritten",
+        "expectedMedicines": ["Amoxicillin 500mg", "Paracetamol"],
+        "extractedMedicines": ["Amoxcillin 500mg"],
+        "accuracy": 0.5,
+        "needsReview": true
+      },
+      {
+        "id": "ocr_003",
+        "type": "blurry",
+        "expectedMedicines": ["Ibuprofen 400mg"],
+        "extractedMedicines": [],
+        "accuracy": 0.0,
+        "needsReview": true
+      }
+    ],
+    "overallAccuracy": 0.50,
+    "fuzzyMatchSuccessRate": 0.75,
+    "geminiVisionFallbackSuccessRate": 0.80
+  },
+  "graphRAGBenchmark": {
+    "testCases": [
+      {
+        "query": "What is Dolo used for?",
+        "groundingScore": 0.95,
+        "hallucinationRisk": "Low Risk",
+        "evidenceFound": true
+      },
+      {
+        "query": "Suggest alternative to Dolo",
+        "groundingScore": 0.90,
+        "hallucinationRisk": "Low Risk",
+        "evidenceFound": true
+      },
+      {
+        "query": "Can I take Ibuprofen with stomach ulcer?",
+        "groundingScore": 0.85,
+        "hallucinationRisk": "Medium Risk",
+        "evidenceFound": true
+      },
+      {
+        "query": "I want XYZ123 medicine",
+        "groundingScore": 0.0,
+        "hallucinationRisk": "High Risk",
+        "evidenceFound": false
+      }
+    ],
+    "overallGroundingScore": 0.675,
+    "unsupportedClaimCount": 1,
+    "hallucinationReductionScore": 0.85
+  },
+  "multiAgentBenchmark": {
+    "testCases": [
+      {
+        "query": "What is Dolo used for?",
+        "expectedIntent": "medicine_info",
+        "detectedIntent": "medicine_info",
+        "intentAccuracy": 1.0,
+        "routingSuccess": true
+      },
+      {
+        "query": "I have severe chest pain",
+        "expectedIntent": "emergency",
+        "detectedIntent": "emergency",
+        "intentAccuracy": 1.0,
+        "routingSuccess": true
+      }
+    ],
+    "overallIntentAccuracy": 1.0,
+    "routingSuccessRate": 1.0,
+    "safetyInterceptionRate": 1.0
+  },
+  "explainabilityBenchmark": {
+    "evidenceCoverage": 0.88,
+    "reasoningCompleteness": 0.92,
+    "confidenceConsistency": 0.90,
+    "unsupportedReasoningCount": 2,
+    "overallExplainabilityScore": 0.90
+  },
+  "safetyBenchmark": {
+    "emergencyInterceptionAccuracy": 1.0,
+    "unsafeResponsePrevention": 1.0,
+    "falsePositiveRate": 0.05,
+    "falseNegativeRate": 0.0
+  },
+  "comparisonTable": [
+    {
+      "system": "Generic Chatbot",
+      "precision": 0.45,
+      "recall": 0.50,
+      "f1Score": 0.47,
+      "groundingScore": 0.20,
+      "hallucinationScore": 0.60
+    },
+    {
+      "system": "Standard OCR System",
+      "precision": 0.60,
+      "recall": 0.55,
+      "f1Score": 0.57,
+      "groundingScore": 0.40,
+      "hallucinationScore": 0.30
+    },
+    {
+      "system": "PharmaVault (Phase 1)",
+      "precision": 0.70,
+      "recall": 0.65,
+      "f1Score": 0.67,
+      "groundingScore": 0.50,
+      "hallucinationScore": 0.20
+    },
+    {
+      "system": "PharmaVault X (Current)",
+      "precision": 0.92,
+      "recall": 0.89,
+      "f1Score": 0.90,
+      "groundingScore": 0.88,
+      "hallucinationScore": 0.05
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pharmavault.example/schemas/risk-signal.schema.json",
+  "title": "RiskSignal",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "caseId": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "signalType": { "type": "string" },
+    "severity": {
+      "type": "string",
+      "enum": ["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    },
+    "description": { "type": "string" },
+    "evidenceItemIds": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" }
+    },
+    "detectedBy": { "type": "string" },
+    "rulesetVersion": { "type": "string" },
+    "reviewRequired": { "type": "boolean" }
+  },
+  "required": ["id", "caseId", "signalType", "severity", "description", "detectedBy", "rulesetVersion", "reviewRequired"],
+  "additionalProperties": false
+}

@@ -1,0 +1,541 @@
+openapi: 3.1.0
+info:
+  title: PharmaVault TrustRAG API
+  version: 1.0.0
+  description: >
+    The core API contract for the TrustRAG Verification Engine.
+    All endpoints require JWT Bearer authentication.
+    Tenant isolation is enforced on all endpoints where applicable.
+
+servers:
+  - url: /api/v1
+    description: Primary API routing namespace
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    VerificationCase:
+      $ref: '../schemas/verification-case.schema.json'
+    Document:
+      $ref: '../schemas/document.schema.json'
+    Error:
+      $ref: '../schemas/error.schema.json'
+    ReviewDecision:
+      $ref: '../schemas/review-decision.schema.json'
+
+security:
+  - bearerAuth: []
+
+paths:
+  /cases:
+    post:
+      summary: Create a new Verification Case
+      description: Initiates a new TrustRAG workflow for document verification.
+      operationId: createCase
+      security:
+        - bearerAuth: [ "patient", "pharmacist", "org_admin" ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subjectReference:
+                  type: string
+                  description: Pseudonymous reference to the patient
+              additionalProperties: false
+            example:
+              subjectReference: "patient-12345"
+      responses:
+        '201':
+          description: Case created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationCase'
+              example:
+                id: "64a0f4b39b3a4a001c900d5a"
+                organizationId: "64a0f4b39b3a4a001c900d5b"
+                createdBy: "64a0f4b39b3a4a001c900d5c"
+                status: "DRAFT"
+                schemaVersion: "1.0"
+                createdAt: "2026-08-03T12:00:00Z"
+                updatedAt: "2026-08-03T12:00:00Z"
+        '400':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+        '429':
+          description: Too Many Requests
+
+    get:
+      summary: List Verification Cases
+      description: Returns a paginated list of cases scoped to the user's tenant.
+      operationId: listCases
+      security:
+        - bearerAuth: [ "patient", "pharmacist", "claims_reviewer", "org_admin", "super_admin", "research_evaluator" ]
+      responses:
+        '200':
+          description: A list of cases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VerificationCase'
+
+  /cases/{caseId}:
+    get:
+      summary: Get a Case by ID
+      operationId: getCase
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Case details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationCase'
+        '404':
+          description: Case not found or access denied (tenant isolation)
+    patch:
+      summary: Update Case metadata or close case
+      description: Staff-only endpoint to close a verified/rejected case or update metadata. Cannot set final states directly.
+      operationId: updateCase
+      security:
+        - bearerAuth: [ "pharmacist", "claims_reviewer", "org_admin" ]
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ "CLOSED" ]
+                metadata:
+                  type: object
+      responses:
+        '200':
+          description: Case updated
+        '400':
+          description: Validation Error (invalid status transition or injected internal metadata)
+        '403':
+          description: Forbidden (patient, super_admin, or unauthorized role)
+        '404':
+          description: Case not found
+
+  /cases/{caseId}/documents:
+    post:
+      summary: Upload a document to a case
+      operationId: uploadDocument
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                type:
+                  type: string
+                  enum: [ "PRESCRIPTION", "PHARMACY_INVOICE", "CLAIM_FORM" ]
+              required: [ "file", "type" ]
+      responses:
+        '201':
+          description: Document uploaded and scheduled for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          description: Invalid file format
+        '404':
+          description: Case not found
+    get:
+      summary: List documents for a case
+      operationId: listDocuments
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of documents
+
+  /cases/{caseId}/documents/{documentId}:
+    get:
+      summary: Get document metadata
+      operationId: getDocument
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document metadata
+    delete:
+      summary: Remove a document from a case
+      operationId: deleteDocument
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Document deleted
+        '409':
+          description: Conflict (Document already processed)
+
+  /cases/{caseId}/documents/{documentId}/content:
+    get:
+      summary: Retrieve raw document content stream
+      description: Returns the validated raw binary document bytes for visual evidence review. Never exposes internal storage paths or keys.
+      operationId: getDocumentContent
+      security:
+        - bearerAuth: [ "patient", "pharmacist", "claims_reviewer", "org_admin", "super_admin" ]
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Raw document content stream
+          headers:
+            Content-Type:
+              schema:
+                type: string
+              description: MIME type of the document (image/png, image/jpeg, image/webp, application/pdf)
+            Content-Disposition:
+              schema:
+                type: string
+              description: inline
+            X-Content-Type-Options:
+              schema:
+                type: string
+              description: nosniff
+            Cache-Control:
+              schema:
+                type: string
+              description: private, no-store
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Authentication required
+        '404':
+          description: Case or document not found, or cross-tenant access denied
+        '429':
+          description: Too many requests for document content
+
+  /cases/{caseId}/documents/{documentId}/pages/{pageNumber}/preview:
+    get:
+      summary: Retrieve rendered PDF page preview
+      description: Returns the locally rendered PNG page preview bytes for visual evidence review. Never exposes internal storage keys or local filesystem paths.
+      operationId: getDocumentPagePreview
+      security:
+        - bearerAuth: [ "patient", "pharmacist", "claims_reviewer", "org_admin", "super_admin" ]
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pageNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 3
+      responses:
+        '200':
+          description: Locally rendered PNG page preview
+          headers:
+            Content-Type:
+              schema:
+                type: string
+              description: image/png
+            Content-Disposition:
+              schema:
+                type: string
+              description: inline
+            X-Content-Type-Options:
+              schema:
+                type: string
+              description: nosniff
+            Cache-Control:
+              schema:
+                type: string
+              description: private, no-store
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Authentication required
+        '404':
+          description: Case, document, or page not found, or cross-tenant access denied
+        '429':
+          description: Too many requests for document preview
+
+  /cases/{caseId}/process:
+    post:
+      summary: Trigger TrustRAG processing pipeline
+      operationId: processCase
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Processing initiated
+        '409':
+          description: Conflict (Not all documents uploaded, or already processing)
+
+  /cases/{caseId}/processing-status:
+    get:
+      summary: Check processing status
+      operationId: getProcessingStatus
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current processing stage
+
+  /cases/{caseId}/results:
+    get:
+      summary: Get AI Results
+      operationId: getResults
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Structured verification results
+
+  /cases/{caseId}/evidence:
+    get:
+      summary: Get lineage and evidence
+      operationId: getEvidence
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of evidence items
+
+  /cases/{caseId}/audit-trail:
+    get:
+      summary: Get readable audit trail for a case
+      operationId: getAuditTrail
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Chronological list of audit events for the case
+
+  /cases/{caseId}/extracted-fields/{fieldId}:
+    patch:
+      summary: Correct an extracted field (Human in the loop)
+      operationId: correctField
+      security:
+        - bearerAuth: [ "pharmacist", "claims_reviewer", "org_admin" ]
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: fieldId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                normalizedValue:
+                  type: string
+              required: ["normalizedValue"]
+      responses:
+        '200':
+          description: Field corrected
+        '400':
+          description: Validation error
+        '403':
+          description: Forbidden (patient, super_admin, or unauthorized role)
+        '404':
+          description: Extracted field not found
+
+  /review-queue:
+    get:
+      summary: List cases requiring review
+      operationId: getReviewQueue
+      security:
+        - bearerAuth: [ "claims_reviewer", "pharmacist", "org_admin" ]
+      responses:
+        '200':
+          description: Cases waiting for human review
+
+  /cases/{caseId}/reviews:
+    get:
+      summary: List reviews for a case
+      operationId: listReviews
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of decisions made on this case
+    post:
+      summary: Submit a human review decision
+      operationId: submitReview
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                decision:
+                  type: string
+                  enum: [ "APPROVE", "REJECT", "REQUEST_CLARIFICATION", "ESCALATE" ]
+                reasonCode:
+                  type: string
+                notes:
+                  type: string
+              required: [ "decision", "reasonCode" ]
+      responses:
+        '201':
+          description: Decision recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDecision'
+
+  /cases/{caseId}/fhir-bundle:
+    get:
+      summary: Export results as FHIR bundle
+      operationId: getFhirBundle
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: FHIR R4 Bundle representation of the case and evidence
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Synthetic FHIR Bundle

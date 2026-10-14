@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pharmavault.example/schemas/document.schema.json",
+  "title": "Document",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "caseId": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "type": {
+      "type": "string",
+      "enum": ["PRESCRIPTION", "PHARMACY_INVOICE", "CLAIM_FORM"]
+    },
+    "originalFilename": { "type": "string" },
+    "mimeType": { "type": "string" },
+    "sizeBytes": { "type": "integer", "minimum": 0 },
+    "sha256": { "type": "string" },
+    "pageCount": { "type": "integer", "minimum": 1 },
+    "processedPageCount": { "type": "integer", "minimum": 0 },
+    "omittedPageCount": { "type": "integer", "minimum": 0 },
+    "pageCoverage": {
+      "type": "object",
+      "properties": {
+        "total": { "type": "integer", "minimum": 1 },
+        "processed": { "type": "integer", "minimum": 0 },
+        "omitted": { "type": "integer", "minimum": 0 },
+        "status": {
+          "type": "string",
+          "enum": ["COMPLETE", "INCOMPLETE"]
+        }
+      },
+      "required": ["total", "processed", "omitted", "status"],
+      "additionalProperties": false
+    },
+    "uploadStatus": {
+      "type": "string",
+      "enum": ["PENDING", "COMPLETED", "FAILED"]
+    },
+    "processingStatus": {
+      "type": "string",
+      "enum": ["PENDING", "EXTRACTING", "PROCESSED", "FAILED", "PDF_OCR_PENDING_RASTERIZATION"]
+    },
+    "uploadedBy": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "caseId", "type", "mimeType", "sizeBytes", "uploadStatus", "uploadedBy", "createdAt"],
+  "additionalProperties": false
+}

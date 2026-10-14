@@ -1,0 +1,61 @@
+{
+  "name": "pharmavault-trustrag",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.15.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run check:ts && vite build",
+    "build:frontend": "npm run check:ts && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:frontend": "npm run lint",
+    "check:ts": "tsc --noEmit",
+    "check:backend:syntax": "find backend -type f -name '*.js' -not -path '*/node_modules/*' -print0 | xargs -0 -n1 node --check",
+    "test:security": "npm --prefix backend run test:security",
+    "test:trustrag": "npm --prefix backend run test:trustrag",
+    "test:backend": "npm --prefix backend test",
+    "validate:contract": "redocly lint contracts/openapi/pharmavault-trustrag-v1.yaml",
+    "validate:schemas": "ajv compile -s 'contracts/schemas/*.schema.json' --spec=draft2020 -c ajv-formats",
+    "seed:catalogue": "npm --prefix backend run seed:catalogue",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@types/leaflet": "^1.9.21",
+    "axios": "^1.7.9",
+    "date-fns": "^3.0.6",
+    "gsap": "^3.14.2",
+    "html5-qrcode": "^2.3.8",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.309.0",
+    "qrcode.react": "^4.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.6.0",
+    "react-leaflet": "^4.2.1",
+    "react-markdown": "^9.0.0",
+    "react-router-dom": "^6.21.1",
+    "tesseract.js": "^7.0.0",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^2.43.3",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "ajv-cli": "^5.0.0",
+    "ajv-formats": "^3.0.1",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8"
+  }
+}

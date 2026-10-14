@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pharmavault.example/schemas/verification-case.schema.json",
+  "title": "VerificationCase",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$", "description": "MongoDB ObjectId" },
+    "caseReference": { "type": "string" },
+    "organizationId": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "branchId": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "createdBy": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "subjectReference": { "type": "string", "description": "Pseudonymous identifier for the patient" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "DOCUMENTS_PENDING",
+        "READY_FOR_PROCESSING",
+        "PROCESSING",
+        "NEEDS_CORRECTION",
+        "NEEDS_REVIEW",
+        "VERIFIED",
+        "REJECTED",
+        "CLOSED",
+        "FAILED"
+      ]
+    },
+    "documentIds": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" }
+    },
+    "reviewRequired": { "type": "boolean" },
+    "schemaVersion": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "organizationId", "createdBy", "status", "schemaVersion", "createdAt", "updatedAt"],
+  "additionalProperties": false
+}

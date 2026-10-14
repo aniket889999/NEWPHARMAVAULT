@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log*
+.env
+.env.*
+!.env.example
+storage
+data/*
+!data/academicMedicineCatalogue.js
+eng.traineddata
+**/*.traineddata
+**/*.traineddata.gz
+tessdata
+coverage
+*.log
+.DS_Store

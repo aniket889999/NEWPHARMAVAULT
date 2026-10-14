@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pharmavault.example/schemas/extracted-field.schema.json",
+  "title": "ExtractedField",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "documentId": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "fieldType": { "type": "string" },
+    "rawValue": { "type": "string" },
+    "normalizedValue": { "type": "string" },
+    "pageNumber": { "type": "integer", "minimum": 1 },
+    "boundingBox": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 4,
+      "maxItems": 4,
+      "description": "[x_min, y_min, x_max, y_max]"
+    },
+    "extractionMethod": { "type": "string" },
+    "extractionConfidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "needsCorrection": { "type": "boolean" },
+    "correctedBy": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "correctedAt": { "type": "string", "format": "date-time" },
+    "resolution": {
+      "type": "object",
+      "properties": {
+        "resolved": { "type": "boolean" },
+        "ambiguous": { "type": "boolean" },
+        "matchScore": { "type": "number", "minimum": 0, "maximum": 1 },
+        "matchBasis": { "type": "string" },
+        "canonical": { "type": ["object", "null"] },
+        "candidates": { "type": "array" },
+        "rawQuery": { "type": "string" }
+      }
+    }
+  },
+  "required": ["id", "documentId", "fieldType", "rawValue", "extractionConfidence"],
+  "additionalProperties": false
+}
