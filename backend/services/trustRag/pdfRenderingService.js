@@ -26,7 +26,9 @@ const MAX_PAGE_PIXELS = 6_000_000;
 class PdfRenderingService {
   constructor(provider = null, options = {}) {
     this.provider = provider || new NodePdfRendererProvider();
-    this.storageRoot = options.storageRoot || getDocumentStorageRoot();
+    if (options.storageRoot) {
+      this._customStorageRoot = options.storageRoot;
+    }
     
     // Concurrency & queue bounds
     this.maxConcurrency = options.maxConcurrency || parseInt(process.env.PDF_MAX_CONCURRENCY, 10) || 2;
@@ -44,6 +46,14 @@ class PdfRenderingService {
     // Disk cache bounds
     this.maxDiskPreviews = options.maxDiskPreviews || parseInt(process.env.PDF_DISK_CACHE_MAX_FILES, 10) || 200;
     this._trackedDiskPreviews = []; // array of { filePath, timestamp }
+  }
+
+  get storageRoot() {
+    return this._customStorageRoot || getDocumentStorageRoot();
+  }
+
+  set storageRoot(val) {
+    this._customStorageRoot = val;
   }
 
   /**

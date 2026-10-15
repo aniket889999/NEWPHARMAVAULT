@@ -345,6 +345,76 @@ test('Work Order 4A: Local Image OCR for TrustRAG Test Suite', async (t) => {
     assert.ok(result.imageDimensions.width > 0);
   });
 
+  // 7b. Real Tesseract provider extracts structured blocks with preserved coordinates (regression)
+  await t.test('7b. Real Tesseract provider extracts structured blocks with preserved coordinates from rendered image', async () => {
+    let renderedPng;
+    try {
+      const { createCanvas } = require('@napi-rs/canvas');
+      const canvas = createCanvas(600, 200);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 600, 200);
+      ctx.fillStyle = '#000000';
+      ctx.font = '28px sans-serif';
+      ctx.fillText('Paracetamol 500 mg Tablet', 30, 70);
+      ctx.fillText('Quantity: 10', 30, 130);
+      renderedPng = canvas.toBuffer('image/png');
+    } catch {
+      const NodePdfRendererProvider = require('../services/trustRag/nodePdfRendererProvider');
+      const renderer = new NodePdfRendererProvider();
+
+      function makeSyntheticPdf(lines) {
+        const text = lines.map((line, index) => `${index ? '0 -32 Td\n' : ''}(${line.replace(/[\\()]/g, '\\$&')}) Tj`).join('\n');
+        const stream = `BT /F1 20 Tf 40 740 Td\n${text}\nET`;
+        const objects = [
+          '<< /Type /Catalog /Pages 2 0 R >>',
+          '<< /Type /Pages /Count 1 /Kids [3 0 R] >>',
+          '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+          '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+          `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`
+        ];
+        let content = '%PDF-1.4\n';
+        const offsets = [];
+        objects.forEach((object, index) => { offsets.push(Buffer.byteLength(content)); content += `${index + 1} 0 obj\n${object}\nendobj\n`; });
+        const xref = Buffer.byteLength(content);
+        content += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+        content += offsets.map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`).join('');
+        content += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+        return Buffer.from(content);
+      }
+
+      const pdfBuffer = makeSyntheticPdf(['Paracetamol 500 mg Tablet', 'Quantity: 10']);
+      renderedPng = await renderer.renderPage(pdfBuffer, 1);
+    }
+    assert.ok(renderedPng && renderedPng.length > 0, 'Rendered PNG must not be empty');
+
+    const tesseractProvider = new TesseractOcrProvider();
+    const result = await tesseractProvider.recognize(renderedPng, { timeoutMs: 30000 });
+
+    assert.ok(result.rawText.includes('Paracetamol'), `Expected rawText to include 'Paracetamol', got: ${result.rawText}`);
+    assert.ok(result.lines.length >= 2, `Expected at least 2 lines, got: ${result.lines.length}`);
+    assert.ok(result.words.length >= 4, `Expected at least 4 words, got: ${result.words.length}`);
+
+    // Verify structured block properties and preserved normalized coordinates (no fabrication)
+    for (const line of result.lines) {
+      assert.ok(line.text.length > 0, 'Line text must not be empty');
+      assert.ok(line.confidence >= 0 && line.confidence <= 1, 'Line confidence must be normalized between 0 and 1');
+      assert.ok(Array.isArray(line.bbox) && line.bbox.length === 4, 'Line bbox must have 4 coordinates [x0, y0, x1, y1]');
+      const [x0, y0, x1, y1] = line.bbox;
+      assert.ok(x0 >= 0 && x0 <= 1, `x0 must be in [0, 1], got ${x0}`);
+      assert.ok(y0 >= 0 && y0 <= 1, `y0 must be in [0, 1], got ${y0}`);
+      assert.ok(x1 >= x0 && x1 <= 1, `x1 must be >= x0 and <= 1, got ${x1}`);
+      assert.ok(y1 >= y0 && y1 <= 1, `y1 must be >= y0 and <= 1, got ${y1}`);
+    }
+
+    // Verify words also have preserved normalized coordinates
+    for (const word of result.words) {
+      assert.ok(word.text.length > 0, 'Word text must not be empty');
+      assert.ok(word.confidence >= 0 && word.confidence <= 1, 'Word confidence must be normalized between 0 and 1');
+      assert.ok(Array.isArray(word.bbox) && word.bbox.length === 4, 'Word bbox must have 4 coordinates');
+    }
+  });
+
   // 8. Upload with sampleFields, lowConfidence, or unknown extraction properties returns HTTP 400
   await t.test('8. Upload with sampleFields, lowConfidence, or unknown extraction properties returns HTTP 400', async () => {
     const token = jwt.sign({ id: user._id.toString() }, process.env.JWT_SECRET, { expiresIn: '1h' });

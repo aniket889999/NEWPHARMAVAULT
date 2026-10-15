@@ -14,8 +14,45 @@ const llmExplainabilityService = require('./llmExplainabilityService');
  * TrustRAG Orchestrator
  * Coordinates extraction, identity resolution, controlled evidence routing,
  * consistency checks, risk signals, and explainability.
+ *
+ * Guarantees:
+ * - Documents with omitted pages remain explicitly incomplete and require human review.
+ * - Obsolete document correction flags are cleared ONLY after legitimate correction/reprocessing.
+ * - Original extraction and correction history is preserved.
+ * - Retries do not leave stale or duplicate findings/evidence.
  */
 class TrustRagOrchestrator {
+  /**
+   * Helper to check if any field types still have conflicting normalized values across pages
+   * @private
+   */
+  _hasActiveMultiPageConflict(docFields) {
+    const byType = new Map();
+    for (const f of docFields) {
+      if (!byType.has(f.fieldType)) byType.set(f.fieldType, []);
+      byType.get(f.fieldType).push(f);
+    }
+
+    for (const [, fields] of byType.entries()) {
+      const pageValues = new Map();
+      for (const f of fields) {
+        const val = (f.normalizedValue !== undefined && f.normalizedValue !== '' ? f.normalizedValue : f.rawValue || '').trim().toLowerCase();
+        if (val) {
+          const p = f.pageNumber || 1;
+          if (!pageValues.has(p)) pageValues.set(p, val);
+        }
+      }
+      const pages = Array.from(pageValues.keys());
+      if (pages.length > 1) {
+        const firstVal = pageValues.get(pages[0]);
+        for (let i = 1; i < pages.length; i++) {
+          if (pageValues.get(pages[i]) !== firstVal) return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /**
    * Process a verification case
    * @param {string} caseId
@@ -59,11 +96,44 @@ class TrustRagOrchestrator {
     });
 
     try {
-      // 1. Document field extraction (Real OCR only; client options & metadata overrides prohibited)
+      // Clean up derived/check/signal evidence items from previous runs to prevent duplicates on retry
+      await EvidenceItem.deleteMany({
+        caseId: vCase._id,
+        $or: [
+          { sourceType: 'CANONICAL_CATALOG' },
+          { sourceType: 'OFFICIAL_REGISTRY' },
+          {
+            sourceType: 'CASE_DOCUMENT',
+            claimSupported: /^(Missing required field|Document Completeness|Partial Page Coverage|Medicine Name Alignment|Dosage Strength Alignment|Dosage Form Alignment|Quantity Alignment|Date Sequence Alignment)/i
+          }
+        ]
+      });
+
+      // 1. Document field extraction (Real OCR only; preserves existing corrected fields on retry)
       const allFields = [];
       for (const doc of documents) {
         const fields = await documentExtractorService.extractFields(doc);
         allFields.push(...fields);
+      }
+
+      // Check and clear obsolete document correction flags ONLY IF legitimate correction resolved issues
+      for (const doc of documents) {
+        if (doc.metadata && (doc.metadata.needsCorrection || doc.metadata.hasMultiPageConflict || doc.metadata.needsHumanCorrection)) {
+          const docFields = allFields.filter(f => String(f.documentId) === String(doc._id));
+          const stillHasConflict = this._hasActiveMultiPageConflict(docFields);
+          const stillHasUncorrected = docFields.some(f => f.needsCorrection === true);
+
+          if (!stillHasConflict && !stillHasUncorrected && docFields.length > 0) {
+            doc.metadata = {
+              ...doc.metadata,
+              hasMultiPageConflict: false,
+              needsCorrection: false,
+              needsHumanCorrection: false,
+              correctionResolvedAt: new Date()
+            };
+            await doc.save();
+          }
+        }
       }
 
       // 2. Identity resolution for medicine names in documents
@@ -104,7 +174,7 @@ class TrustRagOrchestrator {
         resolutions
       });
 
-      // 5. Risk signal generation
+      // 5. Risk signal generation (with genuine same-case EvidenceItem IDs and coverage checks)
       const signals = await riskSignalService.evaluateRiskSignals({
         caseId: vCase._id,
         documents,
@@ -126,6 +196,18 @@ class TrustRagOrchestrator {
         evidenceItems: allEvidence
       });
 
+      // Check if any document has incomplete page coverage
+      const hasIncompleteCoverage = documents.some(
+        d => (d.omittedPageCount && d.omittedPageCount > 0) || (d.pageCoverage && d.pageCoverage.status === 'INCOMPLETE')
+      );
+
+      // If document is incomplete, never describe as fully analyzed in explanation
+      if (hasIncompleteCoverage && explanation && explanation.summary) {
+        if (!explanation.summary.toLowerCase().includes('incomplete') && !explanation.summary.toLowerCase().includes('omitted')) {
+          explanation.summary += ' Document page coverage is incomplete (pages above the 3-page processing limit were omitted and require human reviewer inspection).';
+        }
+      }
+
       // 7. State Transition & Human-in-the-Loop Evaluation
       // RULE: The system NEVER automatically approves or rejects a case.
       const hasFieldsNeedingCorrection = allFields.some(f => f.needsCorrection === true);
@@ -143,7 +225,8 @@ class TrustRagOrchestrator {
       vCase.metadata = {
         ...(vCase.metadata || {}),
         explanation,
-        resolutions
+        resolutions,
+        hasIncompleteCoverage
       };
 
       await vCase.save();
@@ -161,6 +244,7 @@ class TrustRagOrchestrator {
           signalsCount: signals.length,
           evidenceCount: allEvidence.length,
           needsCorrection: hasFieldsNeedingCorrection,
+          hasIncompleteCoverage,
           explainedBy: explanation.generatedBy
         }
       });
@@ -174,6 +258,7 @@ class TrustRagOrchestrator {
         checksCount: checks.length,
         riskSignalsCount: signals.length,
         evidenceCount: allEvidence.length,
+        hasIncompleteCoverage,
         explanation,
         signals: signals.map(s => ({ signalType: s.signalType, severity: s.severity, description: s.description }))
       };

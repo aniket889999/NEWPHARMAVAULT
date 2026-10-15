@@ -193,7 +193,7 @@ class TesseractOcrProvider extends OcrProvider {
         if (typeof timeoutTimer.unref === 'function') timeoutTimer.unref();
       });
 
-      const recognitionPromise = worker.recognize(imageBuffer);
+      const recognitionPromise = worker.recognize(imageBuffer, {}, { text: true, blocks: true });
       const result = await Promise.race([recognitionPromise, timeoutPromise]);
       if (timeoutTimer) clearTimeout(timeoutTimer);
 
