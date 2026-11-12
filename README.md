@@ -1,5 +1,13 @@
 # PharmaVault TrustRAG
 
+[![Offline checkpoint checks](https://github.com/aniket889999/NEWPHARMAVAULT/actions/workflows/checkpoints.yml/badge.svg?branch=main)](https://github.com/aniket889999/NEWPHARMAVAULT/actions/workflows/checkpoints.yml)
+
+## Current engineering checkpoints
+
+Sessions 1–2 are accepted **offline**: up to three source-linked medicine items per document, explainable prescription/invoice matching and conservative quantity conversion. The clean-checkout regression contains 263 passing development checks. See [published checkpoint status](docs/CHECKPOINT_STATUS.md) for exact scopes, frozen contracts and reproducible commands.
+
+Session 3 case-page, grouping and human-review integration is **PARTIAL** until the backend, real database/OCR and browser workflow are independently accepted. Sessions 4–5 and held-out product evaluation have not started. The badge measures bounded offline checks, not full-app, clinical or production readiness.
+
 ## Project Description
 An academic final-year engineering prototype for evidence-grounded prescription, pharmacy-invoice and health-claim verification with human review.
 

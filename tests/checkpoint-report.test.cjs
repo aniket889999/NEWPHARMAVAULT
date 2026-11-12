@@ -1,0 +1,12 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { parseTestCounts, frozenFingerprints } = require('../scripts/checkpoint-checks.cjs');
+const summary = values => ['tests', 'pass', 'fail', 'cancelled', 'skipped', 'todo'].map((key, index) => `# ${key} ${values[index]}`).join('\n');
+test('complete passing execution is recorded exactly', () => { const result = parseTestCounts(summary([3,3,0,0,0,0]), 0); assert.equal(result.status, 'PASS'); assert.equal(result.counts.pass, 3); });
+test('nonzero process exit cannot be a pass', () => { assert.equal(parseTestCounts(summary([3,3,0,0,0,0]), 1).status, 'FAIL'); });
+test('failed or cancelled tests cannot be a pass', () => { for (const values of [[3,2,1,0,0,0], [3,2,0,1,0,0]]) assert.equal(parseTestCounts(summary(values), 0).status, 'FAIL'); });
+test('missing or inconsistent summary is not a measured result', () => { assert.equal(parseTestCounts('no summary', 0).status, 'FAIL'); assert.equal(parseTestCounts(summary([3,2,0,0,0,0]), 0).status, 'FAIL'); });
+test('zero tests cannot create a green checkpoint', () => { assert.equal(parseTestCounts(summary([0,0,0,0,0,0]), 0).status, 'FAIL'); });
+test('skips and TODOs remain partial, not a successful checkpoint', () => { for (const values of [[3,2,0,0,1,0], [3,2,0,0,0,1]]) assert.equal(parseTestCounts(summary(values), 0).status, 'PARTIAL'); });
+test('real frozen contract sources still match reviewed hashes', () => { assert.equal(frozenFingerprints().status, 'PASS'); });

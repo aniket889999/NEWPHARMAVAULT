@@ -47,6 +47,7 @@ tessdata/
 # Local scaffolding, test output and native-app build state
 .bolt/
 coverage/
+reports/checkpoints/
 .build/
 .swiftpm/
 DerivedData/

@@ -1,0 +1,48 @@
+name: Offline checkpoint checks
+
+on:
+  push:
+    branches: [main, 'wip/**', 'feature/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checkpoint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked test dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run offline checkpoints and produce measured reports
+        run: node scripts/checkpoint-checks.cjs --report-dir=reports/checkpoints
+      - name: Validate JSON contracts
+        run: npm run validate:schemas
+      - name: Strict typecheck of the standalone comparison
+        run: node node_modules/typescript/bin/tsc --noEmit -p tests/reconciliation-v2/tsconfig.json
+      - name: Strict typecheck of integration client, when present
+        if: ${{ hashFiles('tests/integration-v2/tsconfig.json') != '' }}
+        run: node node_modules/typescript/bin/tsc --noEmit -p tests/integration-v2/tsconfig.json
+      - name: Upload reproducible test evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: offline-checkpoint-evidence
+          path: reports/checkpoints/
+          if-no-files-found: warn
+          retention-days: 14
