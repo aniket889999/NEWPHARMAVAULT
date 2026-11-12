@@ -11,18 +11,14 @@ import {
 import { verificationApi } from '../api/verificationApi';
 import {
   FileText,
-  AlertTriangle,
-  CheckCircle2,
   AlertCircle,
   Eye,
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Lock,
   Info,
   Layers,
   Crosshair,
-  ShieldAlert,
   Pill,
   ChevronDown,
   ChevronUp,
@@ -40,6 +36,8 @@ interface DocumentEvidenceViewerProps {
   selectedFieldId?: string | null;
   onSelectField?: (fieldId: string | null) => void;
   initialDocumentType?: DocumentType;
+  initialDocumentId?: string | null;
+  initialPageNumber?: number;
 }
 
 /**
@@ -48,6 +46,7 @@ interface DocumentEvidenceViewerProps {
 export function hasValidBoundingBox(bbox?: BoundingBox | number[] | null): bbox is BoundingBox {
   if (!bbox || !Array.isArray(bbox) || bbox.length !== 4) return false;
   const [x0, y0, x1, y1] = bbox;
+  if (![x0, y0, x1, y1].every(value => Number.isFinite(value) && value >= 0 && value <= 1)) return false;
   // Missing or [0,0,0,0]
   if (x0 === 0 && y0 === 0 && x1 === 0 && y1 === 0) return false;
   // Non-positive width or height
@@ -61,15 +60,20 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
   extractedFields = [],
   riskSignals = [],
   consistencyChecks = [],
-  evidenceItems = [],
   selectedFieldId: externalSelectedFieldId,
   onSelectField,
-  initialDocumentType = 'PRESCRIPTION'
+  initialDocumentType = 'PRESCRIPTION',
+  initialDocumentId = null,
+  initialPageNumber = 1
 }) => {
   const [activeType, setActiveType] = useState<DocumentType>(initialDocumentType);
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(initialDocumentId);
+  const [currentPage, setCurrentPage] = useState<number>(initialPageNumber);
   const [internalSelectedFieldId, setInternalSelectedFieldId] = useState<string | null>(null);
   const selectedFieldId = externalSelectedFieldId !== undefined ? externalSelectedFieldId : internalSelectedFieldId;
+  useEffect(() => {
+    setActiveType(initialDocumentType); setActiveDocumentId(initialDocumentId); setCurrentPage(initialPageNumber); setZoomLevel(1);
+  }, [caseId, initialDocumentType, initialDocumentId, initialPageNumber, externalSelectedFieldId]);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoadingDoc, setIsLoadingDoc] = useState<boolean>(false);
@@ -100,7 +104,10 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
   };
 
   // Find active document metadata
-  const activeDocument = documents.find(d => d.type === activeType);
+  const scopedDocuments = documents.filter(doc => doc.caseId === caseId);
+  const activeDocument = activeDocumentId
+    ? scopedDocuments.find(doc => (doc.id || doc._id) === activeDocumentId)
+    : scopedDocuments.find(doc => doc.type === activeType);
 
   const isPdfDocument = Boolean(
     activeDocument &&
@@ -167,7 +174,9 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
     }
     if (
       field.needsCorrection ||
-      (typeof field.confidenceScore === 'number' && field.confidenceScore < 0.75)
+      Boolean(field.correctedBy) !== Boolean(field.correctedAt) ||
+      (typeof field.extractionConfidence !== 'number') ||
+      (field.extractionConfidence < 0.75 && !(field.correctedBy && field.correctedAt))
     ) {
       return 'low_confidence';
     }
@@ -197,7 +206,7 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
     verified: {
       border: 'border-teal-600 ring-1 ring-teal-300 bg-teal-500/20',
       badge: 'bg-teal-100 text-teal-800 border-teal-300',
-      label: 'Verified / High Confidence',
+      label: 'Extracted Field (not a human decision)',
       dot: 'bg-teal-600'
     }
   };
@@ -206,9 +215,9 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
   const activeFields = extractedFields.filter(f => {
     if (activeDocument) {
       const docId = activeDocument.id || activeDocument._id;
-      return f.documentId === docId || f.documentType === activeType;
+      return f.caseId === caseId && f.documentId === docId;
     }
-    return f.documentType === activeType;
+    return false;
   });
 
   // Overlays filtered by selected page
@@ -225,8 +234,12 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
     async function loadContent() {
       if (!activeDocument) {
         setImageUrl(null);
-        setDocError(null);
+        setIsLoadingDoc(false);
+        setDocError(activeDocumentId ? 'The exact evidence document is unavailable. Refresh the case.' : null);
         return;
+      }
+      if (!Number.isSafeInteger(currentPage) || currentPage < 1 || currentPage > totalPages || (!isPdfDocument && currentPage !== 1)) {
+        setImageUrl(null); setIsLoadingDoc(false); setDocError('This source page is outside the available pilot preview. No highlight or inspection is claimed.'); return;
       }
 
       const docId = activeDocument.id || activeDocument._id;
@@ -234,6 +247,7 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
 
       try {
         setIsLoadingDoc(true);
+        setImageUrl(null);
         setDocError(null);
 
         let blob: Blob;
@@ -250,11 +264,9 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
         const objectUrl = URL.createObjectURL(blob);
         currentObjectUrl = objectUrl;
         setImageUrl(objectUrl);
-      } catch (err: any) {
+      } catch {
         if (!isMounted) return;
-        const msg =
-          err.response?.data?.message || err.message || 'Failed to retrieve secure document content';
-        setDocError(msg);
+        setDocError('Secure source preview is unavailable. Refresh the case or inspect a supported source.');
         setImageUrl(null);
       } finally {
         if (isMounted) {
@@ -272,7 +284,7 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
         URL.revokeObjectURL(currentObjectUrl);
       }
     };
-  }, [caseId, activeDocument?.id, activeDocument?._id, activeType, currentPage, isPdfDocument]);
+  }, [caseId, activeDocument, activeDocumentId, activeType, currentPage, isPdfDocument, totalPages]);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
@@ -287,7 +299,7 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
               </h3>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Source document inspection with verified local OCR coordinate overlays.
+              Source inspection with available local OCR coordinates. Highlights are not human verification.
             </p>
           </div>
 
@@ -295,7 +307,7 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
           <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-slate-600">
             <span className="flex items-center gap-1">
               <span className="w-2.5 h-2.5 rounded-full bg-teal-500 ring-2 ring-teal-200" />
-              <span>Teal: Verified</span>
+              <span>Teal: Extracted</span>
             </span>
             <span className="flex items-center gap-1">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-200" />
@@ -329,7 +341,7 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
       {/* Document Selector Tabs */}
       <div className="flex items-center border-b border-slate-200 bg-white px-4 gap-2 overflow-x-auto">
         {documentTypes.map(type => {
-          const doc = documents.find(d => d.type === type);
+          const doc = scopedDocuments.find(d => d.type === type);
           const isSelected = activeType === type;
           const { title } = typeLabels[type];
 
@@ -339,6 +351,7 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
               type="button"
               onClick={() => {
                 setActiveType(type);
+                setActiveDocumentId(doc?.id || doc?._id || null);
                 setCurrentPage(1);
                 setZoomLevel(1);
               }}
@@ -363,6 +376,8 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
           );
         })}
       </div>
+
+      {scopedDocuments.filter(doc => doc.type === activeType).length > 1 && <label className="block px-4 py-3 text-xs text-slate-700">Exact source document <select aria-label="Exact source document" value={activeDocument?.id || activeDocument?._id || ''} onChange={event => { setActiveDocumentId(event.target.value); setCurrentPage(1); setZoomLevel(1); handleSelectField(null); }} className="ml-2 border rounded p-1">{scopedDocuments.filter(doc => doc.type === activeType).map(doc => <option key={doc.id || doc._id} value={doc.id || doc._id}>{doc.originalFilename} · {(doc.id || doc._id || '').slice(-6)}</option>)}</select></label>}
 
       {/* Main Reviewer Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[560px]">
@@ -553,7 +568,7 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
                         width: widthPct,
                         height: heightPct
                       }}
-                      title={`${field.fieldType}: "${field.normalizedValue || field.rawValue}" (${(field.confidenceScore * 100).toFixed(0)}% conf) - Pg ${field.pageNumber || 1}`}
+                      title={`${field.fieldType}: "${field.normalizedValue || field.rawValue}" (OCR confidence ${typeof field.extractionConfidence === 'number' ? `${Math.round(field.extractionConfidence * 100)}%` : 'unknown'}) - Pg ${field.pageNumber || 1}`}
                       aria-label={`Highlight for ${field.fieldType} on page ${field.pageNumber || 1}`}
                     >
                       {/* Floating pill badge when selected or hovered */}
@@ -632,13 +647,13 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
                     <div>
                       <span className="text-slate-400 block">Page / Confidence:</span>
                       <span className="font-bold text-slate-800 font-mono">
-                        Pg {selectedField.pageNumber || 1} • {(selectedField.confidenceScore * 100).toFixed(1)}%
+                        Pg {selectedField.pageNumber || 1} • {typeof selectedField.extractionConfidence === 'number' ? `${(selectedField.extractionConfidence * 100).toFixed(1)}%` : 'unknown'}
                       </span>
                     </div>
                     <div>
                       <span className="text-slate-400 block">Extraction Method:</span>
                       <span className="font-medium text-slate-700 truncate block">
-                        {selectedField.extractionMethod || 'LOCAL_OCR'}
+                        {selectedField.extractionMethod || 'Method not reported'}
                       </span>
                     </div>
                   </div>
@@ -797,7 +812,7 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
                             </span>
                           )}
                           <span className="text-[10px] font-mono text-slate-400">
-                            {(field.confidenceScore * 100).toFixed(0)}%
+                            {typeof field.extractionConfidence === 'number' ? `${(field.extractionConfidence * 100).toFixed(0)}%` : 'unknown'}
                           </span>
                         </div>
                       </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ExtractedField, DocumentType, DocumentItem } from '../types';
 import { verificationApi } from '../api/verificationApi';
 import {
@@ -16,6 +16,7 @@ import {
   Pill
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { safeApiMessage } from '../integration/snapshot';
 
 interface ExtractedFieldsEditorProps {
   caseId: string;
@@ -23,6 +24,7 @@ interface ExtractedFieldsEditorProps {
   documents?: DocumentItem[];
   onFieldCorrected?: (updatedField: ExtractedField) => void;
   canEdit?: boolean;
+  snapshotToken?: string | null;
 }
 
 export const ExtractedFieldsEditor: React.FC<ExtractedFieldsEditorProps> = ({
@@ -30,12 +32,15 @@ export const ExtractedFieldsEditor: React.FC<ExtractedFieldsEditorProps> = ({
   fields,
   documents = [],
   onFieldCorrected,
-  canEdit = true
+  canEdit = false,
+  snapshotToken = null
 }) => {
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+  const [editSnapshotToken, setEditSnapshotToken] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [expandedCandidatesFieldId, setExpandedCandidatesFieldId] = useState<string | null>(null);
+  useEffect(() => { setEditingFieldId(null); setEditValue(''); setEditSnapshotToken(null); }, [caseId, snapshotToken]);
 
   const documentTypes: DocumentType[] = ['PRESCRIPTION', 'PHARMACY_INVOICE', 'CLAIM_FORM'];
 
@@ -46,16 +51,20 @@ export const ExtractedFieldsEditor: React.FC<ExtractedFieldsEditorProps> = ({
   };
 
   const handleStartEdit = (field: ExtractedField) => {
+    if (!canEdit || !snapshotToken) return;
     setEditingFieldId(field.id || field._id || '');
+    setEditSnapshotToken(snapshotToken);
     setEditValue(field.normalizedValue || field.rawValue || '');
   };
 
   const handleCancelEdit = () => {
     setEditingFieldId(null);
     setEditValue('');
+    setEditSnapshotToken(null);
   };
 
   const handleSaveEdit = async (fieldId: string) => {
+    if (!canEdit || !editSnapshotToken || editSnapshotToken !== snapshotToken || isSubmitting) return;
     if (!editValue.trim()) {
       toast.error('Normalized value cannot be empty');
       return;
@@ -63,17 +72,15 @@ export const ExtractedFieldsEditor: React.FC<ExtractedFieldsEditorProps> = ({
 
     try {
       setIsSubmitting(true);
-      const updated = await verificationApi.correctExtractedField(caseId, fieldId, editValue.trim());
+      const updated = await verificationApi.correctExtractedField(caseId, fieldId, editValue.trim(), editSnapshotToken);
       toast.success('Field corrected successfully!');
       setEditingFieldId(null);
       if (onFieldCorrected) {
         onFieldCorrected(updated);
       }
     } catch (err: unknown) {
-      console.error('Field correction failed:', err);
-      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
-      const msg = axiosErr.response?.data?.message || axiosErr.message || 'Failed to correct field';
-      toast.error(msg);
+      toast.error(safeApiMessage(err, 'Correction was not saved. Refresh and inspect the current source before retrying.'));
+      setEditingFieldId(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -85,12 +92,13 @@ export const ExtractedFieldsEditor: React.FC<ExtractedFieldsEditorProps> = ({
 
   return (
     <div className="space-y-6">
+      {!snapshotToken && <p className="p-3 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-900">Current evidence snapshot unavailable. Field correction is disabled; refresh Medicine comparison before editing.</p>}
       {/* PDF Honest Status Notice Banner */}
       {hasPdfPending && (
         <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-xl text-xs text-sky-800 flex items-center gap-2.5 shadow-2xs">
           <AlertCircle className="w-4 h-4 text-sky-600 shrink-0" />
           <span>
-            Image OCR is available in this MVP. PDF page rendering is the next planned module.
+            Local PDF rendering is available within the three-page pilot limit. This source has no extracted fields or is awaiting rendering; do not treat it as inspected.
           </span>
         </div>
       )}
@@ -121,7 +129,7 @@ export const ExtractedFieldsEditor: React.FC<ExtractedFieldsEditorProps> = ({
             {docFields.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">
                 {isPdfPendingDoc ? (
-                  <span>PDF OCR is pending rasterization support. Upload a PNG, JPEG, or WEBP document for local image OCR.</span>
+                  <span>PDF extraction is pending. Reprocess a supported source and inspect its reported page coverage.</span>
                 ) : (
                   <span>No extracted fields available for this document type.</span>
                 )}
@@ -131,17 +139,18 @@ export const ExtractedFieldsEditor: React.FC<ExtractedFieldsEditorProps> = ({
                 {docFields.map(field => {
                   const fieldId = field.id || field._id || '';
                   const isEditing = editingFieldId === fieldId;
-                  const confidenceVal = typeof field.confidenceScore === 'number' ? field.confidenceScore : 0.9;
-                  const isLowConfidence = confidenceVal < 0.75;
-                  const needsCorrection = field.needsCorrection || isLowConfidence;
-                  const isCorrected = Boolean(field.correctedAt);
-                  const ocrMethod = field.extractionMethod || 'LOCAL_TESSERACT_IMAGE_OCR';
+                  const confidenceVal = typeof field.extractionConfidence === 'number' && Number.isFinite(field.extractionConfidence) && field.extractionConfidence >= 0 && field.extractionConfidence <= 1 ? field.extractionConfidence : null;
+                  const isLowConfidence = confidenceVal === null || confidenceVal < 0.75;
+                  const isCorrected = Boolean(field.correctedBy && field.correctedAt) && !field.needsCorrection;
+                  const partialCorrection = Boolean(field.correctedBy) !== Boolean(field.correctedAt);
+                  const needsCorrection = field.needsCorrection || partialCorrection || confidenceVal === null || (isLowConfidence && !isCorrected);
+                  const ocrMethod = field.extractionMethod || 'Method not reported';
 
                   return (
                     <div
                       key={fieldId}
                       className={`p-4 transition-colors ${
-                        needsCorrection && !isCorrected ? 'bg-amber-50/40' : 'hover:bg-slate-50/50'
+                        needsCorrection ? 'bg-amber-50/40' : 'hover:bg-slate-50/50'
                       }`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -157,7 +166,7 @@ export const ExtractedFieldsEditor: React.FC<ExtractedFieldsEditorProps> = ({
                             </span>
 
                             {/* Needs Correction Badge */}
-                            {needsCorrection && !isCorrected && (
+                            {needsCorrection && (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
                                 <AlertCircle className="w-3 h-3 text-amber-600" /> Needs Correction
                               </span>
@@ -178,7 +187,7 @@ export const ExtractedFieldsEditor: React.FC<ExtractedFieldsEditorProps> = ({
                                   : 'bg-slate-100 text-slate-600'
                               }`}
                             >
-                              Conf: {(confidenceVal * 100).toFixed(0)}%
+                              OCR confidence: {confidenceVal === null ? 'unknown' : `${(confidenceVal * 100).toFixed(0)}%`}
                             </span>
 
                             {/* Document & Page Citation */}
@@ -331,11 +340,12 @@ export const ExtractedFieldsEditor: React.FC<ExtractedFieldsEditorProps> = ({
                                               {c.strength} • {c.dosageForm} • {c.manufacturer || 'Approved Formulary'} • Match: {Math.round((c.matchScore || 0) * 100)}% ({c.matchBasis})
                                             </div>
                                           </div>
-                                          {canEdit && (
+                                          {canEdit && snapshotToken && (
                                             <button
                                               type="button"
                                               onClick={() => {
                                                 setEditingFieldId(fieldId);
+                                                setEditSnapshotToken(snapshotToken);
                                                 setEditValue(c.genericName || c.brandName || '');
                                               }}
                                               className="px-2 py-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200 shrink-0"
@@ -354,7 +364,7 @@ export const ExtractedFieldsEditor: React.FC<ExtractedFieldsEditorProps> = ({
                         </div>
 
                         {/* Action buttons */}
-                        {canEdit && !isEditing && (
+                        {canEdit && snapshotToken && !isEditing && (
                           <div className="flex items-center gap-2 shrink-0">
                             <button
                               onClick={() => handleStartEdit(field)}

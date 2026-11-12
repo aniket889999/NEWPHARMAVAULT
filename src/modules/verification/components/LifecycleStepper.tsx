@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Cpu,
   AlertTriangle,
-  ShieldAlert,
   ShieldCheck,
   XCircle,
   Archive
@@ -35,14 +34,14 @@ const STEPS: StepConfig[] = [
   {
     id: 'docs_pending',
     label: 'Documents',
-    description: 'Ingesting 3 docs',
+    description: 'Collecting sources',
     statuses: ['DOCUMENTS_PENDING'],
     icon: Files
   },
   {
     id: 'ready',
     label: 'Ready',
-    description: 'Tri-doc uploaded',
+    description: 'Ready to extract',
     statuses: ['READY_FOR_PROCESSING'],
     icon: CheckCircle2
   },
@@ -50,7 +49,7 @@ const STEPS: StepConfig[] = [
     id: 'processing',
     label: 'Processing',
     description: 'AI & checks running',
-    statuses: ['PROCESSING'],
+    statuses: ['PROCESSING', 'FAILED'],
     icon: Cpu
   },
   {
@@ -110,6 +109,8 @@ export const LifecycleStepper: React.FC<LifecycleStepperProps> = ({ currentStatu
           Step {Math.max(1, currentStepIndex + 1)} of {STEPS.length}
         </div>
       </div>
+
+      {currentStatus === 'FAILED' && <p role="alert" className="mb-3 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">Processing did not complete. Inspect source coverage and retry a supported document. No verification decision was made.</p>}
 
       {/* Stepper Bar */}
       <div className="relative">

@@ -12,7 +12,8 @@ export type VerificationCaseStatus =
   | 'NEEDS_REVIEW'
   | 'VERIFIED'
   | 'REJECTED'
-  | 'CLOSED';
+  | 'CLOSED'
+  | 'FAILED';
 
 export type DocumentType = 'PRESCRIPTION' | 'PHARMACY_INVOICE' | 'CLAIM_FORM';
 
@@ -62,7 +63,10 @@ export interface DocumentItem {
   sha256: string;
   pageCount: number;
   uploadStatus: 'PENDING' | 'UPLOADING' | 'COMPLETED' | 'FAILED';
-  processingStatus: 'PENDING' | 'EXTRACTED' | 'FAILED';
+  processingStatus: 'PENDING' | 'EXTRACTING' | 'EXTRACTED' | 'PROCESSED' | 'FAILED' | 'PDF_OCR_PENDING_RASTERIZATION';
+  processedPageCount?: number;
+  omittedPageCount?: number;
+  pageCoverage?: { total: number; processed: number; omitted: number; status: 'COMPLETE' | 'INCOMPLETE' };
   uploadedBy: string;
   metadata?: Record<string, any>;
   createdAt: string;
@@ -106,7 +110,8 @@ export interface ExtractedField {
   fieldType: string;
   rawValue: string;
   normalizedValue: string;
-  confidenceScore: number;
+  extractionConfidence?: number | null;
+  confidenceScore?: number; // Legacy DTO only; never substitute a fabricated score.
   pageNumber?: number;
   extractionMethod?: string;
   boundingBox?: BoundingBox;

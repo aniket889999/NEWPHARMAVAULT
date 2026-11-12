@@ -107,11 +107,12 @@ export const verificationApi = {
   async correctExtractedField(
     caseId: string,
     fieldId: string,
-    normalizedValue: string
+    normalizedValue: string,
+    snapshotToken: string
   ): Promise<ExtractedField> {
     const { data } = await apiClient.patch<ExtractedField>(
       `/v1/cases/${caseId}/extracted-fields/${fieldId}`,
-      { normalizedValue }
+      { normalizedValue, snapshotToken }
     );
     return data;
   },
@@ -163,9 +164,10 @@ export const verificationApi = {
   async submitReview(
     caseId: string,
     payload: {
+      snapshotToken: string;
       action: PublicReviewAction;
       reasonCode: string;
-      notes?: string;
+      notes: string;
       evidenceItemIds?: string[];
     }
   ): Promise<ReviewDecision> {

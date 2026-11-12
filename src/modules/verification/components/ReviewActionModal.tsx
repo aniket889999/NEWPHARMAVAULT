@@ -1,278 +1,88 @@
-import React, { useState } from 'react';
-import { PublicReviewAction } from '../types';
-import { verificationApi } from '../api/verificationApi';
-import {
-  ShieldCheck,
-  AlertTriangle,
-  ArrowUpRight,
-  X,
-  CheckCircle2,
-  AlertCircle
-} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../../context/AuthContext';
+import { verificationApi } from '../api/verificationApi';
+import { integrationApi } from '../integration/api';
+import { buildReviewRequest, canSubmitAction, safeApiMessage } from '../integration/snapshot';
+import type { CaseReconciliationSnapshot, ReviewAction } from '../integration/types';
 
 interface ReviewActionModalProps {
-  caseId: string;
-  caseReference: string;
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
+  caseId: string; caseReference: string; isOpen: boolean;
+  onClose: () => void; onSuccess: () => void;
+  /** undefined: queue loads a snapshot; null: parent snapshot unavailable, fail closed. */
+  snapshot?: CaseReconciliationSnapshot | null;
+  onRefresh?: () => void;
 }
+const options: { action: ReviewAction; label: string; reason: string; description: string }[] = [
+  { action: 'VERIFY', label: 'Verify document consistency', reason: 'SOURCE_CONSISTENCY_CONFIRMED', description: 'Only when complete, confirmed and consistent. This does not approve a claim or treatment.' },
+  { action: 'RETURN_FOR_CORRECTION', label: 'Return for correction', reason: 'SOURCE_CORRECTION_REQUIRED', description: 'Record what needs a staff correction or a clearer source document.' },
+  { action: 'ESCALATE', label: 'Escalate for further review', reason: 'EXPERT_REVIEW_REQUIRED', description: 'Refer unresolved evidence to an authorised senior reviewer.' },
+];
+export function ReviewActionModal({ caseId, caseReference, isOpen, onClose, onSuccess, snapshot: suppliedSnapshot, onRefresh }: ReviewActionModalProps) {
+  const { user } = useAuth();
+  const [snapshot, setSnapshot] = useState<CaseReconciliationSnapshot | null>(null);
+  const [action, setAction] = useState<ReviewAction>('RETURN_FOR_CORRECTION');
+  const [notes, setNotes] = useState('');
+  const [inspected, setInspected] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [invalidated, setInvalidated] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+  const submitLock = useRef(false);
 
-export const ReviewActionModal: React.FC<ReviewActionModalProps> = ({
-  caseId,
-  caseReference,
-  isOpen,
-  onClose,
-  onSuccess
-}) => {
-  const [action, setAction] = useState<PublicReviewAction>('VERIFY');
-  const [reasonCode, setReasonCode] = useState<string>('CROSS_DOCUMENT_CONSISTENT');
-  const [notes, setNotes] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
+  useEffect(() => {
+    let current = true;
+    const controller = new AbortController();
+    setSnapshot(null); setInspected(false); setConfirming(false); setError(null); setInvalidated(false);
+    setAction('RETURN_FOR_CORRECTION'); setNotes(''); setLoading(false);
+    if (!isOpen) return () => controller.abort();
+    if (suppliedSnapshot !== undefined) {
+      if (suppliedSnapshot?.caseId === caseId) setSnapshot(suppliedSnapshot);
+      else setError('A current case snapshot is required. Refresh the case first.');
+    } else {
+      setLoading(true);
+      integrationApi.getSnapshot(caseId, controller.signal).then(value => { if (current) setSnapshot(value); }).catch(() => { if (current) setError('The current review snapshot is unavailable. No decision can be submitted.'); }).finally(() => { if (current) setLoading(false); });
+    }
+    return () => { current = false; controller.abort(); };
+  }, [isOpen, caseId, suppliedSnapshot, reload, user?._id, user?.role]);
 
   if (!isOpen) return null;
-
-  const actionOptions: Array<{
-    value: PublicReviewAction;
-    title: string;
-    description: string;
-    badge: string;
-    icon: React.ElementType;
-    reasons: Array<{ code: string; label: string }>;
-  }> = [
-    {
-      value: 'VERIFY',
-      title: 'Verify Case',
-      description: 'Confirm cross-document consistency across prescription, invoice, and claim form.',
-      badge: 'border-emerald-500 bg-emerald-50 text-emerald-900',
-      icon: ShieldCheck,
-      reasons: [
-        { code: 'CROSS_DOCUMENT_CONSISTENT', label: 'Cross-document consistency confirmed' },
-        { code: 'IDENTITY_VERIFIED', label: 'Medicine identity and strength resolved accurately' },
-        { code: 'RISKS_MITIGATED', label: 'All flagged risk signals satisfactorily reviewed' }
-      ]
-    },
-    {
-      value: 'RETURN_FOR_CORRECTION',
-      title: 'Return for Correction',
-      description: 'Return case for patient/billing field correction due to extraction or billing mismatches.',
-      badge: 'border-amber-500 bg-amber-50 text-amber-900',
-      icon: AlertTriangle,
-      reasons: [
-        { code: 'QUANTITY_MISMATCH', label: 'Invoice quantity exceeds prescription' },
-        { code: 'DATE_OUT_OF_SEQUENCE', label: 'Invoice date precedes prescription issuance' },
-        { code: 'LOW_CONFIDENCE_FIELD', label: 'Extracted fields require user clarification' }
-      ]
-    },
-    {
-      value: 'ESCALATE',
-      title: 'Escalate to Senior Adjudicator',
-      description: 'Escalate complex discrepancies, suspect documentation, or unresolvable clinical conflicts.',
-      badge: 'border-purple-500 bg-purple-50 text-purple-900',
-      icon: ArrowUpRight,
-      reasons: [
-        { code: 'SUSPECTED_ALTERATION', label: 'Potential document discrepancy or high risk signal' },
-        { code: 'CLINICAL_CONFLICT', label: 'Drug substitution ambiguity requires senior review' },
-        { code: 'EXCEEDS_THRESHOLD', label: 'Claim value or risk score exceeds standard threshold' }
-      ]
-    }
-  ];
-
-  const currentOption = actionOptions.find(opt => opt.value === action) || actionOptions[0];
-
-  const handleActionChange = (newAction: PublicReviewAction) => {
-    setAction(newAction);
-    const target = actionOptions.find(opt => opt.value === newAction);
-    if (target && target.reasons[0]) {
-      setReasonCode(target.reasons[0].code);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!notes.trim()) {
-      toast.error('Reviewer notes/comment are required to record an accountable decision.');
-      return;
-    }
-
+  const currentOption = options.find(option => option.action === action)!;
+  const displayed = snapshot?.caseId === caseId && (suppliedSnapshot === undefined || suppliedSnapshot?.snapshotToken === snapshot.snapshotToken) ? snapshot : null;
+  const eligible = !invalidated && canSubmitAction(displayed, user?.role, action);
+  const payload = buildReviewRequest(displayed, user?.role, action, currentOption.reason, notes);
+  const submit = async () => {
+    if (!payload || !eligible || !inspected || !confirming || submitLock.current) return;
+    submitLock.current = true; setSubmitting(true); setError(null);
     try {
-      setIsSubmitting(true);
-      await verificationApi.submitReview(caseId, {
-        action,
-        reasonCode,
-        notes: notes.trim()
-      });
-      toast.success(`Case adjudication recorded: ${action}`);
-      setShowConfirmation(false);
-      onSuccess();
-      onClose();
-    } catch (err: any) {
-      console.error('Submit review error:', err);
-      const msg = err.response?.data?.message || err.message || 'Failed to submit review decision';
-      toast.error(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
+      // Use the displayed snapshot, never a silently refreshed token before writing.
+      await verificationApi.submitReview(caseId, payload);
+      toast.success('Human review recorded.'); onSuccess(); onClose();
+    } catch (cause: unknown) {
+      setError(safeApiMessage(cause, 'The decision was not confirmed. Refresh and inspect the current case before retrying.'));
+      setInvalidated(true); setInspected(false); setConfirming(false);
+    } finally { submitLock.current = false; setSubmitting(false); }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">
-              Human-in-the-Loop Adjudication
-            </h3>
-            <p className="text-xs text-slate-500 font-mono mt-0.5">
-              Case Ref: {caseReference}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Accountability Banner */}
-        <div className="px-6 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2.5 text-xs text-indigo-900 font-semibold">
-          <AlertCircle className="w-4 h-4 text-indigo-600 shrink-0" />
-          <span>AI supports the review; the human reviewer makes the final accountable decision.</span>
-        </div>
-
-        {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-5">
-          {/* Action Selector */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-              Select Public Review Action
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {actionOptions.map(opt => {
-                const Icon = opt.icon;
-                const isSelected = action === opt.value;
-                return (
-                  <div
-                    key={opt.value}
-                    onClick={() => handleActionChange(opt.value)}
-                    className={`cursor-pointer rounded-xl p-3 border-2 transition-all flex flex-col justify-between ${
-                      isSelected
-                        ? opt.badge
-                        : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <Icon className="w-4 h-4" />
-                        {isSelected && <CheckCircle2 className="w-4 h-4" />}
-                      </div>
-                      <div className="font-bold text-xs">{opt.title}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-xs text-slate-500 mt-2 italic font-medium">
-              {currentOption.description}
-            </p>
-          </div>
-
-          {/* Reason Code */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              Reason Code <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={reasonCode}
-              onChange={e => setReasonCode(e.target.value)}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
-            >
-              {currentOption.reasons.map(r => (
-                <option key={r.code} value={r.code}>
-                  {r.label} ({r.code})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Reviewer Notes */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              Reviewer Adjudication Notes & Rationale <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              rows={3}
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="Provide a clear, accountable explanation for this review decision..."
-              className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
-            />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => {
-              if (!notes.trim()) {
-                toast.error('Please enter notes/comment before proceeding.');
-                return;
-              }
-              setShowConfirmation(true);
-            }}
-            className="px-5 py-2 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors"
-          >
-            Review & Confirm Action
-          </button>
-        </div>
-      </div>
-
-      {/* Confirmation Dialog */}
-      {showConfirmation && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
-            <h4 className="text-base font-bold text-slate-900 mb-2">
-              Confirm Adjudication Decision
-            </h4>
-            <p className="text-xs text-slate-600 leading-relaxed mb-4">
-              Are you sure you want to record the action <strong className="text-indigo-600 uppercase font-mono">{action}</strong> for case <span className="font-mono">{caseReference}</span>?
-              This will update the case lifecycle and append an immutable audit record.
-            </p>
-
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs mb-4 space-y-1">
-              <div><strong className="text-slate-700">Action:</strong> {action}</div>
-              <div><strong className="text-slate-700">Reason:</strong> {reasonCode}</div>
-              <div><strong className="text-slate-700">Notes:</strong> {notes}</div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3">
-              <button
-                onClick={() => setShowConfirmation(false)}
-                disabled={isSubmitting}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
-              >
-                Go Back
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="px-5 py-2 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm disabled:opacity-50"
-              >
-                {isSubmitting ? 'Recording...' : 'Confirm and Submit Decision'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+  return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+    <section role="dialog" aria-modal="true" aria-labelledby="review-title" className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto p-6 space-y-4">
+      <div className="flex justify-between gap-3"><div><h2 id="review-title" className="font-bold text-slate-900">Human-in-the-Loop Validation</h2><p className="text-xs text-slate-500">{caseReference} · {snapshot ? `evidence revision ${snapshot.evidenceRevision}` : 'Snapshot unavailable'}</p></div><button type="button" aria-label="Close review" onClick={onClose} disabled={submitting}><X className="w-5 h-5" /></button></div>
+      <p className="rounded-lg bg-indigo-50 p-3 text-xs text-indigo-950">Inspect the original documents, extracted values and comparison evidence. AI supports review; the authorised human records the decision. Verification is not insurance or clinical approval.</p>
+      {loading && <p role="status" className="text-sm">Loading current evidence requirements…</p>}
+      {snapshot && !snapshot.reviewEligibility.canVerify && <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900"><strong>Verify is blocked.</strong><ul className="list-disc pl-4 mt-1">{snapshot.reviewEligibility.blockerCodes.map(code => <li key={code}>{code.replace(/_/g, ' ').toLowerCase()}</li>)}</ul></div>}
+      {error && <p role="alert" className="text-sm text-red-800">{error}</p>}
+      <button type="button" disabled={submitting || loading} className="text-xs text-indigo-700 underline" onClick={() => { if (onRefresh) onRefresh(); else setReload(value => value + 1); }}>Refresh evidence (resets confirmation)</button>
+      <fieldset disabled={submitting || loading || invalidated} className="space-y-2">
+        <legend className="text-xs font-semibold mb-2">Reviewer action</legend>
+        {options.map(option => <button key={option.action} type="button" aria-pressed={action === option.action} disabled={!canSubmitAction(displayed, user?.role, option.action)} onClick={() => { setAction(option.action); setConfirming(false); }} className={`block text-left w-full border rounded-lg p-3 disabled:opacity-40 ${action === option.action ? 'border-indigo-600 bg-indigo-50' : 'border-slate-200'}`}><span className="block text-sm font-semibold">{option.label}</span><span className="block text-xs text-slate-600 mt-1">{option.description}</span></button>)}
+        <label className="block text-xs font-semibold pt-2">Accountable reviewer notes (10–2,000 characters)<textarea value={notes} minLength={10} maxLength={2000} onChange={event => { setNotes(event.target.value); setConfirming(false); }} className="block border rounded-lg p-2 w-full mt-1 font-normal" rows={3} /></label>
+        <label className="flex gap-2 text-xs text-slate-700"><input type="checkbox" checked={inspected} onChange={event => { setInspected(event.target.checked); setConfirming(false); }} />I inspected the source documents and the evidence for this displayed snapshot.</label>
+      </fieldset>
+      {confirming && <p className="text-sm font-semibold text-slate-800">Record “{currentOption.label}” against this evidence revision?</p>}
+      <div className="flex justify-end gap-2"><button type="button" onClick={onClose} disabled={submitting} className="border rounded-lg px-3 py-2 text-xs">Cancel</button><button type="button" disabled={!eligible || !payload || !inspected || submitting || loading} onClick={() => { if (confirming) void submit(); else setConfirming(true); }} className="bg-slate-900 text-white rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-40">{submitting ? 'Recording…' : confirming ? 'Record human decision' : 'Review and confirm'}</button></div>
+    </section>
+  </div>;
+}

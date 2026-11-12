@@ -1,25 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { verificationApi } from '../api/verificationApi';
 import {
   VerificationCase,
   CaseResultsSummary,
   EvidenceItem,
-  RiskSignal,
-  ConsistencyCheck,
-  ExtractedField,
   DocumentItem,
+  DocumentType,
   AuditEventItem
 } from '../types';
 import { useAuth } from '../../../context/AuthContext';
 import { VerificationNav } from '../components/VerificationNav';
 import { LifecycleStepper } from '../components/LifecycleStepper';
 import { EvidenceCard } from '../components/EvidenceCard';
-import { RiskSignalCard } from '../components/RiskSignalCard';
 import { ExtractedFieldsEditor } from '../components/ExtractedFieldsEditor';
 import { AuditTrailView } from '../components/AuditTrailView';
 import { ReviewActionModal } from '../components/ReviewActionModal';
 import { DocumentEvidenceViewer } from '../components/DocumentEvidenceViewer';
+import { CaseReconciliationWorkspace } from '../integration/CaseReconciliationWorkspace';
+import { integrationApi } from '../integration/api';
+import { createLatestRequestGuard } from '../integration/latestRequest';
+import { resolveEvidenceSource } from '../integration/sourceSelection';
+import { isCorrectionRole, isEntityId, isMutableCase, isReviewRole, safeApiMessage } from '../integration/snapshot';
+import type { CaseReconciliationSnapshot, ConfirmGroupsRequest } from '../integration/types';
+import type { EvidenceReference } from '../reconciliation/types';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -29,7 +33,6 @@ import {
   ArrowLeft,
   CheckCircle2,
   XCircle,
-  HelpCircle,
   Download,
   Eye,
   Archive,
@@ -52,8 +55,10 @@ export const CaseDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'viewer' | 'fields' | 'evidence' | 'checks' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'comparison' | 'overview' | 'viewer' | 'fields' | 'evidence' | 'checks' | 'audit'>('comparison');
   const [viewerDocType, setViewerDocType] = useState<DocumentType>('PRESCRIPTION');
+  const [viewerDocumentId, setViewerDocumentId] = useState<string | null>(null);
+  const [viewerPage, setViewerPage] = useState(1);
   const [viewerSelectedFieldId, setViewerSelectedFieldId] = useState<string | null>(null);
 
   // Adjudication Modal
@@ -61,68 +66,81 @@ export const CaseDetailPage: React.FC = () => {
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [fhirModalOpen, setFhirModalOpen] = useState<boolean>(false);
-  const [fhirData, setFhirData] = useState<any>(null);
+  const [fhirData, setFhirData] = useState<unknown>(null);
+  const [snapshot, setSnapshot] = useState<CaseReconciliationSnapshot | null>(null);
+  const [snapshotError, setSnapshotError] = useState<string | null>(null);
+  const [groupBusy, setGroupBusy] = useState(false);
+  const requestGuard = useRef(createLatestRequestGuard());
+  const liveCaseId = useRef(caseId);
+  liveCaseId.current = caseId;
+  const groupLock = useRef(false);
 
-  const isStaff = user && ['pharmacist', 'pharmacy', 'claims_reviewer', 'org_admin', 'super_admin'].includes(user.role);
+  const isStaff = isReviewRole(user?.role);
 
-  const loadCaseData = async () => {
-    if (!caseId) return;
+  const loadCaseData = useCallback(async () => {
+    const ticket = requestGuard.current.begin();
+    if (!caseId || !isEntityId(caseId)) { setError('Case not found or access denied.'); setIsLoading(false); return; }
+    setIsLoading(true); setError(null); setSnapshot(null); setSnapshotError(null);
+    setVCase(null); setResults(null); setDocuments([]); setEvidenceItems([]); setAuditEvents([]);
     try {
-      setIsLoading(true);
-      setError(null);
-
-      const caseData = await verificationApi.getCase(caseId);
-      setVCase(caseData);
-
-      // Fetch documents
-      const docs = await verificationApi.getDocuments(caseId);
-      setDocuments(docs);
-
-      // Fetch results if past DRAFT / DOCUMENTS_PENDING or if processed
-      try {
-        const resData = await verificationApi.getResults(caseId);
-        setResults(resData);
-      } catch (e) {
-        // Results may not be generated yet if in early stages
+      const [caseRead, docsRead, currentRead, resultsRead, evidenceRead, auditRead] = await Promise.allSettled([
+        verificationApi.getCase(caseId), verificationApi.getDocuments(caseId), integrationApi.getSnapshot(caseId),
+        verificationApi.getResults(caseId), verificationApi.getEvidence(caseId), verificationApi.getAuditTrail(caseId),
+      ]);
+      if (!requestGuard.current.isCurrent(ticket) || liveCaseId.current !== caseId) return;
+      if (caseRead.status !== 'fulfilled' || docsRead.status !== 'fulfilled' || (caseRead.value.id || caseRead.value._id) !== caseId) throw new Error('Case unavailable');
+      const docs = docsRead.value.filter(doc => doc.caseId === caseId);
+      setVCase(caseRead.value); setDocuments(docs);
+      if (currentRead.status === 'fulfilled' && currentRead.value.caseStatus === caseRead.value.status) setSnapshot(currentRead.value);
+      else setSnapshotError('The current comparison is unavailable or changed during loading. Refresh after the backend integration is available.');
+      if (resultsRead.status === 'fulfilled' && resultsRead.value.caseId === caseId) {
+        const data = resultsRead.value;
+        const boundFields = (data.extractedFields || []).flatMap(field => {
+          const doc = docs.find(candidate => (candidate.id || candidate._id) === field.documentId);
+          return doc && field.caseId === caseId ? [{ ...field, documentType: doc.type }] : [];
+        });
+        setResults({ ...data, extractedFields: boundFields });
       }
-
-      // Fetch evidence items
-      try {
-        const evData = await verificationApi.getEvidence(caseId);
-        setEvidenceItems(evData);
-      } catch (e) {}
-
-      // Fetch audit events
-      try {
-        const auditData = await verificationApi.getAuditTrail(caseId);
-        setAuditEvents(auditData);
-      } catch (e) {}
-    } catch (err: any) {
-      console.error('Failed to load case data:', err);
-      const msg = err.response?.data?.message || err.message || 'Error loading verification case';
-      setError(msg);
+      if (evidenceRead.status === 'fulfilled') setEvidenceItems(evidenceRead.value.filter(item => item.caseId === caseId));
+      if (auditRead.status === 'fulfilled') setAuditEvents(auditRead.value.filter(item => item.caseId === caseId));
+    } catch {
+      if (requestGuard.current.isCurrent(ticket)) setError('Case not found, unavailable or access denied.');
     } finally {
-      setIsLoading(false);
+      if (requestGuard.current.isCurrent(ticket)) setIsLoading(false);
     }
-  };
+  }, [caseId, user?._id, user?.role]);
 
   useEffect(() => {
-    loadCaseData();
-  }, [caseId]);
+    setActiveTab('comparison'); setViewerDocumentId(null); setViewerSelectedFieldId(null); setViewerPage(1);
+    setIsProcessing(false); setGroupBusy(false);
+    setIsReviewModalOpen(false); setFhirModalOpen(false); setFhirData(null);
+    void loadCaseData();
+    const guard = requestGuard.current;
+    return () => guard.invalidate();
+  }, [loadCaseData]);
+
+  const handleConfirmGroups = async (documentId: string, payload: ConfirmGroupsRequest) => {
+    if (!caseId || groupLock.current) return;
+    groupLock.current = true; setGroupBusy(true);
+    try {
+      await integrationApi.confirmGroups(caseId, documentId, payload);
+      if (liveCaseId.current === caseId) { toast.success('Source grouping recorded.'); await loadCaseData(); }
+    } catch (cause) {
+      if (liveCaseId.current === caseId) { setSnapshot(null); setSnapshotError(safeApiMessage(cause)); }
+      throw cause;
+    } finally { groupLock.current = false; if (liveCaseId.current === caseId) setGroupBusy(false); }
+  };
 
   const handleProcessCase = async () => {
     if (!caseId) return;
     try {
       setIsProcessing(true);
       await verificationApi.processCase(caseId);
-      toast.success('TrustRAG pipeline completed!');
-      await loadCaseData();
-    } catch (err: any) {
-      console.error('Processing failed:', err);
-      const msg = err.response?.data?.message || err.message || 'Processing failed';
-      toast.error(msg);
+      if (liveCaseId.current === caseId) { toast.success('Processing completed; human source review is still required.'); await loadCaseData(); }
+    } catch (err: unknown) {
+      toast.error(safeApiMessage(err, 'Processing could not be completed. Refresh and inspect source coverage.'));
     } finally {
-      setIsProcessing(false);
+      if (liveCaseId.current === caseId) setIsProcessing(false);
     }
   };
 
@@ -136,8 +154,8 @@ export const CaseDetailPage: React.FC = () => {
       await verificationApi.updateCase(caseId, { status: 'CLOSED' });
       toast.success('Case closed and archived.');
       await loadCaseData();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to close case');
+    } catch (err: unknown) {
+      toast.error(safeApiMessage(err, 'Case closure could not be completed.'));
     }
   };
 
@@ -147,7 +165,7 @@ export const CaseDetailPage: React.FC = () => {
       const data = await verificationApi.getFhirBundle(caseId);
       setFhirData(data);
       setFhirModalOpen(true);
-    } catch (err: any) {
+    } catch {
       toast.error('Failed to generate FHIR Bundle');
     }
   };
@@ -168,6 +186,7 @@ export const CaseDetailPage: React.FC = () => {
   };
 
   const handleInspectEvidenceDocument = (docType?: string, docId?: string) => {
+    setViewerDocumentId(docId || null); setViewerSelectedFieldId(null); setViewerPage(1);
     if (docType && ['PRESCRIPTION', 'PHARMACY_INVOICE', 'CLAIM_FORM'].includes(docType)) {
       setViewerDocType(docType as DocumentType);
     } else if (docId) {
@@ -177,20 +196,13 @@ export const CaseDetailPage: React.FC = () => {
     setActiveTab('viewer');
   };
 
-  const handleInspectSignalDocument = (evidenceId?: string) => {
-    if (evidenceId) {
-      const ev = evidenceItems.find(e => (e.id || e._id) === evidenceId);
-      if (ev?.documentReference?.documentType) {
-        setViewerDocType(ev.documentReference.documentType);
-      } else if (ev?.documentReference?.documentId) {
-        const matched = documents.find(d => (d.id || d._id) === ev.documentReference?.documentId);
-        if (matched) setViewerDocType(matched.type);
-      }
-    }
-    setActiveTab('viewer');
+  const handleInspectMedicineEvidence = (reference: EvidenceReference) => {
+    const source = caseId ? resolveEvidenceSource(caseId, documents, reference) : null;
+    if (!source) { toast.error('This evidence source is unavailable. Refresh the current case.'); return; }
+    setViewerDocType(source.documentType); setViewerDocumentId(source.documentId); setViewerSelectedFieldId(source.fieldId); setViewerPage(source.pageNumber); setActiveTab('viewer');
   };
 
-  if (isLoading) {
+  if (isLoading || (vCase && (vCase.id || vCase._id) !== caseId)) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
         <VerificationNav />
@@ -225,8 +237,8 @@ export const CaseDetailPage: React.FC = () => {
     );
   }
 
-  const canReview = isStaff && ['NEEDS_REVIEW', 'NEEDS_CORRECTION'].includes(vCase.status);
-  const canClose = ['VERIFIED', 'REJECTED'].includes(vCase.status);
+  const canReview = isStaff && snapshot?.permissions.canReview && !!snapshot.reviewEligibility.allowedActions.length && !groupBusy && !isProcessing;
+  const canClose = isStaff && ['VERIFIED', 'REJECTED'].includes(vCase.status);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -243,6 +255,9 @@ export const CaseDetailPage: React.FC = () => {
           </Link>
 
           <div className="flex items-center gap-2">
+            <Link to={`/assistant?caseId=${caseId}`} className="px-3 py-1.5 rounded-lg border border-teal-200 bg-teal-50 text-teal-900 text-xs font-semibold">
+              Ask about this case
+            </Link>
             <button
               onClick={handleExportFhir}
               className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs"
@@ -251,14 +266,14 @@ export const CaseDetailPage: React.FC = () => {
               <span>Export FHIR R4</span>
             </button>
 
-            {vCase.status === 'READY_FOR_PROCESSING' && (
+            {['READY_FOR_PROCESSING', 'NEEDS_REVIEW', 'NEEDS_CORRECTION', 'FAILED'].includes(vCase.status) && (
               <button
                 onClick={handleProcessCase}
-                disabled={isProcessing}
+                disabled={isProcessing || groupBusy}
                 className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm disabled:opacity-50"
               >
                 <Cpu className="w-3.5 h-3.5" />
-                <span>{isProcessing ? 'Processing...' : 'Run Verification'}</span>
+                <span>{isProcessing ? 'Processing...' : 'Run extraction & checks'}</span>
               </button>
             )}
 
@@ -268,7 +283,7 @@ export const CaseDetailPage: React.FC = () => {
                 className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Adjudicate Case</span>
+                <span>Human validation</span>
               </button>
             )}
 
@@ -307,14 +322,14 @@ export const CaseDetailPage: React.FC = () => {
               <div className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-4">
                 <span>Subject: <strong className="text-slate-700">{vCase.subjectReference}</strong></span>
                 <span>Created: {new Date(vCase.createdAt).toLocaleString()}</span>
-                <span>Ingested Documents: <strong className="text-slate-700">{documents.length}/3</strong></span>
+                <span>Source documents: <strong className="text-slate-700">{documents.length}</strong></span>
               </div>
             </div>
 
             {vCase.reviewRequired && (
               <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-semibold flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Human review required before claim approval.</span>
+                <span>Human document validation required. Not claim approval.</span>
               </div>
             )}
           </div>
@@ -324,7 +339,8 @@ export const CaseDetailPage: React.FC = () => {
         <LifecycleStepper currentStatus={vCase.status} />
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-slate-200 mb-6 text-xs font-bold">
+        <div className="flex items-center gap-2 border-b border-slate-200 mb-6 text-xs font-bold overflow-x-auto">
+          <button onClick={() => setActiveTab('comparison')} className={`pb-3 px-3 border-b-2 whitespace-nowrap ${activeTab === 'comparison' ? 'border-teal-600 text-teal-800' : 'border-transparent text-slate-500'}`}>Medicine comparison</button>
           <button
             onClick={() => setActiveTab('overview')}
             className={`pb-3 px-3 transition-colors border-b-2 flex items-center gap-1.5 ${
@@ -334,7 +350,7 @@ export const CaseDetailPage: React.FC = () => {
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>AI Explanation & Risks</span>
+            <span>Historical explanation & risks</span>
           </button>
 
           <button
@@ -397,6 +413,9 @@ export const CaseDetailPage: React.FC = () => {
             <span>Audit Trail ({auditEvents.length})</span>
           </button>
         </div>
+
+        {activeTab === 'comparison' && <CaseReconciliationWorkspace caseId={caseId!} role={user?.role} snapshot={snapshot} loading={isLoading} busy={groupBusy || isProcessing} error={snapshotError} onRefresh={() => void loadCaseData()} onOpenFields={() => setActiveTab('fields')} onInspect={handleInspectMedicineEvidence} onConfirm={handleConfirmGroups} />}
+        {['overview', 'checks', 'evidence'].includes(activeTab) && <p className="mb-4 p-3 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-900">Historical processing output. It is not the current Session 3 comparison and must not be used to verify corrected or regrouped evidence. Use Medicine comparison for current source-linked checks.</p>}
 
         {/* TAB 1: OVERVIEW & EXPLANATION */}
         {activeTab === 'overview' && (
@@ -461,7 +480,7 @@ export const CaseDetailPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-center py-6 text-xs text-slate-400">
-                  Verification explanation not yet computed. Ingest all 3 documents and run verification.
+                    No historical explanation is available. Use the current medicine comparison and inspect its blockers.
                 </div>
               )}
             </div>
@@ -478,12 +497,7 @@ export const CaseDetailPage: React.FC = () => {
               {results?.activeSignals && results.activeSignals.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {results.activeSignals.map((sig, idx) => (
-                    <RiskSignalCard
-                      key={sig.id || sig._id || idx}
-                      signal={sig}
-                      onSelectEvidence={handleSelectEvidence}
-                      onViewSourceDocument={handleInspectSignalDocument}
-                    />
+                    <div key={idx} className="bg-white rounded-xl border border-slate-200 p-4 text-xs"><p className="font-semibold">{sig.signalType.replace(/_/g, ' ')} · {sig.severity}</p><p className="mt-2 text-slate-700">{sig.description}</p><p className="mt-2 text-slate-400">Historical summary only; no source link is inferred.</p></div>
                   ))}
                 </div>
               ) : (
@@ -501,10 +515,12 @@ export const CaseDetailPage: React.FC = () => {
             caseId={caseId!}
             documents={documents}
             extractedFields={results?.extractedFields || []}
-            riskSignals={results?.activeSignals || []}
-            consistencyChecks={results?.consistencyChecks || []}
+            riskSignals={[]}
+            consistencyChecks={[]}
             evidenceItems={evidenceItems}
             initialDocumentType={viewerDocType}
+            initialDocumentId={viewerDocumentId}
+            initialPageNumber={viewerPage}
             selectedFieldId={viewerSelectedFieldId}
             onSelectField={setViewerSelectedFieldId}
           />
@@ -517,7 +533,8 @@ export const CaseDetailPage: React.FC = () => {
             fields={results?.extractedFields || []}
             documents={documents}
             onFieldCorrected={handleFieldCorrected}
-            canEdit={isStaff || user?.role === 'patient'}
+            canEdit={isCorrectionRole(user?.role) && !!snapshot?.permissions.canCorrectFields && isMutableCase(vCase.status) && !isProcessing && !groupBusy}
+            snapshotToken={snapshot?.snapshotToken}
           />
         )}
 
@@ -605,16 +622,18 @@ export const CaseDetailPage: React.FC = () => {
           isOpen={isReviewModalOpen}
           onClose={() => setIsReviewModalOpen(false)}
           onSuccess={loadCaseData}
+          snapshot={snapshot}
+          onRefresh={() => void loadCaseData()}
         />
 
         {/* FHIR Bundle Modal Preview */}
-        {fhirModalOpen && fhirData && (
+        {fhirModalOpen && fhirData !== null && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
             <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col max-h-[85vh]">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
                   <h3 className="font-bold text-sm text-slate-900">FHIR R4 Bundle Export</h3>
-                  <p className="text-xs text-slate-400">Standardized interoperable health bundle</p>
+                  <p className="text-xs text-slate-400">Academic draft; not certified NHCX conformance or claim approval</p>
                 </div>
                 <button
                   onClick={() => setFhirModalOpen(false)}
@@ -637,6 +656,7 @@ export const CaseDetailPage: React.FC = () => {
                     a.href = url;
                     a.download = `fhir-bundle-${vCase.caseReference}.json`;
                     a.click();
+                    URL.revokeObjectURL(url);
                   }}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700"
                 >
