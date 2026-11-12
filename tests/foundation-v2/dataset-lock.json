@@ -1,0 +1,15 @@
+{
+  "fixtureVersion": "foundation-v2-fixtures/1.0.0",
+  "manifestVersion": "foundation-v2-manifest/1.0.0",
+  "synthetic": true,
+  "scenarioCount": 40,
+  "developmentCount": 24,
+  "heldoutCount": 16,
+  "files": {
+    "development.manifest.json": "c29fe6063608ef172256a455cd276813361cca9c8ce830ee7cd5dfe024b9d957",
+    "heldout.manifest.json": "1a2c9ddaaf55c484ebe27171e32303e0ced70d805a1b59db4c4c2212275bd23d",
+    "manifest.schema.json": "4be4f69a43d7fb0a982ce357169d34c05240734cc34b69fd23f440da8e2688aa",
+    "fixtures.cjs": "f9c051918a6e268516c87a82980b07f2d4168ffb1e02f6842cf6529ff8ee0d23"
+  },
+  "materializedSha256": "b8115cd8d51404b8e2a6a9c1cf7976ed0bdc01f6ea2ea239e6171b95767cd390"
+}

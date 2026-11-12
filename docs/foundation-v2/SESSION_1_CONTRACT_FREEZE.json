@@ -1,0 +1,48 @@
+{
+  "checkpoint": "SESSION_1_FOUNDATION",
+  "decision": "PASS_SCOPED_INTERNAL_CONTRACT",
+  "reviewedOn": "2026-11-12",
+  "reviewTimezone": "Asia/Calcutta",
+  "projectPath": "/Users/aniket/Downloads/PBL 5 TH SEM",
+  "headAtReview": "dc41e1d",
+  "schemaVersion": "2.0.0-session1",
+  "schemaId": "https://pharmavault.example/schemas/medicine-item.schema.json",
+  "publicApiPublished": false,
+  "stateChangesAuthorisedByAdapter": false,
+  "exportedBuilder": "buildDocumentMedicineItems({ document, extractedFields, groups })",
+  "maxMedicineItems": 3,
+  "medicineSlots": [
+    "medicine_name", "dosage_strength", "dosage_form", "release_type",
+    "quantity", "quantity_unit", "pack_size", "pack_unit"
+  ],
+  "essentialMedicineSlots": ["medicine_name", "dosage_strength", "dosage_form", "quantity"],
+  "groupingStatuses": ["GROUPED", "LEGACY_SINGLE_ITEM", "UNRESOLVED", "NOT_APPLICABLE"],
+  "coverageStatuses": ["COMPLETE", "INCOMPLETE", "UNKNOWN", "CONTRADICTORY"],
+  "issueCodes": [
+    "INVALID_DOCUMENT_CONTEXT", "UNSUPPORTED_DOCUMENT_TYPE", "CLAIM_FORM_GROUPING_NOT_APPLICABLE",
+    "INVALID_EXTRACTED_FIELDS", "CROSS_CASE_FIELD_REFERENCE", "CROSS_DOCUMENT_FIELD_REFERENCE",
+    "INVALID_FIELD_PROVENANCE", "MISSING_OR_INVALID_CONFIDENCE", "INVALID_GROUP_STRUCTURE",
+    "EMPTY_GROUPS", "GROUP_LIMIT_EXCEEDED", "MISSING_REFERENCED_FIELD", "INVALID_GROUP_ANCHOR",
+    "DUPLICATE_GROUP_ANCHOR", "DUPLICATE_FIELD_MEMBERSHIP", "INVALID_GROUP_MEMBERSHIP",
+    "COMPETING_SLOT_VALUES", "UNGROUPED_MEDICINE_FIELD", "MISSING_MEDICINE_NAME",
+    "MULTIPLE_FLAT_MEDICINE_NAMES", "FLAT_MULTI_MEDICINE_VALUE", "INCOMPLETE_PAGE_COVERAGE",
+    "UNKNOWN_PAGE_COVERAGE", "CONTRADICTORY_PAGE_COVERAGE"
+  ],
+  "reviewedSha256": {
+    "backend/services/trustRag/medicineItemContract.js": "b43d5feb2f00c70c8c826731b9455122e69c36efd8d278474cd3e49d370109e5",
+    "contracts/schemas/medicine-item.schema.json": "3c2a78e8767a575fa786963b3e2b4f03e0d26c2445745fb0dd0f4dc08808f057",
+    "tests/foundation-v2/dataset-lock.json": "dd25343c7961c26b9d76dc427c1b17d919d0593b84b398237c8bdb60681febb0"
+  },
+  "observedChecks": {
+    "builderTests": {"passed": 35, "failed": 0},
+    "independentAdapterTests": {"passed": 31, "failed": 0},
+    "datasetIntegrityTests": {"passed": 59, "failed": 0},
+    "compiledSchemas": 10,
+    "openApiWarnings": 12,
+    "adapterSyntaxExitCode": 0
+  },
+  "evaluationBoundary": "No held-out product score, OCR accuracy, clinical safety or production readiness is established.",
+  "nextCheckpoint": "SESSION_2_MEDICINE_MATCHING_AND_QUANTITY_CHECKS",
+  "nextCheckpointStarted": false,
+  "commit": null
+}

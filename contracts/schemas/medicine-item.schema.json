@@ -1,0 +1,866 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pharmavault.example/schemas/medicine-item.schema.json",
+  "title": "DocumentMedicineItemsEnvelope",
+  "description": "Standalone internal contract for server-derived document medicine items (Foundation V2 Session 1).",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "2.0.0-session1"
+    },
+    "caseId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+    },
+    "documentId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+    },
+    "documentType": {
+      "type": "string",
+      "enum": ["PRESCRIPTION", "PHARMACY_INVOICE", "CLAIM_FORM", "UNKNOWN"]
+    },
+    "groupingStatus": {
+      "type": "string",
+      "enum": ["GROUPED", "LEGACY_SINGLE_ITEM", "UNRESOLVED", "NOT_APPLICABLE"]
+    },
+    "detectedGroupCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "maxAllowedItems": {
+      "type": "integer",
+      "const": 3
+    },
+    "reviewRequired": {
+      "type": "boolean"
+    },
+    "coverage": {
+      "$ref": "#/$defs/DocumentCoverage"
+    },
+    "medicineItems": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/MedicineItem"
+      },
+      "maxItems": 3
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ContractIssue"
+      }
+    },
+    "issueCodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/IssueCode"
+      },
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "documentId",
+    "documentType",
+    "groupingStatus",
+    "detectedGroupCount",
+    "maxAllowedItems",
+    "reviewRequired",
+    "coverage",
+    "medicineItems",
+    "issues",
+    "issueCodes"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "groupingStatus": {
+            "const": "UNRESOLVED"
+          }
+        },
+        "required": ["groupingStatus"]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "medicineItems": {
+            "type": "array",
+            "maxItems": 0
+          },
+          "reviewRequired": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "groupingStatus": {
+            "const": "NOT_APPLICABLE"
+          }
+        },
+        "required": ["groupingStatus"]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "medicineItems": {
+            "type": "array",
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "groupingStatus": {
+            "const": "LEGACY_SINGLE_ITEM"
+          }
+        },
+        "required": ["groupingStatus"]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "medicineItems": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "groupingStatus": {
+            "const": "GROUPED"
+          }
+        },
+        "required": ["groupingStatus"]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "medicineItems": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "documentType": {
+            "const": "CLAIM_FORM"
+          }
+        },
+        "required": ["documentType"]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "groupingStatus": {
+            "const": "NOT_APPLICABLE"
+          },
+          "medicineItems": {
+            "type": "array",
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "coverage": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "enum": ["INCOMPLETE", "UNKNOWN", "CONTRADICTORY"]
+              }
+            },
+            "required": ["status"]
+          }
+        },
+        "required": ["coverage"]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "reviewRequired": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array",
+            "minItems": 1
+          }
+        },
+        "required": ["issues"]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "reviewRequired": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "reviewRequired": {
+            "const": false
+          }
+        },
+        "required": ["reviewRequired"]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "groupingStatus": {
+            "enum": ["GROUPED", "LEGACY_SINGLE_ITEM", "NOT_APPLICABLE"]
+          },
+          "coverage": {
+            "type": "object",
+            "properties": {
+              "status": { "const": "COMPLETE" },
+              "isComplete": { "const": true }
+            }
+          },
+          "issues": {
+            "type": "array",
+            "maxItems": 0
+          },
+          "issueCodes": {
+            "type": "array",
+            "maxItems": 0
+          },
+          "medicineItems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "needsCorrection": { "const": false },
+                "fields": {
+                  "type": "object",
+                  "properties": {
+                    "medicine_name": {
+                      "type": "object",
+                      "properties": { "needsCorrection": { "const": false } }
+                    },
+                    "dosage_strength": {
+                      "type": "object",
+                      "properties": { "needsCorrection": { "const": false } }
+                    },
+                    "dosage_form": {
+                      "type": "object",
+                      "properties": { "needsCorrection": { "const": false } }
+                    },
+                    "quantity": {
+                      "type": "object",
+                      "properties": { "needsCorrection": { "const": false } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "IssueCode": {
+      "type": "string",
+      "enum": [
+        "INVALID_DOCUMENT_CONTEXT",
+        "UNSUPPORTED_DOCUMENT_TYPE",
+        "CLAIM_FORM_GROUPING_NOT_APPLICABLE",
+        "INVALID_EXTRACTED_FIELDS",
+        "CROSS_CASE_FIELD_REFERENCE",
+        "CROSS_DOCUMENT_FIELD_REFERENCE",
+        "INVALID_FIELD_PROVENANCE",
+        "MISSING_OR_INVALID_CONFIDENCE",
+        "INVALID_GROUP_STRUCTURE",
+        "EMPTY_GROUPS",
+        "GROUP_LIMIT_EXCEEDED",
+        "MISSING_REFERENCED_FIELD",
+        "INVALID_GROUP_ANCHOR",
+        "DUPLICATE_GROUP_ANCHOR",
+        "DUPLICATE_FIELD_MEMBERSHIP",
+        "INVALID_GROUP_MEMBERSHIP",
+        "COMPETING_SLOT_VALUES",
+        "UNGROUPED_MEDICINE_FIELD",
+        "MISSING_MEDICINE_NAME",
+        "MULTIPLE_FLAT_MEDICINE_NAMES",
+        "FLAT_MULTI_MEDICINE_VALUE",
+        "INCOMPLETE_PAGE_COVERAGE",
+        "UNKNOWN_PAGE_COVERAGE",
+        "CONTRADICTORY_PAGE_COVERAGE"
+      ]
+    },
+    "ContractIssue": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/IssueCode"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["INFO", "WARNING", "ERROR"]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fieldIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+          }
+        }
+      },
+      "required": ["code", "severity", "message", "fieldIds"],
+      "additionalProperties": false
+    },
+    "DocumentCoverage": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["COMPLETE", "INCOMPLETE", "UNKNOWN", "CONTRADICTORY"]
+        },
+        "isComplete": {
+          "type": "boolean"
+        },
+        "total": {
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "processed": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "omitted": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "reportedStatus": {
+          "type": ["string", "null"],
+          "enum": ["COMPLETE", "INCOMPLETE", null]
+        }
+      },
+      "required": ["status", "isComplete", "total", "processed", "omitted", "reportedStatus"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "status": { "const": "COMPLETE" }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "isComplete": { "const": true },
+              "total": { "type": "integer", "minimum": 1 },
+              "processed": { "type": "integer", "minimum": 1 },
+              "omitted": { "type": "integer", "const": 0 }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "isComplete": { "const": false }
+            }
+          }
+        }
+      ]
+    },
+    "CanonicalMedicineSummary": {
+      "type": "object",
+      "properties": {
+        "brandName": { "type": "string" },
+        "genericName": { "type": "string" },
+        "strength": { "type": "string" },
+        "strengthUnit": { "type": "string" },
+        "dosageForm": { "type": "string" },
+        "manufacturer": { "type": "string" },
+        "regulatoryIdentifiers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "sourceVersion": { "type": "string" },
+        "catalogueVersion": { "type": "string" },
+        "sourceNote": { "type": "string" },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["genericName"],
+      "additionalProperties": false
+    },
+    "FieldResolution": {
+      "type": "object",
+      "properties": {
+        "resolved": { "type": "boolean" },
+        "ambiguous": { "type": "boolean" },
+        "matchScore": { "type": "number", "minimum": 0, "maximum": 1 },
+        "matchBasis": { "type": "string" },
+        "rawQuery": { "type": "string" },
+        "sourceNote": { "type": "string" },
+        "catalogueVersion": { "type": "string" },
+        "canonical": {
+          "oneOf": [
+            { "$ref": "#/$defs/CanonicalMedicineSummary" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": ["resolved", "ambiguous", "matchScore", "matchBasis", "canonical", "rawQuery"],
+      "additionalProperties": false
+    },
+    "LinkedMedicineField": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+        },
+        "documentId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+        },
+        "fieldType": {
+          "type": "string",
+          "enum": [
+            "medicine_name",
+            "dosage_strength",
+            "dosage_form",
+            "release_type",
+            "quantity",
+            "quantity_unit",
+            "pack_size",
+            "pack_unit"
+          ]
+        },
+        "rawValue": {
+          "type": "string",
+          "minLength": 1
+        },
+        "normalizedValue": {
+          "type": "string"
+        },
+        "pageNumber": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "boundingBox": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 4,
+              "maxItems": 4
+            },
+            { "type": "null" }
+          ]
+        },
+        "extractionMethod": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "extractionConfidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "needsCorrection": {
+          "type": "boolean"
+        },
+        "correctedBy": {
+          "type": ["string", "null"],
+          "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+        },
+        "correctedAt": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "resolution": {
+          "oneOf": [
+            { "$ref": "#/$defs/FieldResolution" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "caseId",
+        "documentId",
+        "fieldType",
+        "rawValue",
+        "normalizedValue",
+        "pageNumber",
+        "boundingBox",
+        "extractionMethod",
+        "extractionConfidence",
+        "needsCorrection",
+        "correctedBy",
+        "correctedAt",
+        "resolution"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "extractionConfidence": {
+                "type": "number",
+                "exclusiveMaximum": 0.75
+              },
+              "needsCorrection": {
+                "const": false
+              }
+            },
+            "required": ["extractionConfidence", "needsCorrection"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "correctedBy": { "type": "string" },
+              "correctedAt": { "type": "string" }
+            }
+          }
+        }
+      ]
+    },
+    "MedicineItemFields": {
+      "type": "object",
+      "properties": {
+        "medicine_name": {
+          "allOf": [
+            { "$ref": "#/$defs/LinkedMedicineField" },
+            {
+              "type": "object",
+              "properties": {
+                "fieldType": { "const": "medicine_name" }
+              }
+            }
+          ]
+        },
+        "dosage_strength": {
+          "oneOf": [
+            {
+              "allOf": [
+                { "$ref": "#/$defs/LinkedMedicineField" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "fieldType": { "const": "dosage_strength" }
+                  }
+                }
+              ]
+            },
+            { "type": "null" }
+          ]
+        },
+        "dosage_form": {
+          "oneOf": [
+            {
+              "allOf": [
+                { "$ref": "#/$defs/LinkedMedicineField" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "fieldType": { "const": "dosage_form" }
+                  }
+                }
+              ]
+            },
+            { "type": "null" }
+          ]
+        },
+        "release_type": {
+          "oneOf": [
+            {
+              "allOf": [
+                { "$ref": "#/$defs/LinkedMedicineField" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "fieldType": { "const": "release_type" }
+                  }
+                }
+              ]
+            },
+            { "type": "null" }
+          ]
+        },
+        "quantity": {
+          "oneOf": [
+            {
+              "allOf": [
+                { "$ref": "#/$defs/LinkedMedicineField" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "fieldType": { "const": "quantity" }
+                  }
+                }
+              ]
+            },
+            { "type": "null" }
+          ]
+        },
+        "quantity_unit": {
+          "oneOf": [
+            {
+              "allOf": [
+                { "$ref": "#/$defs/LinkedMedicineField" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "fieldType": { "const": "quantity_unit" }
+                  }
+                }
+              ]
+            },
+            { "type": "null" }
+          ]
+        },
+        "pack_size": {
+          "oneOf": [
+            {
+              "allOf": [
+                { "$ref": "#/$defs/LinkedMedicineField" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "fieldType": { "const": "pack_size" }
+                  }
+                }
+              ]
+            },
+            { "type": "null" }
+          ]
+        },
+        "pack_unit": {
+          "oneOf": [
+            {
+              "allOf": [
+                { "$ref": "#/$defs/LinkedMedicineField" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "fieldType": { "const": "pack_unit" }
+                  }
+                }
+              ]
+            },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": [
+        "medicine_name",
+        "dosage_strength",
+        "dosage_form",
+        "release_type",
+        "quantity",
+        "quantity_unit",
+        "pack_size",
+        "pack_unit"
+      ],
+      "additionalProperties": false
+    },
+    "MedicineItem": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "pattern": "^mi_[0-9a-f]{24}$"
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+        },
+        "documentId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+        },
+        "documentType": {
+          "type": "string",
+          "enum": ["PRESCRIPTION", "PHARMACY_INVOICE"]
+        },
+        "groupingMode": {
+          "type": "string",
+          "enum": ["GROUPED", "LEGACY_SINGLE_ITEM"]
+        },
+        "anchorFieldId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+        },
+        "fieldIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "pageNumbers": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "needsCorrection": {
+          "type": "boolean"
+        },
+        "fields": {
+          "$ref": "#/$defs/MedicineItemFields"
+        }
+      },
+      "required": [
+        "itemId",
+        "caseId",
+        "documentId",
+        "documentType",
+        "groupingMode",
+        "anchorFieldId",
+        "fieldIds",
+        "pageNumbers",
+        "needsCorrection",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "needsCorrection": { "const": false }
+            },
+            "required": ["needsCorrection"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "fields": {
+                "type": "object",
+                "properties": {
+                  "medicine_name": {
+                    "type": "object",
+                    "properties": { "needsCorrection": { "const": false } }
+                  },
+                  "dosage_strength": {
+                    "oneOf": [
+                      { "type": "null" },
+                      {
+                        "type": "object",
+                        "properties": { "needsCorrection": { "const": false } }
+                      }
+                    ]
+                  },
+                  "dosage_form": {
+                    "oneOf": [
+                      { "type": "null" },
+                      {
+                        "type": "object",
+                        "properties": { "needsCorrection": { "const": false } }
+                      }
+                    ]
+                  },
+                  "release_type": {
+                    "oneOf": [
+                      { "type": "null" },
+                      {
+                        "type": "object",
+                        "properties": { "needsCorrection": { "const": false } }
+                      }
+                    ]
+                  },
+                  "quantity": {
+                    "oneOf": [
+                      { "type": "null" },
+                      {
+                        "type": "object",
+                        "properties": { "needsCorrection": { "const": false } }
+                      }
+                    ]
+                  },
+                  "quantity_unit": {
+                    "oneOf": [
+                      { "type": "null" },
+                      {
+                        "type": "object",
+                        "properties": { "needsCorrection": { "const": false } }
+                      }
+                    ]
+                  },
+                  "pack_size": {
+                    "oneOf": [
+                      { "type": "null" },
+                      {
+                        "type": "object",
+                        "properties": { "needsCorrection": { "const": false } }
+                      }
+                    ]
+                  },
+                  "pack_unit": {
+                    "oneOf": [
+                      { "type": "null" },
+                      {
+                        "type": "object",
+                        "properties": { "needsCorrection": { "const": false } }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

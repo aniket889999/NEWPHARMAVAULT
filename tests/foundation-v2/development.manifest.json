@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "foundation-v2-manifest/1.0.0",
+  "synthetic": true,
+  "label": "SYNTHETIC — DEMO ONLY",
+  "split": "development",
+  "families": [
+    {
+      "id": "F01", "description": "Single tablet with strength and OCR-correction counterfactuals",
+      "items": [{"key":"A","name":"Paracetamol","strength":"500 mg","form":"tablet","quantity":10,"unit":"tablet"}],
+      "scenarios": [
+        {"id":"F01-01","effect":"BASE","expected":{"overall":"CONSISTENT","reasons":[]}},
+        {"id":"F01-02","effect":"STRENGTH_CONFLICT","value":"650 mg","expected":{"overall":"MISMATCH","reasons":["STRENGTH_MISMATCH"],"pairOverrides":{"A":"MISMATCH"}}},
+        {"id":"F01-03","effect":"MISSING_QUANTITY","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["MISSING_QUANTITY"],"pairOverrides":{"A":"INSUFFICIENT_EVIDENCE"}}},
+        {"id":"F01-04","effect":"CORRECT_STRENGTH","previousValue":"650 mg","expected":{"overall":"CONSISTENT","reasons":[],"freshness":"DEPENDENT_ANSWER_STALE"}}
+      ]
+    },
+    {
+      "id": "F02", "description": "Two distinct tablet items and missing/extra invoice rows",
+      "items": [{"key":"A","name":"Metformin","strength":"500 mg","form":"tablet","quantity":14,"unit":"tablet"},{"key":"B","name":"Cetirizine","strength":"10 mg","form":"tablet","quantity":7,"unit":"tablet"}],
+      "scenarios": [
+        {"id":"F02-01","effect":"BASE","expected":{"overall":"CONSISTENT","reasons":[]}},
+        {"id":"F02-02","effect":"REORDER","expected":{"overall":"CONSISTENT","reasons":[]}},
+        {"id":"F02-03","effect":"MISSING_ITEM","target":"B","expected":{"overall":"MISMATCH","reasons":["MISSING_INVOICE_ITEM"],"missingInvoiceKeys":["B"]}},
+        {"id":"F02-04","effect":"EXTRA_ITEM","item":{"key":"X","name":"Azithromycin","strength":"250 mg","form":"tablet","quantity":6,"unit":"tablet"},"expected":{"overall":"MISMATCH","reasons":["EXTRA_INVOICE_ITEM"],"extraInvoiceKeys":["X"]}}
+      ]
+    },
+    {
+      "id": "F03", "description": "Three-item pair with an explicitly documented strip count",
+      "items": [{"key":"A","name":"Paracetamol","strength":"500 mg","form":"tablet","quantity":12,"unit":"tablet"},{"key":"B","name":"Metformin","strength":"500 mg","form":"tablet","quantity":20,"unit":"tablet"},{"key":"C","name":"Cetirizine","strength":"10 mg","form":"tablet","quantity":6,"unit":"tablet"}],
+      "invoiceOverrides": {"A":{"quantity":2,"unit":"strip","packSize":6,"packUnit":"tablet"}},
+      "scenarios": [
+        {"id":"F03-01","effect":"BASE","expected":{"overall":"CONSISTENT","reasons":[]}},
+        {"id":"F03-02","effect":"UNKNOWN_PACK","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["UNKNOWN_PACK_SIZE"],"pairOverrides":{"A":"INSUFFICIENT_EVIDENCE"}}},
+        {"id":"F03-03","effect":"PACK_COUNT_CONFLICT","value":5,"expected":{"overall":"MISMATCH","reasons":["QUANTITY_MISMATCH"],"pairOverrides":{"A":"MISMATCH"}}},
+        {"id":"F03-04","effect":"MISSING_FORM","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["MISSING_DOSAGE_FORM"],"pairOverrides":{"A":"INSUFFICIENT_EVIDENCE"}}}
+      ]
+    },
+    {
+      "id": "F04", "description": "Release-type preservation without therapeutic-equivalence inference",
+      "items": [{"key":"A","name":"Metformin","strength":"500 mg","form":"tablet","releaseType":"IR","quantity":16,"unit":"tablet"}],
+      "scenarios": [
+        {"id":"F04-01","effect":"BASE","expected":{"overall":"CONSISTENT","reasons":[]}},
+        {"id":"F04-02","effect":"RELEASE_CONFLICT","value":"SR","expected":{"overall":"MISMATCH","reasons":["RELEASE_TYPE_MISMATCH"],"pairOverrides":{"A":"MISMATCH"}}},
+        {"id":"F04-03","effect":"MISSING_RELEASE","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["MISSING_RELEASE_TYPE"],"pairOverrides":{"A":"INSUFFICIENT_EVIDENCE"}}},
+        {"id":"F04-04","effect":"FORM_CONFLICT","value":"capsule","expected":{"overall":"MISMATCH","reasons":["DOSAGE_FORM_MISMATCH"],"pairOverrides":{"A":"MISMATCH"}}}
+      ]
+    },
+    {
+      "id": "F05", "description": "Unknown fictional medicine, confidence and explicit grouping limits",
+      "items": [{"key":"A","name":"TEST-DRUG-ALPHA","strength":"25 mg","form":"tablet","quantity":8,"unit":"tablet"}],
+      "scenarios": [
+        {"id":"F05-01","effect":"BASE","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["UNKNOWN_MEDICINE"],"noAssignedPairs":true}},
+        {"id":"F05-02","effect":"MISSING_STRENGTH","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["UNKNOWN_MEDICINE","MISSING_STRENGTH"],"noAssignedPairs":true}},
+        {"id":"F05-03","effect":"LOW_CONFIDENCE","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["UNKNOWN_MEDICINE","FIELD_NEEDS_CORRECTION"],"noAssignedPairs":true}},
+        {"id":"F05-04","effect":"FOUR_GROUPS","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["ITEM_LIMIT_EXCEEDED"],"noAssignedPairs":true}}
+      ]
+    },
+    {
+      "id": "F06", "description": "Capsule pack handling and page-coverage contradictions",
+      "items": [{"key":"A","name":"Omeprazole","strength":"20 mg","form":"capsule","quantity":15,"unit":"capsule"}],
+      "invoiceOverrides": {"A":{"quantity":3,"unit":"pack","packSize":5,"packUnit":"capsule"}},
+      "scenarios": [
+        {"id":"F06-01","effect":"BASE","expected":{"overall":"CONSISTENT","reasons":[]}},
+        {"id":"F06-02","effect":"UNKNOWN_PACK","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["UNKNOWN_PACK_SIZE"],"pairOverrides":{"A":"INSUFFICIENT_EVIDENCE"}}},
+        {"id":"F06-03","effect":"CONTRADICTORY_COVERAGE","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["CONTRADICTORY_COVERAGE"]}},
+        {"id":"F06-04","effect":"UNKNOWN_COVERAGE","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["UNKNOWN_COVERAGE"]}}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1419 @@
+{
+  "fixtureVersion": "2.0.0-session1-dev",
+  "split": "DEVELOPMENT_ONLY",
+  "description": "Synthetic development fixtures (6 families x 4 variants = 24 scenarios) for Foundation V2 Session 1 medicine-item contract adapter tests.",
+  "families": [
+    {
+      "familyId": "dev_family_1_legacy_single_item",
+      "description": "Conservative legacy single-item adapter compatibility, optional slot omission, correction markers, and provenance preservation.",
+      "variants": [
+        {
+          "scenarioId": "v1_prescription_complete",
+          "document": {
+            "id": "661000000000000000000101",
+            "caseId": "661000000000000000000001",
+            "type": "PRESCRIPTION",
+            "originalFilename": "rx_single_dolo.pdf",
+            "mimeType": "application/pdf",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            },
+            "objectStorageKey": "cases/661000000000000000000001/secret_rx_single_dolo.pdf",
+            "localPath": "/var/lib/pharmavault/storage/secret_rx_single_dolo.pdf",
+            "storageRoot": "/var/lib/pharmavault/storage",
+            "metadata": {
+              "internalNote": "must-never-leak-to-dto"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000001001",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000101",
+              "fieldType": "medicine_name",
+              "rawValue": "Tab. Dolo 650",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "boundingBox": [42, 110, 280, 138],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.94,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null,
+              "resolution": {
+                "resolved": true,
+                "ambiguous": false,
+                "matchScore": 0.98,
+                "matchBasis": "Exact Brand Alias",
+                "rawQuery": "Tab. Dolo 650",
+                "sourceNote": "Curated academic reference catalogue — not live regulatory verification.",
+                "catalogueVersion": "2026.1-academic",
+                "canonical": {
+                  "brandName": "Dolo 650",
+                  "genericName": "Paracetamol",
+                  "strength": "650mg",
+                  "strengthUnit": "mg",
+                  "dosageForm": "Tablet",
+                  "manufacturer": "Micro Labs"
+                }
+              }
+            },
+            {
+              "id": "661000000000000000001002",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000101",
+              "fieldType": "dosage_strength",
+              "rawValue": "650 mg",
+              "normalizedValue": "650mg",
+              "pageNumber": 1,
+              "boundingBox": [220, 110, 280, 138],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.92,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000001003",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000101",
+              "fieldType": "dosage_form",
+              "rawValue": "Tablet",
+              "normalizedValue": "Tablet",
+              "pageNumber": 1,
+              "boundingBox": [42, 110, 95, 138],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.91,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000001004",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000101",
+              "fieldType": "quantity",
+              "rawValue": "Qty: 10",
+              "normalizedValue": "10",
+              "pageNumber": 1,
+              "boundingBox": [300, 110, 360, 138],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.95,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000001005",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000101",
+              "fieldType": "prescription_date",
+              "rawValue": "2026-10-10",
+              "normalizedValue": "2026-10-10",
+              "pageNumber": 1,
+              "boundingBox": [400, 40, 510, 62],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.97,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "LEGACY_SINGLE_ITEM",
+            "detectedGroupCount": 1,
+            "itemCount": 1,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": false,
+            "issueCodes": []
+          }
+        },
+        {
+          "scenarioId": "v2_invoice_missing_optional_slots",
+          "document": {
+            "id": "661000000000000000000102",
+            "caseId": "661000000000000000000001",
+            "type": "PHARMACY_INVOICE",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000001011",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000102",
+              "fieldType": "medicine_name",
+              "rawValue": "Dolo 650 1-0-1 x 5 days",
+              "normalizedValue": "Dolo 650",
+              "pageNumber": 1,
+              "boundingBox": [30, 200, 240, 224],
+              "extractionMethod": "LOCAL_TESSERACT_IMAGE_OCR",
+              "extractionConfidence": 0.89,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000001012",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000102",
+              "fieldType": "total_amount",
+              "rawValue": "Rs. 32.50",
+              "normalizedValue": "32.50",
+              "pageNumber": 1,
+              "boundingBox": [400, 200, 480, 224],
+              "extractionMethod": "LOCAL_TESSERACT_IMAGE_OCR",
+              "extractionConfidence": 0.93,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "LEGACY_SINGLE_ITEM",
+            "detectedGroupCount": 1,
+            "itemCount": 1,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": []
+          }
+        },
+        {
+          "scenarioId": "v3_corrected_field_provenance",
+          "document": {
+            "id": "661000000000000000000101",
+            "caseId": "661000000000000000000001",
+            "type": "PRESCRIPTION",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000001001",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000101",
+              "fieldType": "medicine_name",
+              "rawValue": "Tab. Dolo 65o",
+              "normalizedValue": "Paracetamol 650mg",
+              "pageNumber": 1,
+              "boundingBox": [42, 110, 280, 138],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.61,
+              "needsCorrection": false,
+              "correctedBy": "661000000000000000000099",
+              "correctedAt": "2026-11-09T10:15:00.000Z"
+            },
+            {
+              "id": "661000000000000000001002",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000101",
+              "fieldType": "dosage_strength",
+              "rawValue": "500 mg",
+              "normalizedValue": "650mg",
+              "pageNumber": 1,
+              "boundingBox": [220, 110, 280, 138],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.58,
+              "needsCorrection": false,
+              "correctedBy": "661000000000000000000099",
+              "correctedAt": "2026-11-09T10:16:00.000Z"
+            },
+            {
+              "id": "661000000000000000001003",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000101",
+              "fieldType": "dosage_form",
+              "rawValue": "Tablet",
+              "normalizedValue": "Tablet",
+              "pageNumber": 1,
+              "boundingBox": [42, 110, 95, 138],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.91,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000001004",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000101",
+              "fieldType": "quantity",
+              "rawValue": "Qty: 10",
+              "normalizedValue": "10",
+              "pageNumber": 1,
+              "boundingBox": [300, 110, 360, 138],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.95,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "LEGACY_SINGLE_ITEM",
+            "detectedGroupCount": 1,
+            "itemCount": 1,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": false,
+            "issueCodes": []
+          }
+        },
+        {
+          "scenarioId": "v4_omitted_bounding_box_and_low_confidence",
+          "document": {
+            "id": "661000000000000000000104",
+            "caseId": "661000000000000000000001",
+            "type": "PRESCRIPTION",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000001041",
+              "caseId": "661000000000000000000001",
+              "documentId": "661000000000000000000104",
+              "fieldType": "medicine_name",
+              "rawValue": "Augmentin 625 Duo",
+              "normalizedValue": "Amoxicillin + Clavulanic Acid",
+              "pageNumber": 1,
+              "extractionMethod": "LOCAL_TESSERACT_IMAGE_OCR",
+              "extractionConfidence": 0.64,
+              "needsCorrection": true
+            }
+          ],
+          "expected": {
+            "groupingStatus": "LEGACY_SINGLE_ITEM",
+            "detectedGroupCount": 1,
+            "itemCount": 1,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": []
+          }
+        }
+      ]
+    },
+    {
+      "familyId": "dev_family_2_explicit_three_groups",
+      "description": "Up to three explicit server-grouped medicine items across pages with ID stability across group reordering and field corrections.",
+      "variants": [
+        {
+          "scenarioId": "v1_three_items_canonical_order",
+          "document": {
+            "id": "661000000000000000000201",
+            "caseId": "661000000000000000000002",
+            "type": "PRESCRIPTION",
+            "pageCount": 2,
+            "processedPageCount": 2,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 2,
+              "processed": 2,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000002001",
+              "caseId": "661000000000000000000002",
+              "documentId": "661000000000000000000201",
+              "fieldType": "medicine_name",
+              "rawValue": "Crocin 500",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "boundingBox": [50, 100, 200, 125],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.95,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000002002",
+              "caseId": "661000000000000000000002",
+              "documentId": "661000000000000000000201",
+              "fieldType": "dosage_strength",
+              "rawValue": "500mg",
+              "normalizedValue": "500mg",
+              "pageNumber": 1,
+              "boundingBox": [210, 100, 260, 125],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.94,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000002003",
+              "caseId": "661000000000000000000002",
+              "documentId": "661000000000000000000201",
+              "fieldType": "dosage_form",
+              "rawValue": "Tablet",
+              "normalizedValue": "Tablet",
+              "pageNumber": 1,
+              "boundingBox": [270, 100, 320, 125],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.93,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000002004",
+              "caseId": "661000000000000000000002",
+              "documentId": "661000000000000000000201",
+              "fieldType": "quantity",
+              "rawValue": "10 tabs",
+              "normalizedValue": "10",
+              "pageNumber": 1,
+              "boundingBox": [330, 100, 390, 125],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.92,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000002011",
+              "caseId": "661000000000000000000002",
+              "documentId": "661000000000000000000201",
+              "fieldType": "medicine_name",
+              "rawValue": "Glycomet 500 SR",
+              "normalizedValue": "Metformin",
+              "pageNumber": 1,
+              "boundingBox": [50, 150, 210, 175],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.91,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000002012",
+              "caseId": "661000000000000000000002",
+              "documentId": "661000000000000000000201",
+              "fieldType": "dosage_strength",
+              "rawValue": "500 mg",
+              "normalizedValue": "500mg",
+              "pageNumber": 1,
+              "boundingBox": [220, 150, 275, 175],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.90,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000002013",
+              "caseId": "661000000000000000000002",
+              "documentId": "661000000000000000000201",
+              "fieldType": "dosage_form",
+              "rawValue": "Sustained Release Tablet (SR)",
+              "normalizedValue": "Sustained Release Tablet (SR)",
+              "pageNumber": 1,
+              "boundingBox": [280, 150, 460, 175],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.89,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000002014",
+              "caseId": "661000000000000000000002",
+              "documentId": "661000000000000000000201",
+              "fieldType": "quantity",
+              "rawValue": "30 tablets",
+              "normalizedValue": "30",
+              "pageNumber": 1,
+              "boundingBox": [470, 150, 540, 175],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.94,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000002021",
+              "caseId": "661000000000000000000002",
+              "documentId": "661000000000000000000201",
+              "fieldType": "medicine_name",
+              "rawValue": "Omez 20",
+              "normalizedValue": "Omeprazole",
+              "pageNumber": 2,
+              "boundingBox": [50, 80, 160, 105],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.93,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000002022",
+              "caseId": "661000000000000000000002",
+              "documentId": "661000000000000000000201",
+              "fieldType": "dosage_strength",
+              "rawValue": "20mg",
+              "normalizedValue": "20mg",
+              "pageNumber": 2,
+              "boundingBox": [170, 80, 220, 105],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.92,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000002023",
+              "caseId": "661000000000000000000002",
+              "documentId": "661000000000000000000201",
+              "fieldType": "dosage_form",
+              "rawValue": "Enteric Coated Capsule",
+              "normalizedValue": "Enteric Coated Capsule",
+              "pageNumber": 2,
+              "boundingBox": [230, 80, 390, 105],
+              "extractionMethod": "LOCAL_TESSERACT_PDF_OCR",
+              "extractionConfidence": 0.91,
+              "needsCorrection": false
+            }
+          ],
+          "groups": [
+            {
+              "anchorFieldId": "661000000000000000002001",
+              "fieldIds": [
+                "661000000000000000002001",
+                "661000000000000000002002",
+                "661000000000000000002003",
+                "661000000000000000002004"
+              ]
+            },
+            {
+              "anchorFieldId": "661000000000000000002011",
+              "fieldIds": [
+                "661000000000000000002011",
+                "661000000000000000002012",
+                "661000000000000000002013",
+                "661000000000000000002014"
+              ]
+            },
+            {
+              "anchorFieldId": "661000000000000000002021",
+              "fieldIds": [
+                "661000000000000000002021",
+                "661000000000000000002022",
+                "661000000000000000002023"
+              ]
+            }
+          ],
+          "expected": {
+            "groupingStatus": "GROUPED",
+            "detectedGroupCount": 3,
+            "itemCount": 3,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": []
+          }
+        },
+        {
+          "scenarioId": "v2_three_items_reordered_groups",
+          "baseScenarioId": "v1_three_items_canonical_order",
+          "groups": [
+            {
+              "anchorFieldId": "661000000000000000002021",
+              "fieldIds": [
+                "661000000000000000002023",
+                "661000000000000000002021",
+                "661000000000000000002022"
+              ]
+            },
+            {
+              "anchorFieldId": "661000000000000000002001",
+              "fieldIds": [
+                "661000000000000000002004",
+                "661000000000000000002003",
+                "661000000000000000002002",
+                "661000000000000000002001"
+              ]
+            },
+            {
+              "anchorFieldId": "661000000000000000002011",
+              "fieldIds": [
+                "661000000000000000002012",
+                "661000000000000000002014",
+                "661000000000000000002011",
+                "661000000000000000002013"
+              ]
+            }
+          ],
+          "expected": {
+            "groupingStatus": "GROUPED",
+            "detectedGroupCount": 3,
+            "itemCount": 3,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": []
+          }
+        },
+        {
+          "scenarioId": "v3_three_items_after_value_correction",
+          "baseScenarioId": "v1_three_items_canonical_order",
+          "fieldOverrides": [
+            {
+              "id": "661000000000000000002001",
+              "normalizedValue": "Paracetamol 650mg",
+              "correctedBy": "661000000000000000000099",
+              "correctedAt": "2026-11-09T12:00:00.000Z"
+            },
+            {
+              "id": "661000000000000000002002",
+              "normalizedValue": "650mg",
+              "correctedBy": "661000000000000000000099",
+              "correctedAt": "2026-11-09T12:01:00.000Z"
+            }
+          ],
+          "expected": {
+            "groupingStatus": "GROUPED",
+            "detectedGroupCount": 3,
+            "itemCount": 3,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": []
+          }
+        },
+        {
+          "scenarioId": "v4_spoofed_client_group_ids_ignored",
+          "baseScenarioId": "v1_three_items_canonical_order",
+          "groups": [
+            {
+              "itemId": "mi_000000000000000000000000",
+              "id": "spoofed_group_1",
+              "objectStorageKey": "cases/spoofed.pdf",
+              "anchorFieldId": "661000000000000000002001",
+              "fieldIds": [
+                "661000000000000000002001",
+                "661000000000000000002002",
+                "661000000000000000002003",
+                "661000000000000000002004"
+              ]
+            },
+            {
+              "itemId": "mi_111111111111111111111111",
+              "anchorFieldId": "661000000000000000002011",
+              "fieldIds": [
+                "661000000000000000002011",
+                "661000000000000000002012",
+                "661000000000000000002013",
+                "661000000000000000002014"
+              ]
+            },
+            {
+              "itemId": "mi_222222222222222222222222",
+              "anchorFieldId": "661000000000000000002021",
+              "fieldIds": [
+                "661000000000000000002021",
+                "661000000000000000002022",
+                "661000000000000000002023"
+              ]
+            }
+          ],
+          "expected": {
+            "groupingStatus": "GROUPED",
+            "detectedGroupCount": 3,
+            "itemCount": 3,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": []
+          }
+        }
+      ]
+    },
+    {
+      "familyId": "dev_family_3_legacy_ambiguity_guards",
+      "description": "Ambiguous flat records in legacy mode must remain UNRESOLVED without inventing or splitting items.",
+      "variants": [
+        {
+          "scenarioId": "v1_flat_comma_separated_medicines",
+          "document": {
+            "id": "661000000000000000000301",
+            "caseId": "661000000000000000000003",
+            "type": "PRESCRIPTION",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000003001",
+              "caseId": "661000000000000000000003",
+              "documentId": "661000000000000000000301",
+              "fieldType": "medicine_name",
+              "rawValue": "Dolo 650, Azee 500",
+              "normalizedValue": "Dolo 650, Azee 500",
+              "pageNumber": 1,
+              "boundingBox": [40, 100, 310, 130],
+              "extractionMethod": "LOCAL_TESSERACT_IMAGE_OCR",
+              "extractionConfidence": 0.88,
+              "needsCorrection": true
+            }
+          ],
+          "expected": {
+            "groupingStatus": "UNRESOLVED",
+            "detectedGroupCount": 1,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["FLAT_MULTI_MEDICINE_VALUE"]
+          }
+        },
+        {
+          "scenarioId": "v2_repeated_legacy_medicine_names",
+          "document": {
+            "id": "661000000000000000000302",
+            "caseId": "661000000000000000000003",
+            "type": "PHARMACY_INVOICE",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000003011",
+              "caseId": "661000000000000000000003",
+              "documentId": "661000000000000000000302",
+              "fieldType": "medicine_name",
+              "rawValue": "Dolo 650",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.93,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000003012",
+              "caseId": "661000000000000000000003",
+              "documentId": "661000000000000000000302",
+              "fieldType": "medicine_name",
+              "rawValue": "Azee 500",
+              "normalizedValue": "Azithromycin",
+              "pageNumber": 1,
+              "extractionConfidence": 0.91,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "UNRESOLVED",
+            "detectedGroupCount": 2,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["MULTIPLE_FLAT_MEDICINE_NAMES"]
+          }
+        },
+        {
+          "scenarioId": "v3_repeated_competing_strength_slots",
+          "document": {
+            "id": "661000000000000000000303",
+            "caseId": "661000000000000000000003",
+            "type": "PRESCRIPTION",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000003021",
+              "caseId": "661000000000000000000003",
+              "documentId": "661000000000000000000303",
+              "fieldType": "medicine_name",
+              "rawValue": "Paracetamol",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.92,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000003022",
+              "caseId": "661000000000000000000003",
+              "documentId": "661000000000000000000303",
+              "fieldType": "dosage_strength",
+              "rawValue": "500mg",
+              "normalizedValue": "500mg",
+              "pageNumber": 1,
+              "extractionConfidence": 0.89,
+              "needsCorrection": true
+            },
+            {
+              "id": "661000000000000000003023",
+              "caseId": "661000000000000000000003",
+              "documentId": "661000000000000000000303",
+              "fieldType": "dosage_strength",
+              "rawValue": "650mg",
+              "normalizedValue": "650mg",
+              "pageNumber": 1,
+              "extractionConfidence": 0.87,
+              "needsCorrection": true
+            }
+          ],
+          "expected": {
+            "groupingStatus": "UNRESOLVED",
+            "detectedGroupCount": 1,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["COMPETING_SLOT_VALUES"]
+          }
+        },
+        {
+          "scenarioId": "v4_missing_medicine_name_anchor",
+          "document": {
+            "id": "661000000000000000000304",
+            "caseId": "661000000000000000000003",
+            "type": "PRESCRIPTION",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000003031",
+              "caseId": "661000000000000000000003",
+              "documentId": "661000000000000000000304",
+              "fieldType": "dosage_strength",
+              "rawValue": "500mg",
+              "normalizedValue": "500mg",
+              "pageNumber": 1,
+              "extractionConfidence": 0.90,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "UNRESOLVED",
+            "detectedGroupCount": 0,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["MISSING_MEDICINE_NAME"]
+          }
+        }
+      ]
+    },
+    {
+      "familyId": "dev_family_4_group_integrity_and_limits",
+      "description": "Four-group limit enforcement, duplicate anchors, shared fields across groups, missing referenced fields, and ungrouped medicine fields.",
+      "variants": [
+        {
+          "scenarioId": "v1_four_groups_limit_exceeded",
+          "document": {
+            "id": "661000000000000000000401",
+            "caseId": "661000000000000000000004",
+            "type": "PRESCRIPTION",
+            "pageCount": 2,
+            "processedPageCount": 2,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 2,
+              "processed": 2,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000004001",
+              "caseId": "661000000000000000000004",
+              "documentId": "661000000000000000000401",
+              "fieldType": "medicine_name",
+              "rawValue": "Dolo 650",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.95,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000004002",
+              "caseId": "661000000000000000000004",
+              "documentId": "661000000000000000000401",
+              "fieldType": "medicine_name",
+              "rawValue": "Azee 500",
+              "normalizedValue": "Azithromycin",
+              "pageNumber": 1,
+              "extractionConfidence": 0.94,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000004003",
+              "caseId": "661000000000000000000004",
+              "documentId": "661000000000000000000401",
+              "fieldType": "medicine_name",
+              "rawValue": "Pan 40",
+              "normalizedValue": "Pantoprazole",
+              "pageNumber": 2,
+              "extractionConfidence": 0.93,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000004004",
+              "caseId": "661000000000000000000004",
+              "documentId": "661000000000000000000401",
+              "fieldType": "medicine_name",
+              "rawValue": "Okacet 10",
+              "normalizedValue": "Cetirizine",
+              "pageNumber": 2,
+              "extractionConfidence": 0.92,
+              "needsCorrection": false
+            }
+          ],
+          "groups": [
+            { "anchorFieldId": "661000000000000000004001", "fieldIds": ["661000000000000000004001"] },
+            { "anchorFieldId": "661000000000000000004002", "fieldIds": ["661000000000000000004002"] },
+            { "anchorFieldId": "661000000000000000004003", "fieldIds": ["661000000000000000004003"] },
+            { "anchorFieldId": "661000000000000000004004", "fieldIds": ["661000000000000000004004"] }
+          ],
+          "expected": {
+            "groupingStatus": "UNRESOLVED",
+            "detectedGroupCount": 4,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["GROUP_LIMIT_EXCEEDED"]
+          }
+        },
+        {
+          "scenarioId": "v2_duplicate_anchor_and_shared_member",
+          "document": {
+            "id": "661000000000000000000402",
+            "caseId": "661000000000000000000004",
+            "type": "PRESCRIPTION",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000004011",
+              "caseId": "661000000000000000000004",
+              "documentId": "661000000000000000000402",
+              "fieldType": "medicine_name",
+              "rawValue": "Dolo 650",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.94,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000004012",
+              "caseId": "661000000000000000000004",
+              "documentId": "661000000000000000000402",
+              "fieldType": "dosage_strength",
+              "rawValue": "650mg",
+              "normalizedValue": "650mg",
+              "pageNumber": 1,
+              "extractionConfidence": 0.93,
+              "needsCorrection": false
+            }
+          ],
+          "groups": [
+            {
+              "anchorFieldId": "661000000000000000004011",
+              "fieldIds": ["661000000000000000004011", "661000000000000000004012"]
+            },
+            {
+              "anchorFieldId": "661000000000000000004011",
+              "fieldIds": ["661000000000000000004011", "661000000000000000004012"]
+            }
+          ],
+          "expected": {
+            "groupingStatus": "UNRESOLVED",
+            "detectedGroupCount": 2,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["DUPLICATE_GROUP_ANCHOR", "DUPLICATE_FIELD_MEMBERSHIP"]
+          }
+        },
+        {
+          "scenarioId": "v3_missing_referenced_and_competing_group_slot",
+          "document": {
+            "id": "661000000000000000000403",
+            "caseId": "661000000000000000000004",
+            "type": "PHARMACY_INVOICE",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000004021",
+              "caseId": "661000000000000000000004",
+              "documentId": "661000000000000000000403",
+              "fieldType": "medicine_name",
+              "rawValue": "Azee 500",
+              "normalizedValue": "Azithromycin",
+              "pageNumber": 1,
+              "extractionConfidence": 0.92,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000004022",
+              "caseId": "661000000000000000000004",
+              "documentId": "661000000000000000000403",
+              "fieldType": "quantity",
+              "rawValue": "3",
+              "normalizedValue": "3",
+              "pageNumber": 1,
+              "extractionConfidence": 0.91,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000004023",
+              "caseId": "661000000000000000000004",
+              "documentId": "661000000000000000000403",
+              "fieldType": "quantity",
+              "rawValue": "6",
+              "normalizedValue": "6",
+              "pageNumber": 1,
+              "extractionConfidence": 0.90,
+              "needsCorrection": false
+            }
+          ],
+          "groups": [
+            {
+              "anchorFieldId": "661000000000000000004021",
+              "fieldIds": [
+                "661000000000000000004021",
+                "661000000000000000004022",
+                "661000000000000000004023",
+                "661000000000000000009999"
+              ]
+            }
+          ],
+          "expected": {
+            "groupingStatus": "UNRESOLVED",
+            "detectedGroupCount": 1,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["COMPETING_SLOT_VALUES", "MISSING_REFERENCED_FIELD"]
+          }
+        },
+        {
+          "scenarioId": "v4_ungrouped_orphan_medicine_field",
+          "document": {
+            "id": "661000000000000000000404",
+            "caseId": "661000000000000000000004",
+            "type": "PRESCRIPTION",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000004031",
+              "caseId": "661000000000000000000004",
+              "documentId": "661000000000000000000404",
+              "fieldType": "medicine_name",
+              "rawValue": "Dolo 650",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.95,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000004032",
+              "caseId": "661000000000000000000004",
+              "documentId": "661000000000000000000404",
+              "fieldType": "medicine_name",
+              "rawValue": "Pan 40",
+              "normalizedValue": "Pantoprazole",
+              "pageNumber": 1,
+              "extractionConfidence": 0.93,
+              "needsCorrection": false
+            }
+          ],
+          "groups": [
+            {
+              "anchorFieldId": "661000000000000000004031",
+              "fieldIds": ["661000000000000000004031"]
+            }
+          ],
+          "expected": {
+            "groupingStatus": "UNRESOLVED",
+            "detectedGroupCount": 2,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["UNGROUPED_MEDICINE_FIELD"]
+          }
+        }
+      ]
+    },
+    {
+      "familyId": "dev_family_5_claim_form_and_isolation",
+      "description": "Claim form non-applicability without invented items, plus cross-case/cross-document isolation and confidence validation.",
+      "variants": [
+        {
+          "scenarioId": "v1_claim_form_standard",
+          "document": {
+            "id": "661000000000000000000501",
+            "caseId": "661000000000000000000005",
+            "type": "CLAIM_FORM",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000005001",
+              "caseId": "661000000000000000000005",
+              "documentId": "661000000000000000000501",
+              "fieldType": "claimed_amount",
+              "rawValue": "Rs. 450.00",
+              "normalizedValue": "450.00",
+              "pageNumber": 1,
+              "extractionConfidence": 0.96,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000005002",
+              "caseId": "661000000000000000000005",
+              "documentId": "661000000000000000000501",
+              "fieldType": "medicine_name",
+              "rawValue": "Dolo 650",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.91,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "NOT_APPLICABLE",
+            "detectedGroupCount": 0,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": false,
+            "issueCodes": []
+          }
+        },
+        {
+          "scenarioId": "v2_claim_form_with_groups_rejected",
+          "document": {
+            "id": "661000000000000000000502",
+            "caseId": "661000000000000000000005",
+            "type": "CLAIM_FORM",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000005011",
+              "caseId": "661000000000000000000005",
+              "documentId": "661000000000000000000502",
+              "fieldType": "medicine_name",
+              "rawValue": "Dolo 650",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.92,
+              "needsCorrection": false
+            }
+          ],
+          "groups": [
+            {
+              "anchorFieldId": "661000000000000000005011",
+              "fieldIds": ["661000000000000000005011"]
+            }
+          ],
+          "expected": {
+            "groupingStatus": "NOT_APPLICABLE",
+            "detectedGroupCount": 0,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["CLAIM_FORM_GROUPING_NOT_APPLICABLE"]
+          }
+        },
+        {
+          "scenarioId": "v3_cross_case_field_reference",
+          "document": {
+            "id": "661000000000000000000503",
+            "caseId": "661000000000000000000005",
+            "type": "PRESCRIPTION",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000005021",
+              "caseId": "661000000000000000009999",
+              "documentId": "661000000000000000000503",
+              "fieldType": "medicine_name",
+              "rawValue": "Dolo 650",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.94,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "UNRESOLVED",
+            "detectedGroupCount": 0,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["CROSS_CASE_FIELD_REFERENCE", "MISSING_MEDICINE_NAME"]
+          }
+        },
+        {
+          "scenarioId": "v4_cross_document_and_missing_confidence",
+          "document": {
+            "id": "661000000000000000000504",
+            "caseId": "661000000000000000000005",
+            "type": "PHARMACY_INVOICE",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000005031",
+              "caseId": "661000000000000000000005",
+              "documentId": "661000000000000000000504",
+              "fieldType": "medicine_name",
+              "rawValue": "Dolo 650",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "confidenceScore": 0.95,
+              "needsCorrection": false
+            },
+            {
+              "id": "661000000000000000005032",
+              "caseId": "661000000000000000000005",
+              "documentId": "661000000000000000000999",
+              "fieldType": "dosage_strength",
+              "rawValue": "650mg",
+              "normalizedValue": "650mg",
+              "pageNumber": 1,
+              "extractionConfidence": 0.92,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "UNRESOLVED",
+            "detectedGroupCount": 0,
+            "itemCount": 0,
+            "coverageStatus": "COMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["MISSING_OR_INVALID_CONFIDENCE", "CROSS_DOCUMENT_FIELD_REFERENCE", "MISSING_MEDICINE_NAME"]
+          }
+        }
+      ]
+    },
+    {
+      "familyId": "dev_family_6_coverage_integrity",
+      "description": "Incomplete, contradictory, and unknown page coverage handling without fabricating complete status.",
+      "variants": [
+        {
+          "scenarioId": "v1_incomplete_page_coverage",
+          "document": {
+            "id": "661000000000000000000601",
+            "caseId": "661000000000000000000006",
+            "type": "PRESCRIPTION",
+            "pageCount": 5,
+            "processedPageCount": 3,
+            "omittedPageCount": 2,
+            "pageCoverage": {
+              "total": 5,
+              "processed": 3,
+              "omitted": 2,
+              "status": "INCOMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000006001",
+              "caseId": "661000000000000000000006",
+              "documentId": "661000000000000000000601",
+              "fieldType": "medicine_name",
+              "rawValue": "Losar 50",
+              "normalizedValue": "Losartan",
+              "pageNumber": 2,
+              "extractionConfidence": 0.93,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "LEGACY_SINGLE_ITEM",
+            "detectedGroupCount": 1,
+            "itemCount": 1,
+            "coverageStatus": "INCOMPLETE",
+            "reviewRequired": true,
+            "issueCodes": ["INCOMPLETE_PAGE_COVERAGE"]
+          }
+        },
+        {
+          "scenarioId": "v2_contradictory_complete_label",
+          "document": {
+            "id": "661000000000000000000602",
+            "caseId": "661000000000000000000006",
+            "type": "PRESCRIPTION",
+            "pageCount": 4,
+            "processedPageCount": 3,
+            "omittedPageCount": 1,
+            "pageCoverage": {
+              "total": 4,
+              "processed": 3,
+              "omitted": 1,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000006011",
+              "caseId": "661000000000000000000006",
+              "documentId": "661000000000000000000602",
+              "fieldType": "medicine_name",
+              "rawValue": "Atorva 10",
+              "normalizedValue": "Atorvastatin",
+              "pageNumber": 1,
+              "extractionConfidence": 0.94,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "LEGACY_SINGLE_ITEM",
+            "detectedGroupCount": 1,
+            "itemCount": 1,
+            "coverageStatus": "CONTRADICTORY",
+            "reviewRequired": true,
+            "issueCodes": ["CONTRADICTORY_PAGE_COVERAGE", "INCOMPLETE_PAGE_COVERAGE"]
+          }
+        },
+        {
+          "scenarioId": "v3_unknown_page_coverage",
+          "document": {
+            "id": "661000000000000000000603",
+            "caseId": "661000000000000000000006",
+            "type": "PHARMACY_INVOICE",
+            "pageCount": 2
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000006021",
+              "caseId": "661000000000000000000006",
+              "documentId": "661000000000000000000603",
+              "fieldType": "medicine_name",
+              "rawValue": "Atorva 10",
+              "normalizedValue": "Atorvastatin",
+              "pageNumber": 1,
+              "extractionConfidence": 0.95,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "LEGACY_SINGLE_ITEM",
+            "detectedGroupCount": 1,
+            "itemCount": 1,
+            "coverageStatus": "UNKNOWN",
+            "reviewRequired": true,
+            "issueCodes": ["UNKNOWN_PAGE_COVERAGE"]
+          }
+        },
+        {
+          "scenarioId": "v4_field_page_exceeds_processed_coverage",
+          "document": {
+            "id": "661000000000000000000604",
+            "caseId": "661000000000000000000006",
+            "type": "PRESCRIPTION",
+            "pageCount": 1,
+            "processedPageCount": 1,
+            "omittedPageCount": 0,
+            "pageCoverage": {
+              "total": 1,
+              "processed": 1,
+              "omitted": 0,
+              "status": "COMPLETE"
+            }
+          },
+          "extractedFields": [
+            {
+              "id": "661000000000000000006031",
+              "caseId": "661000000000000000000006",
+              "documentId": "661000000000000000000604",
+              "fieldType": "medicine_name",
+              "rawValue": "Atorva 10",
+              "normalizedValue": "Atorvastatin",
+              "pageNumber": 2,
+              "extractionConfidence": 0.91,
+              "needsCorrection": false
+            }
+          ],
+          "expected": {
+            "groupingStatus": "LEGACY_SINGLE_ITEM",
+            "detectedGroupCount": 1,
+            "itemCount": 1,
+            "coverageStatus": "CONTRADICTORY",
+            "reviewRequired": true,
+            "issueCodes": ["CONTRADICTORY_PAGE_COVERAGE"]
+          }
+        }
+      ]
+    }
+  ]
+}

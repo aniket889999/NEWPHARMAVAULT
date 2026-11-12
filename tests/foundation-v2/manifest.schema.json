@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pharmavault:foundation-v2:manifest:1.0.0",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "synthetic", "label", "split", "families"],
+  "properties": {
+    "schemaVersion": {"const":"foundation-v2-manifest/1.0.0"},
+    "synthetic": {"const":true},
+    "label": {"const":"SYNTHETIC — DEMO ONLY"},
+    "split": {"enum":["development","heldout"]},
+    "families": {"type":"array","minItems":4,"maxItems":6,"items":{"$ref":"#/$defs/family"}}
+  },
+  "$defs": {
+    "item": {
+      "type":"object","additionalProperties":false,
+      "required":["key","name","strength","form","quantity","unit"],
+      "properties": {
+        "key":{"type":"string","pattern":"^[A-Z]$"}, "name":{"type":"string","minLength":1},
+        "strength":{"type":"string","minLength":1}, "form":{"type":"string","minLength":1},
+        "releaseType":{"type":"string","minLength":1}, "quantity":{"type":"number","exclusiveMinimum":0},
+        "unit":{"enum":["tablet","capsule","mL","strip","pack"]},
+        "packSize":{"type":"integer","minimum":1}, "packUnit":{"enum":["tablet","capsule","mL"]}
+      }
+    },
+    "expected": {
+      "type":"object","additionalProperties":false,"required":["overall","reasons"],
+      "properties": {
+        "overall":{"$ref":"#/$defs/status"},
+        "reasons":{"type":"array","uniqueItems":true,"items":{"type":"string","pattern":"^[A-Z_]+$"}},
+        "pairOverrides":{"type":"object","additionalProperties":{"$ref":"#/$defs/status"}},
+        "missingInvoiceKeys":{"$ref":"#/$defs/keys"}, "extraInvoiceKeys":{"$ref":"#/$defs/keys"},
+        "unobservedInvoiceKeys":{"$ref":"#/$defs/keys"}, "noAssignedPairs":{"type":"boolean"},
+        "freshness":{"enum":["DEPENDENT_ANSWER_STALE","DEPENDENT_ANSWER_CURRENT"]},
+        "chatAction":{"const":"REJECT_DISTRACTOR"}, "claimGrouping":{"const":"NOT_APPLICABLE"}
+      }
+    },
+    "keys":{"type":"array","uniqueItems":true,"items":{"type":"string","pattern":"^[A-Z]$"}},
+    "status":{"enum":["CONSISTENT","MISMATCH","INSUFFICIENT_EVIDENCE"]},
+    "scenario": {
+      "type":"object","additionalProperties":false,"required":["id","effect","expected"],
+      "properties": {
+        "id":{"type":"string","pattern":"^F[0-9]{2}-0[1-4]$"},
+        "effect":{"enum":["BASE","STRENGTH_CONFLICT","MISSING_QUANTITY","CORRECT_STRENGTH","REORDER","MISSING_ITEM","EXTRA_ITEM","UNKNOWN_PACK","PACK_COUNT_CONFLICT","MISSING_FORM","RELEASE_CONFLICT","MISSING_RELEASE","FORM_CONFLICT","MISSING_STRENGTH","LOW_CONFIDENCE","FOUR_GROUPS","CONTRADICTORY_COVERAGE","UNKNOWN_COVERAGE","TWO_CONFLICTS","OMITTED_ITEM_PAGE","UNRELATED_EDIT","INCOMPATIBLE_UNIT","CORRECT_QUANTITY","MISSING_INVOICE","DUPLICATE_LEGACY_NAME","WRONG_ITEM_EVIDENCE","CLAIM_WITHOUT_MEDICINES"]},
+        "expected":{"$ref":"#/$defs/expected"}, "value":{"anyOf":[{"type":"string"},{"type":"number"}]},
+        "previousValue":{"anyOf":[{"type":"string"},{"type":"number"}]}, "target":{"type":"string","pattern":"^[A-Z]$"},
+        "item":{"$ref":"#/$defs/item"}, "strength":{"type":"string"}, "quantity":{"type":"number"}
+      }
+    },
+    "family": {
+      "type":"object","additionalProperties":false,"required":["id","description","items","scenarios"],
+      "properties": {
+        "id":{"type":"string","pattern":"^F[0-9]{2}$"}, "description":{"type":"string","minLength":1},
+        "legacy":{"type":"boolean"}, "items":{"type":"array","minItems":1,"maxItems":3,"items":{"$ref":"#/$defs/item"}},
+        "invoiceOverrides":{"type":"object","additionalProperties":{
+          "type":"object","additionalProperties":false,"required":["quantity","unit","packSize","packUnit"],
+          "properties":{"quantity":{"type":"number","exclusiveMinimum":0},"unit":{"enum":["strip","pack"]},"packSize":{"type":"integer","minimum":1},"packUnit":{"enum":["tablet","capsule","mL"]}}
+        }},
+        "scenarios":{"type":"array","minItems":4,"maxItems":4,"items":{"$ref":"#/$defs/scenario"}}
+      }
+    }
+  }
+}

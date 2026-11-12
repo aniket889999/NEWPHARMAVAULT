@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "foundation-v2-manifest/1.0.0",
+  "synthetic": true,
+  "label": "SYNTHETIC — DEMO ONLY",
+  "split": "heldout",
+  "families": [
+    {
+      "id": "F07", "description": "Unseen three-item combination with simultaneous conflicts and an omitted page",
+      "items": [{"key":"A","name":"Paracetamol","strength":"650 mg","form":"tablet","quantity":6,"unit":"tablet"},{"key":"B","name":"Metformin","strength":"850 mg","form":"tablet","quantity":10,"unit":"tablet"},{"key":"C","name":"Cetirizine","strength":"10 mg","form":"tablet","quantity":8,"unit":"tablet"}],
+      "scenarios": [
+        {"id":"F07-01","effect":"BASE","expected":{"overall":"CONSISTENT","reasons":[]}},
+        {"id":"F07-02","effect":"REORDER","expected":{"overall":"CONSISTENT","reasons":[]}},
+        {"id":"F07-03","effect":"TWO_CONFLICTS","strength":"500 mg","quantity":9,"expected":{"overall":"MISMATCH","reasons":["STRENGTH_MISMATCH","QUANTITY_MISMATCH"],"pairOverrides":{"A":"MISMATCH","B":"MISMATCH"}}},
+        {"id":"F07-04","effect":"OMITTED_ITEM_PAGE","target":"C","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["INCOMPLETE_PAGE_COVERAGE"],"unobservedInvoiceKeys":["C"]}}
+      ]
+    },
+    {
+      "id": "F08", "description": "Two-item release-labelled pair, uncertain extraction and unrelated edits",
+      "items": [{"key":"A","name":"Metformin","strength":"850 mg","form":"tablet","releaseType":"SR","quantity":18,"unit":"tablet"},{"key":"B","name":"Paracetamol","strength":"500 mg","form":"tablet","quantity":4,"unit":"tablet"}],
+      "scenarios": [
+        {"id":"F08-01","effect":"BASE","expected":{"overall":"CONSISTENT","reasons":[]}},
+        {"id":"F08-02","effect":"RELEASE_CONFLICT","value":"IR","expected":{"overall":"MISMATCH","reasons":["RELEASE_TYPE_MISMATCH"],"pairOverrides":{"A":"MISMATCH"}}},
+        {"id":"F08-03","effect":"LOW_CONFIDENCE","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["FIELD_NEEDS_CORRECTION"],"pairOverrides":{"A":"INSUFFICIENT_EVIDENCE"}}},
+        {"id":"F08-04","effect":"UNRELATED_EDIT","expected":{"overall":"CONSISTENT","reasons":[],"freshness":"DEPENDENT_ANSWER_CURRENT"}}
+      ]
+    },
+    {
+      "id": "F09", "description": "Liquid units and a corrected quantity rather than a corrected medicine name",
+      "items": [{"key":"A","name":"Paracetamol","strength":"120 mg/5 mL","form":"syrup","quantity":100,"unit":"mL"}],
+      "scenarios": [
+        {"id":"F09-01","effect":"BASE","expected":{"overall":"CONSISTENT","reasons":[]}},
+        {"id":"F09-02","effect":"INCOMPATIBLE_UNIT","value":"tablet","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["INCOMPATIBLE_QUANTITY_UNITS"],"pairOverrides":{"A":"INSUFFICIENT_EVIDENCE"}}},
+        {"id":"F09-03","effect":"CORRECT_QUANTITY","previousValue":150,"expected":{"overall":"CONSISTENT","reasons":[],"freshness":"DEPENDENT_ANSWER_STALE"}},
+        {"id":"F09-04","effect":"MISSING_INVOICE","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["MISSING_DOCUMENT"],"unobservedInvoiceKeys":["A"]}}
+      ]
+    },
+    {
+      "id": "F10", "description": "Legacy record ambiguity, case evidence eligibility and a metadata-only claim",
+      "legacy": true,
+      "items": [{"key":"A","name":"Cetirizine","strength":"10 mg","form":"tablet","quantity":5,"unit":"tablet"}],
+      "scenarios": [
+        {"id":"F10-01","effect":"BASE","expected":{"overall":"CONSISTENT","reasons":[]}},
+        {"id":"F10-02","effect":"DUPLICATE_LEGACY_NAME","expected":{"overall":"INSUFFICIENT_EVIDENCE","reasons":["AMBIGUOUS_LEGACY_GROUPING"],"noAssignedPairs":true}},
+        {"id":"F10-03","effect":"WRONG_ITEM_EVIDENCE","expected":{"overall":"CONSISTENT","reasons":[],"chatAction":"REJECT_DISTRACTOR"}},
+        {"id":"F10-04","effect":"CLAIM_WITHOUT_MEDICINES","expected":{"overall":"CONSISTENT","reasons":[],"claimGrouping":"NOT_APPLICABLE"}}
+      ]
+    }
+  ]
+}
