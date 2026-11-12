@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pharmavault.example/schemas/medicine-reconciliation.schema.json",
+  "title": "MedicineReconciliationResult",
+  "description": "Session 2 internal comparison result. Not a public API or clinical/claims decision.",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion","rulesetVersion","caseId","documentIds","status","reviewRequired","humanDecisionRequired","coverage","hasInsufficientEvidence","reasonCodes","rows","summary"],
+  "properties": {
+    "schemaVersion": {"const":"2.0.0-session2"},
+    "rulesetVersion": {"const":"academic-reconciliation/1.0.0"},
+    "caseId": {"$ref":"#/$defs/id"},
+    "documentIds": {
+      "type":"object","additionalProperties":false,"required":["prescription","invoice"],
+      "properties":{"prescription":{"$ref":"#/$defs/nullableId"},"invoice":{"$ref":"#/$defs/nullableId"}}
+    },
+    "status": {"$ref":"#/$defs/status"},
+    "reviewRequired": {"type":"boolean"},
+    "humanDecisionRequired": {"const":true},
+    "coverage": {
+      "type":"object","additionalProperties":false,"required":["prescription","invoice"],
+      "properties":{"prescription":{"$ref":"#/$defs/coverageStatus"},"invoice":{"$ref":"#/$defs/coverageStatus"}}
+    },
+    "hasInsufficientEvidence": {"type":"boolean"},
+    "reasonCodes": {"$ref":"#/$defs/reasons"},
+    "rows": {"type":"array","maxItems":6,"items":{"$ref":"#/$defs/row"}},
+    "summary": {
+      "type":"object","additionalProperties":false,"required":["consistent","mismatch","insufficientEvidence"],
+      "properties":{"consistent":{"$ref":"#/$defs/count"},"mismatch":{"$ref":"#/$defs/count"},"insufficientEvidence":{"$ref":"#/$defs/count"}}
+    }
+  },
+  "allOf": [
+    {"if":{"properties":{"status":{"const":"CONSISTENT"}},"required":["status"]},"then":{"properties":{"hasInsufficientEvidence":{"const":false},"rows":{"type":"array","minItems":1},"coverage":{"type":"object","properties":{"prescription":{"const":"COMPLETE"},"invoice":{"const":"COMPLETE"}}}}}},
+    {"if":{"properties":{"status":{"const":"MISMATCH"}},"required":["status"]},"then":{"properties":{"reviewRequired":{"const":true}}}},
+    {"if":{"properties":{"status":{"const":"INSUFFICIENT_EVIDENCE"}},"required":["status"]},"then":{"properties":{"reviewRequired":{"const":true},"hasInsufficientEvidence":{"const":true}}}},
+    {"if":{"properties":{"hasInsufficientEvidence":{"const":true}},"required":["hasInsufficientEvidence"]},"then":{"properties":{"reviewRequired":{"const":true},"status":{"enum":["MISMATCH","INSUFFICIENT_EVIDENCE"]}}}},
+    {"if":{"properties":{"reviewRequired":{"const":false}},"required":["reviewRequired"]},"then":{"properties":{"status":{"const":"CONSISTENT"},"hasInsufficientEvidence":{"const":false}}}}
+  ],
+  "$defs": {
+    "id": {"type":"string","pattern":"^[A-Za-z0-9_:-]{1,128}$"},
+    "nullableId": {"oneOf":[{"$ref":"#/$defs/id"},{"type":"null"}]},
+    "itemId": {"type":"string","pattern":"^mi_[a-f0-9]{24}$"},
+    "nullableItemId": {"oneOf":[{"$ref":"#/$defs/itemId"},{"type":"null"}]},
+    "status": {"enum":["CONSISTENT","MISMATCH","INSUFFICIENT_EVIDENCE"]},
+    "checkStatus": {"enum":["CONSISTENT","MISMATCH","INSUFFICIENT_EVIDENCE","NOT_APPLICABLE"]},
+    "coverageStatus": {"enum":["COMPLETE","INCOMPLETE","UNKNOWN","CONTRADICTORY","MISSING"]},
+    "count": {"type":"integer","minimum":0,"maximum":6},
+    "reason": {"enum":["MISSING_DOCUMENT","UNRESOLVED_GROUPING","ITEM_LIMIT_EXCEEDED","INCOMPLETE_PAGE_COVERAGE","UNKNOWN_PAGE_COVERAGE","CONTRADICTORY_PAGE_COVERAGE","FIELD_NEEDS_CORRECTION","UNKNOWN_MEDICINE","AMBIGUOUS_MEDICINE","IDENTITY_ATTRIBUTE_CONFLICT","AMBIGUOUS_MATCH","MISSING_INVOICE_ITEM","EXTRA_INVOICE_ITEM","STRENGTH_MISMATCH","DOSAGE_FORM_MISMATCH","RELEASE_TYPE_MISMATCH","QUANTITY_MISMATCH","MISSING_STRENGTH","MISSING_DOSAGE_FORM","MISSING_RELEASE_TYPE","MISSING_QUANTITY","UNKNOWN_QUANTITY_UNIT","UNKNOWN_PACK_SIZE","INCOMPATIBLE_QUANTITY_UNITS","INVALID_QUANTITY","UNSUPPORTED_STRENGTH_FORMAT","UNSUPPORTED_PRODUCT_TYPE"]},
+    "reasons": {"type":"array","uniqueItems":true,"maxItems":27,"items":{"$ref":"#/$defs/reason"}},
+    "evidence": {
+      "type":"object","additionalProperties":false,"required":["documentId","fieldId","pageNumber"],
+      "properties":{"documentId":{"$ref":"#/$defs/id"},"fieldId":{"$ref":"#/$defs/id"},"pageNumber":{"type":"integer","minimum":1}}
+    },
+    "quantity": {
+      "type":"object","additionalProperties":false,"required":["prescriptionBaseQuantity","invoiceBaseQuantity","baseUnit"],
+      "properties":{
+        "prescriptionBaseQuantity":{"type":["number","null"],"exclusiveMinimum":0,"maximum":1000000},
+        "invoiceBaseQuantity":{"type":["number","null"],"exclusiveMinimum":0,"maximum":1000000},
+        "baseUnit":{"enum":["tablet","capsule","mL",null]}
+      },
+      "allOf":[{"if":{"properties":{"baseUnit":{"type":"null"}},"required":["baseUnit"]},"then":{"properties":{"prescriptionBaseQuantity":{"type":"null"},"invoiceBaseQuantity":{"type":"null"}}}}]
+    },
+    "row": {
+      "type":"object","additionalProperties":false,
+      "required":["rowId","prescriptionItemId","invoiceItemId","genericName","status","checks","quantity","reasonCodes","evidenceReferences"],
+      "properties":{
+        "rowId":{"type":"string","pattern":"^mr_[a-f0-9]{24}$"},
+        "prescriptionItemId":{"$ref":"#/$defs/nullableItemId"},"invoiceItemId":{"$ref":"#/$defs/nullableItemId"},
+        "genericName":{"type":["string","null"],"minLength":1,"maxLength":160},
+        "status":{"$ref":"#/$defs/status"},
+        "checks":{
+          "type":"object","additionalProperties":false,"required":["identity","strength","form","release","quantity"],
+          "properties":{"identity":{"$ref":"#/$defs/checkStatus"},"strength":{"$ref":"#/$defs/checkStatus"},"form":{"$ref":"#/$defs/checkStatus"},"release":{"$ref":"#/$defs/checkStatus"},"quantity":{"$ref":"#/$defs/checkStatus"}}
+        },
+        "quantity":{"$ref":"#/$defs/quantity"},"reasonCodes":{"$ref":"#/$defs/reasons"},
+        "evidenceReferences":{"type":"array","minItems":1,"maxItems":16,"uniqueItems":true,"items":{"$ref":"#/$defs/evidence"}}
+      },
+      "anyOf":[{"properties":{"prescriptionItemId":{"$ref":"#/$defs/itemId"}}},{"properties":{"invoiceItemId":{"$ref":"#/$defs/itemId"}}}]
+    }
+  }
+}

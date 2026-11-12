@@ -1,0 +1,299 @@
+{
+  "schemaVersion": "2.0.0-session2-dev-fixtures",
+  "synthetic": true,
+  "label": "SYNTHETIC — DEMO ONLY",
+  "split": "development",
+  "description": "Development-only synthetic fixtures for PharmaVault Session 2 medicine matching and administrative quantity normalization tests. Contains no patient data or held-out benchmark scenarios.",
+  "quantityUnitCases": [
+    {
+      "id": "QTY-DEV-01",
+      "description": "Direct tablet count normalization",
+      "slots": {
+        "medicine_name": "Paracetamol",
+        "dosage_strength": "500 mg",
+        "dosage_form": "tablet",
+        "quantity": "10",
+        "quantity_unit": "tablets"
+      },
+      "expected": {
+        "status": "NORMALIZED",
+        "baseQuantity": 10,
+        "baseUnit": "tablet",
+        "reasonCodes": []
+      }
+    },
+    {
+      "id": "QTY-DEV-02",
+      "description": "Direct capsule count normalization with abbreviation",
+      "slots": {
+        "medicine_name": "Omeprazole",
+        "dosage_strength": "20 mg",
+        "dosage_form": "capsule",
+        "quantity": "15",
+        "quantity_unit": "cap"
+      },
+      "expected": {
+        "status": "NORMALIZED",
+        "baseQuantity": 15,
+        "baseUnit": "capsule",
+        "reasonCodes": []
+      }
+    },
+    {
+      "id": "QTY-DEV-03",
+      "description": "Direct liquid mL decimal quantity normalization",
+      "slots": {
+        "medicine_name": "Calpol Suspension",
+        "dosage_strength": "120mg/5ml",
+        "dosage_form": "syrup",
+        "quantity": "62.5",
+        "quantity_unit": "mL"
+      },
+      "expected": {
+        "status": "NORMALIZED",
+        "baseQuantity": 62.5,
+        "baseUnit": "mL",
+        "reasonCodes": []
+      }
+    },
+    {
+      "id": "QTY-DEV-04",
+      "description": "Explicit strip pack count multiplication (2 strips x 6 tablets = 12 tablets)",
+      "slots": {
+        "medicine_name": "Paracetamol",
+        "dosage_strength": "500 mg",
+        "dosage_form": "tablet",
+        "quantity": "2",
+        "quantity_unit": "strip",
+        "pack_size": "6",
+        "pack_unit": "tablet"
+      },
+      "expected": {
+        "status": "NORMALIZED",
+        "baseQuantity": 12,
+        "baseUnit": "tablet",
+        "reasonCodes": []
+      }
+    },
+    {
+      "id": "QTY-DEV-05",
+      "description": "Strip without explicit pack_size never defaults to 10",
+      "slots": {
+        "medicine_name": "Paracetamol",
+        "dosage_strength": "500 mg",
+        "dosage_form": "tablet",
+        "quantity": "2",
+        "quantity_unit": "strip",
+        "pack_unit": "tablet"
+      },
+      "expected": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "baseQuantity": null,
+        "baseUnit": null,
+        "reasonCodes": ["UNKNOWN_PACK_SIZE"]
+      }
+    },
+    {
+      "id": "QTY-DEV-06",
+      "description": "Unsupported bottle unit requires clarification",
+      "slots": {
+        "medicine_name": "Calpol Suspension",
+        "dosage_strength": "120mg/5ml",
+        "dosage_form": "syrup",
+        "quantity": "1",
+        "quantity_unit": "bottle"
+      },
+      "expected": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "baseQuantity": null,
+        "baseUnit": null,
+        "reasonCodes": ["UNKNOWN_QUANTITY_UNIT"]
+      }
+    }
+  ],
+  "reconciliationEdgeCases": [
+    {
+      "id": "REC-DEV-01",
+      "description": "Incompatible base units (tablets vs mL) yield null comparison quantities and INCOMPATIBLE_QUANTITY_UNITS",
+      "caseId": "dev_s2_case_incompatible_units",
+      "prescriptionItems": [
+        {
+          "key": "rx1",
+          "medicine_name": "Paracetamol",
+          "dosage_strength": "500 mg",
+          "dosage_form": "tablet",
+          "quantity": "10",
+          "quantity_unit": "tablet"
+        }
+      ],
+      "invoiceItems": [
+        {
+          "key": "inv1",
+          "medicine_name": "Paracetamol",
+          "dosage_strength": "500 mg",
+          "dosage_form": "tablet",
+          "quantity": "100",
+          "quantity_unit": "mL"
+        }
+      ],
+      "expected": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "reasonCodes": ["INCOMPATIBLE_QUANTITY_UNITS"]
+      }
+    },
+    {
+      "id": "REC-DEV-02",
+      "description": "Non-convertible concentration strengths (120mg/5ml vs 24mg/ml) stay INSUFFICIENT_EVIDENCE with UNSUPPORTED_STRENGTH_FORMAT",
+      "caseId": "dev_s2_case_concentration_format",
+      "prescriptionItems": [
+        {
+          "key": "rx1",
+          "medicine_name": "Calpol Suspension",
+          "dosage_strength": "120mg/5ml",
+          "dosage_form": "syrup",
+          "quantity": "100",
+          "quantity_unit": "mL"
+        }
+      ],
+      "invoiceItems": [
+        {
+          "key": "inv1",
+          "medicine_name": "Paracetamol Syrup",
+          "dosage_strength": "24mg/ml",
+          "dosage_form": "syrup",
+          "quantity": "100",
+          "quantity_unit": "mL"
+        }
+      ],
+      "expected": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "reasonCodes": ["UNSUPPORTED_STRENGTH_FORMAT"]
+      }
+    },
+    {
+      "id": "REC-DEV-03",
+      "description": "Combination catalogue product (Pan D) stays unresolved with UNSUPPORTED_PRODUCT_TYPE",
+      "caseId": "dev_s2_case_combination_product",
+      "prescriptionItems": [
+        {
+          "key": "rx1",
+          "medicine_name": "Pan D",
+          "dosage_strength": "40 mg",
+          "dosage_form": "capsule",
+          "quantity": "10",
+          "quantity_unit": "capsule"
+        }
+      ],
+      "invoiceItems": [
+        {
+          "key": "inv1",
+          "medicine_name": "Pan D",
+          "dosage_strength": "40 mg",
+          "dosage_form": "capsule",
+          "quantity": "10",
+          "quantity_unit": "capsule"
+        }
+      ],
+      "expected": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "reasonCodes": ["UNSUPPORTED_PRODUCT_TYPE"]
+      }
+    },
+    {
+      "id": "REC-DEV-04",
+      "description": "Uncertain invoice medicine_name cannot prove another prescribed item is MISSING_INVOICE_ITEM",
+      "caseId": "dev_s2_case_uncertain_inv_name",
+      "prescriptionItems": [
+        {
+          "key": "rx1",
+          "medicine_name": "Metformin",
+          "dosage_strength": "500 mg",
+          "dosage_form": "tablet",
+          "quantity": "14",
+          "quantity_unit": "tablet"
+        },
+        {
+          "key": "rx2",
+          "medicine_name": "Cetirizine",
+          "dosage_strength": "10 mg",
+          "dosage_form": "tablet",
+          "quantity": "7",
+          "quantity_unit": "tablet"
+        }
+      ],
+      "invoiceItems": [
+        {
+          "key": "inv1",
+          "medicine_name": "Metformin",
+          "dosage_strength": "500 mg",
+          "dosage_form": "tablet",
+          "quantity": "14",
+          "quantity_unit": "tablet",
+          "confidence": 0.3,
+          "needsCorrection": true
+        }
+      ],
+      "expected": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "reasonCodes": ["FIELD_NEEDS_CORRECTION"],
+        "forbiddenReasonCodes": ["MISSING_INVOICE_ITEM"]
+      }
+    },
+    {
+      "id": "REC-DEV-05",
+      "description": "Uncertain prescription medicine_name cannot prove an unmatched invoice item is EXTRA_INVOICE_ITEM",
+      "caseId": "dev_s2_case_uncertain_rx_name",
+      "prescriptionItems": [
+        {
+          "key": "rx1",
+          "medicine_name": "Metformin",
+          "dosage_strength": "500 mg",
+          "dosage_form": "tablet",
+          "quantity": "14",
+          "quantity_unit": "tablet",
+          "confidence": 0.3,
+          "needsCorrection": true
+        },
+        {
+          "key": "rx2",
+          "medicine_name": "Cetirizine",
+          "dosage_strength": "10 mg",
+          "dosage_form": "tablet",
+          "quantity": "7",
+          "quantity_unit": "tablet"
+        }
+      ],
+      "invoiceItems": [
+        {
+          "key": "inv1",
+          "medicine_name": "Metformin",
+          "dosage_strength": "500 mg",
+          "dosage_form": "tablet",
+          "quantity": "14",
+          "quantity_unit": "tablet"
+        },
+        {
+          "key": "inv2",
+          "medicine_name": "Cetirizine",
+          "dosage_strength": "10 mg",
+          "dosage_form": "tablet",
+          "quantity": "7",
+          "quantity_unit": "tablet"
+        },
+        {
+          "key": "inv3",
+          "medicine_name": "Azithromycin",
+          "dosage_strength": "250 mg",
+          "dosage_form": "tablet",
+          "quantity": "6",
+          "quantity_unit": "tablet"
+        }
+      ],
+      "expected": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "reasonCodes": ["FIELD_NEEDS_CORRECTION"],
+        "forbiddenReasonCodes": ["EXTRA_INVOICE_ITEM"]
+      }
+    }
+  ]
+}

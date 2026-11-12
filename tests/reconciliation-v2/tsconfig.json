@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.app.json",
+  "compilerOptions": {"noEmit": true},
+  "include": ["../../src/modules/verification/reconciliation/**/*.ts", "../../src/modules/verification/reconciliation/**/*.tsx"],
+  "exclude": []
+}
