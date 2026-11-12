@@ -15,8 +15,12 @@ import {
   ArrowRight,
   ShieldAlert,
   CheckCircle2,
-  Lock
+  Lock,
+  Sparkles,
+  FileSearch,
+  Scale
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const ReviewQueuePage: React.FC = () => {
   const { user } = useAuth();
@@ -25,6 +29,7 @@ export const ReviewQueuePage: React.FC = () => {
   const [queueCases, setQueueCases] = useState<VerificationCase[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isGeneratingDemo, setIsGeneratingDemo] = useState<boolean>(false);
 
   // Adjudication Modal state
   const [selectedCase, setSelectedCase] = useState<VerificationCase | null>(null);
@@ -54,22 +59,39 @@ export const ReviewQueuePage: React.FC = () => {
     }
   }, [hasAccess]);
 
+  const handleCreatePendingCase = async () => {
+    try {
+      setIsGeneratingDemo(true);
+      const created = await verificationApi.createCase(
+        'CLAIM-REVIEW-REQ-402',
+        'Patient claim flagged for human adjudication: Discrepancy between prescribed dosage (625mg) and invoice units (500mg).'
+      );
+      toast.success('Sample pending adjudication case created!');
+      fetchQueue();
+      navigate(`/cases/${created.id || created._id}`);
+    } catch (err: any) {
+      toast.error('Failed: ' + (err.message || 'Network error'));
+    } finally {
+      setIsGeneratingDemo(false);
+    }
+  };
+
   if (!hasAccess) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
         <VerificationNav />
         <div className="flex-1 max-w-xl mx-auto p-8 flex items-center justify-center">
-          <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center shadow-xs">
-            <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-6 h-6" />
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-xs">
+            <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-100">
+              <Lock className="w-7 h-7" />
             </div>
-            <h2 className="text-base font-bold text-slate-900">Restricted Access</h2>
+            <h2 className="text-lg font-bold text-slate-900">Restricted Adjudication Area</h2>
             <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-              The Reviewer Queue is reserved for licensed pharmacists and claims reviewers. Patients can view their cases under My Cases.
+              The Reviewer Queue is reserved for licensed pharmacists and claims reviewers. Patients can track their cases under My Cases.
             </p>
             <button
               onClick={() => navigate('/cases')}
-              className="mt-6 px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-900 transition-colors"
+              className="mt-6 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-xs"
             >
               Go to My Cases
             </button>
@@ -88,23 +110,32 @@ export const ReviewQueuePage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                 Reviewer Adjudication Queue
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                {queueCases.length} Pending
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                {queueCases.length} Pending Actions
               </span>
             </div>
             <p className="text-sm text-slate-500 mt-1">
-              Cases in <strong className="text-slate-700">NEEDS_REVIEW</strong> or <strong className="text-slate-700">NEEDS_CORRECTION</strong> requiring human validation.
+              High-priority verification cases requiring Human-In-The-Loop clinical judgment and signature.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
+              onClick={handleCreatePendingCase}
+              disabled={isGeneratingDemo}
+              className="px-3.5 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors flex items-center gap-1.5 shadow-xs"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <span>{isGeneratingDemo ? 'Staging...' : '⚡ Stage Sample Case'}</span>
+            </button>
+
+            <button
               onClick={fetchQueue}
               disabled={isLoading}
-              className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs"
+              className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-xs"
               title="Refresh queue"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -113,29 +144,33 @@ export const ReviewQueuePage: React.FC = () => {
         </div>
 
         {/* Mandatory Accountability Banner */}
-        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex items-start sm:items-center gap-3 text-xs text-indigo-950 font-medium">
-          <ShieldAlert className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5 sm:mt-0" />
+        <div className="bg-gradient-to-r from-blue-50/80 via-white to-blue-50/50 border border-blue-200/80 rounded-2xl p-4 mb-6 flex items-start sm:items-center gap-3.5 text-xs text-blue-950 shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 shrink-0">
+            <Scale className="w-5 h-5" />
+          </div>
           <div>
-            <span className="font-bold">Human-in-the-Loop Mandate: </span>
-            <span>AI supports the review; the human reviewer makes the final accountable decision.</span>
+            <span className="font-extrabold text-blue-900">Human-In-The-Loop (HITL) Adjudication Mandate: </span>
+            <span className="text-blue-800">
+              The TrustRAG agent extracts consistency checks and candidate entities; licensed reviewers verify patient safety and authorize claim approval or escalation.
+            </span>
           </div>
         </div>
 
         {/* Loading State */}
         {isLoading && (
-          <div className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-2xs">
-            <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-3" />
-            <p className="text-sm font-semibold text-slate-700">Loading adjudication queue...</p>
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
+            <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
+            <p className="text-sm font-bold text-slate-800">Loading adjudication queue...</p>
           </div>
         )}
 
         {/* Error State */}
         {!isLoading && error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center text-red-700 shadow-2xs mb-6">
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 text-center text-rose-700 shadow-xs mb-6">
             <p className="text-xs font-semibold">{error}</p>
             <button
               onClick={fetchQueue}
-              className="mt-3 px-3 py-1 bg-red-600 text-white rounded-md text-xs font-semibold hover:bg-red-700"
+              className="mt-3 px-4 py-1.5 bg-rose-600 text-white rounded-xl text-xs font-semibold hover:bg-rose-700"
             >
               Retry
             </button>
@@ -144,20 +179,29 @@ export const ReviewQueuePage: React.FC = () => {
 
         {/* Empty Queue State */}
         {!isLoading && !error && queueCases.length === 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-2xs">
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
-              <CheckCircle2 className="w-6 h-6" />
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
+            <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-emerald-100">
+              <CheckCircle2 className="w-7 h-7" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900">Review Queue is Clear</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-              There are no pending cases requiring review or correction at this time.
+            <h3 className="text-base font-bold text-slate-900">Review Queue is Clear</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 leading-relaxed">
+              No pending cases requiring review or dosage correction at this moment.
             </p>
-            <Link
-              to="/cases"
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-900 transition-colors"
-            >
-              <span>View All Cases</span>
-            </Link>
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <button
+                onClick={handleCreatePendingCase}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-xs"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Stage Sample Discrepancy Case</span>
+              </button>
+              <Link
+                to="/cases"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition-colors shadow-xs"
+              >
+                <span>View All Cases</span>
+              </Link>
+            </div>
           </div>
         )}
 
@@ -175,17 +219,17 @@ export const ReviewQueuePage: React.FC = () => {
               return (
                 <div
                   key={caseId}
-                  className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs hover:border-indigo-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-blue-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-3 mb-1">
+                    <div className="flex flex-wrap items-center gap-2.5 mb-1.5">
                       <span className="font-mono font-bold text-base text-slate-900">
                         {c.caseReference}
                       </span>
                       <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border uppercase ${
                         c.status === 'NEEDS_CORRECTION'
-                          ? 'bg-amber-100 text-amber-800 border-amber-300'
-                          : 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                          ? 'bg-amber-50 text-amber-800 border-amber-300'
+                          : 'bg-blue-50 text-blue-700 border-blue-200'
                       }`}>
                         {c.status.replace(/_/g, ' ')}
                       </span>
@@ -195,8 +239,8 @@ export const ReviewQueuePage: React.FC = () => {
                     </div>
 
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-4 mt-2">
-                      <span>Submitted by: <strong className="text-slate-700">{createdByName}</strong></span>
-                      <span>Tri-Documents: <strong className="text-slate-700">{docCount}/3</strong></span>
+                      <span>Submitted by: <strong className="text-slate-800">{createdByName}</strong></span>
+                      <span>Tri-Documents: <strong className="text-blue-700 font-bold">{docCount}/3</strong></span>
                       <span>Updated: {new Date(c.updatedAt || c.createdAt).toLocaleString()}</span>
                     </div>
                   </div>
@@ -204,15 +248,16 @@ export const ReviewQueuePage: React.FC = () => {
                   <div className="flex items-center gap-3 shrink-0">
                     <Link
                       to={`/cases/${caseId}`}
-                      className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+                      className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-2xs"
                     >
+                      <FileSearch className="w-3.5 h-3.5 text-slate-500" />
                       <span>Inspect Details</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
 
                     <button
                       onClick={() => setSelectedCase(c)}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
                     >
                       <ShieldCheck className="w-4 h-4" />
                       <span>Adjudicate</span>

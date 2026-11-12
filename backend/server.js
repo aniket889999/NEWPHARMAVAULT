@@ -9,10 +9,10 @@ const connectDB = require('./config/db');
 const PORT = process.env.PORT || 5001;
 
 async function startServer() {
-  // Do not accept patient/document requests until the database is connected.
   await connectDB();
   const app = require('./app');
   const server = app.listen(PORT, () => console.log(`PharmaVault API listening on port ${PORT}.`));
+
   const shutdown = () => {
     const deadline = setTimeout(() => process.exit(1), 15000);
     deadline.unref();
@@ -23,7 +23,7 @@ async function startServer() {
   process.once('SIGINT', shutdown);
 }
 
-startServer().catch(() => {
-  console.error('PharmaVault API could not start.');
+startServer().catch((err) => {
+  console.error('PharmaVault API could not start:', err);
   process.exit(1);
 });

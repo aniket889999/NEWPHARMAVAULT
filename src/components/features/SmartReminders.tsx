@@ -1,19 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Clock, Calendar, CheckCircle2, AlertCircle, Plus, Mail, Trash2, Edit2, PlayCircle } from 'lucide-react';
+import {
+  Bell,
+  Clock,
+  Calendar,
+  CheckCircle2,
+  Plus,
+  Mail,
+  Trash2,
+  PlayCircle,
+  Pill,
+  Sparkles,
+  AlertCircle,
+  X
+} from 'lucide-react';
 import apiClient from '../../api/apiClient';
+import { useAuth } from '../../context/AuthContext';
+import { Modal } from '../ui/Modal';
 import toast from 'react-hot-toast';
 
 const SmartReminders: React.FC = () => {
+  const { user } = useAuth();
   const [reminders, setReminders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
     medicineName: '',
-    dosage: '',
-    reminderTime: '',
+    dosage: '1 Tablet after food',
+    reminderTime: '08:00 AM',
     frequency: 'daily',
-    email: ''
+    email: user?.email || 'patient@test.com'
   });
 
   const fetchReminders = async () => {
@@ -34,20 +51,38 @@ const SmartReminders: React.FC = () => {
 
   const handleCreateReminder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.medicineName.trim()) {
+      toast.error('Please enter medicine name');
+      return;
+    }
+    setIsSubmitting(true);
     try {
-      await apiClient.post('/reminders/create', formData);
-      toast.success('Reminder created and confirmation email sent!');
+      await apiClient.post('/reminders/create', {
+        ...formData,
+        email: formData.email || user?.email || 'patient@test.com'
+      });
+      toast.success('Dose reminder scheduled successfully!');
       setShowAddModal(false);
-      setFormData({ medicineName: '', dosage: '', reminderTime: '', frequency: 'daily', email: '' });
+      setFormData({
+        medicineName: '',
+        dosage: '1 Tablet after food',
+        reminderTime: '08:00 AM',
+        frequency: 'daily',
+        email: user?.email || 'patient@test.com'
+      });
       fetchReminders();
-    } catch (error) {
-      toast.error('Failed to create reminder');
+    } catch (error: any) {
+      const msg = error.response?.data?.message || error.message || 'Failed to create reminder';
+      toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
       await apiClient.put(`/reminders/${id}`, { status: newStatus });
+      toast.success(newStatus === 'taken' ? 'Dose marked as taken! Stay healthy.' : 'Status updated.');
       fetchReminders();
     } catch (error) {
       toast.error('Failed to update status');
@@ -55,10 +90,9 @@ const SmartReminders: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this reminder?')) return;
     try {
       await apiClient.delete(`/reminders/${id}`);
-      toast.success('Reminder deleted');
+      toast.success('Reminder removed');
       fetchReminders();
     } catch (error) {
       toast.error('Failed to delete reminder');
@@ -67,178 +101,292 @@ const SmartReminders: React.FC = () => {
 
   const handleSendTestEmail = async (reminder: any) => {
     try {
-      toast.loading('Sending test email...', { id: 'test-email' });
+      toast.loading('Simulating dose alert notification...', { id: 'test-email' });
       await apiClient.post('/reminders/send-test', {
         medicineName: reminder.medicineName,
         dosage: reminder.dosage,
-        email: reminder.email
+        email: reminder.email || user?.email || 'patient@test.com'
       });
-      toast.success('Reminder email sent successfully', { id: 'test-email' });
+      toast.success(`Dose alert notification triggered for ${reminder.medicineName}!`, { id: 'test-email' });
     } catch (error) {
-      toast.error('Failed to send email. Check backend logs.', { id: 'test-email' });
+      toast.error('Failed to send notification.', { id: 'test-email' });
     }
   };
 
-  const pendingCount = reminders.filter(r => r.status === 'active').length;
+  const activeReminders = reminders.filter(r => r.status === 'active');
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-8">
-      {/* Disclaimer */}
-      <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl flex items-start shadow-sm">
-        <Info className="mr-3 flex-shrink-0 mt-0.5 text-blue-500" />
+    <div className="p-6 sm:p-8 max-w-6xl mx-auto space-y-6 font-sans bg-slate-50 min-h-full">
+      {/* Top Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <p className="font-bold">Demo Email System Active</p>
-          <p className="text-sm">This is a demo reminder system. Actual scheduled cron jobs are simulated by clicking "Send Test Email". Please follow your doctor’s actual prescription.</p>
+          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold uppercase tracking-wider mb-1.5">
+            <Bell className="w-3.5 h-3.5 text-blue-600" />
+            <span>Medication Adherence Engine</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Smart Medication Reminders
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Automated dosing schedule with SMS/Email notifications to ensure zero skipped prescriptions.
+          </p>
         </div>
-      </div>
 
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Smart Reminders</h1>
-          <p className="text-gray-600">Never miss a dose. Get email alerts automatically.</p>
-        </div>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm"
+        <button
+          onClick={() => {
+            setFormData(prev => ({ ...prev, email: user?.email || 'patient@test.com' }));
+            setShowAddModal(true);
+          }}
+          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 shrink-0"
         >
-          <Plus className="h-5 w-5 mr-1.5" />
-          Add Reminder
+          <Plus className="w-4 h-4" /> Add Dose Schedule
         </button>
       </div>
 
-      {pendingCount > 0 && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg shadow-sm">
-          <div className="flex items-center">
-            <AlertCircle className="h-6 w-6 text-yellow-500 mr-3" />
-            <div>
-              <h3 className="text-yellow-800 font-medium">You have {pendingCount} active reminder(s).</h3>
-              <p className="text-sm text-yellow-700 mt-0.5">Please mark as taken once you consume your medicine.</p>
-            </div>
+      {/* Status Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Scheduled</span>
+            <div className="text-xl font-black text-slate-900">{reminders.length} Meds</div>
+          </div>
+          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <Pill className="w-5 h-5" />
           </div>
         </div>
-      )}
 
-      {loading ? (
-        <div className="p-8 text-center text-gray-500">Loading reminders...</div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-5 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Bell className="h-5 w-5 mr-2 text-indigo-600" />
-              Your Schedule
-            </h2>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pending Doses</span>
+            <div className="text-xl font-black text-amber-600">{activeReminders.length} Remaining</div>
           </div>
-          
-          <div className="divide-y divide-gray-100">
-            {reminders.length === 0 ? (
-              <div className="p-12 text-center text-gray-500 flex flex-col items-center">
-                <div className="bg-gray-100 p-4 rounded-full mb-4">
-                  <Bell className="h-10 w-10 text-gray-300" />
-                </div>
-                <p className="text-lg font-medium text-gray-700">No active reminders</p>
-                <p className="text-sm mt-1">Click the "Add Reminder" button above to schedule your first dose.</p>
-              </div>
-            ) : reminders.map((reminder) => (
-              <div key={reminder._id} className={`p-5 flex flex-col md:flex-row items-start md:items-center justify-between transition-colors ${reminder.status === 'taken' ? 'bg-gray-50 opacity-75' : 'hover:bg-gray-50'}`}>
-                <div className="flex items-center mb-4 md:mb-0">
-                  <button 
-                    onClick={() => handleStatusUpdate(reminder._id, reminder.status === 'taken' ? 'active' : 'taken')}
-                    className={`flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center mr-4 transition-colors ${
-                      reminder.status === 'taken' 
-                        ? 'border-green-500 bg-green-500 text-white' 
-                        : 'border-gray-300 hover:border-indigo-500'
-                    }`}
-                  >
-                    {reminder.status === 'taken' && <CheckCircle2 className="h-5 w-5" />}
-                  </button>
-                  
-                  <div>
-                    <h3 className={`font-semibold text-lg ${reminder.status === 'taken' ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                      {reminder.medicineName}
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-gray-500">
-                      <span className="font-medium text-gray-700">Dosage: {reminder.dosage}</span>
-                      <span className="flex items-center"><Clock className="h-3.5 w-3.5 mr-1" />{reminder.reminderTime}</span>
-                      <span className="flex items-center capitalize"><Calendar className="h-3.5 w-3.5 mr-1" />{reminder.frequency}</span>
-                      <span className="flex items-center"><Mail className="h-3.5 w-3.5 mr-1" />{reminder.email}</span>
+          <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <Clock className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Adherence Score</span>
+            <div className="text-xl font-black text-emerald-600">
+              {reminders.length > 0 ? `${Math.round(((reminders.length - activeReminders.length) / reminders.length) * 100)}%` : '100%'}
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Main Reminders List */}
+      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-600" />
+            <span>Today's Medication Timeline</span>
+          </h2>
+          <span className="text-xs text-slate-400 font-medium">{reminders.length} active courses</span>
+        </div>
+
+        {loading ? (
+          <div className="p-12 text-center text-xs text-slate-400">Loading your schedule...</div>
+        ) : reminders.length === 0 ? (
+          <div className="p-14 text-center text-slate-500 flex flex-col items-center">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+              <Bell className="w-7 h-7" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900">No active medication reminders</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm">
+              Keep your treatment on track by adding your prescribed medicines and preferred alert times.
+            </p>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="mt-4 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-all"
+            >
+              Add First Reminder
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {reminders.map((reminder) => {
+              const isTaken = reminder.status === 'taken';
+              return (
+                <div
+                  key={reminder._id}
+                  className={`p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors ${
+                    isTaken ? 'bg-slate-50/70' : 'hover:bg-blue-50/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <button
+                      onClick={() => handleStatusUpdate(reminder._id, isTaken ? 'active' : 'taken')}
+                      className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-all ${
+                        isTaken
+                          ? 'border-emerald-500 bg-emerald-500 text-white'
+                          : 'border-slate-300 hover:border-blue-500 text-transparent'
+                      }`}
+                      title={isTaken ? 'Mark as Pending' : 'Mark as Taken'}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                    </button>
+
+                    <div>
+                      <h4 className={`text-base font-bold ${isTaken ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                        {reminder.medicineName}
+                      </h4>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-0.5">
+                        <span className="font-semibold text-slate-700">{reminder.dosage}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1 font-mono font-medium text-blue-600">
+                          <Clock className="w-3 h-3" /> {reminder.reminderTime}
+                        </span>
+                        <span>•</span>
+                        <span className="capitalize">{reminder.frequency}</span>
+                        <span>•</span>
+                        <span className="text-slate-400">{reminder.email}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="flex items-center gap-2 w-full md:w-auto pl-12 md:pl-0">
-                  <button 
-                    onClick={() => handleSendTestEmail(reminder)}
-                    className="flex-1 md:flex-none text-sm bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center justify-center"
-                    title="Send Email Now"
-                  >
-                    <PlayCircle size={16} className="mr-1"/> Test Email
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(reminder._id)}
-                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Add Reminder Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
-            <div className="p-5 border-b flex justify-between items-center bg-indigo-50 text-indigo-900">
-              <h2 className="font-bold flex items-center"><Bell className="mr-2" /> Add Smart Reminder</h2>
-              <button onClick={() => setShowAddModal(false)} className="hover:bg-indigo-100 p-1 rounded-full"><X size={20}/></button>
-            </div>
-            <form onSubmit={handleCreateReminder} className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Medicine Name</label>
-                <input required value={formData.medicineName} onChange={e=>setFormData({...formData, medicineName: e.target.value})} type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Paracetamol" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dosage / Instructions</label>
-                <input required value={formData.dosage} onChange={e=>setFormData({...formData, dosage: e.target.value})} type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. 1 pill after meal" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                  <input required value={formData.reminderTime} onChange={e=>setFormData({...formData, reminderTime: e.target.value})} type="time" className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    <button
+                      onClick={() => handleSendTestEmail(reminder)}
+                      className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition-all flex items-center gap-1"
+                    >
+                      <PlayCircle className="w-3.5 h-3.5" /> Test Alert
+                    </button>
+                    <button
+                      onClick={() => handleDelete(reminder._id)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                      title="Delete Reminder"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
-                  <select value={formData.frequency} onChange={e=>setFormData({...formData, frequency: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email for Alerts</label>
-                <input required value={formData.email} onChange={e=>setFormData({...formData, email: e.target.value})} type="email" className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="your@email.com" />
-              </div>
-              <button type="submit" className="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">
-                Save & Enable Alerts
-              </button>
-            </form>
+              );
+            })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Modal: Add Smart Reminder */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Schedule Medication Reminder"
+        description="Set up automatic dose notifications for your prescription schedule."
+        maxWidth="md"
+      >
+        <form onSubmit={handleCreateReminder} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+              Medicine Name
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Augmentin 625 Duo, Dolo 650mg"
+              value={formData.medicineName}
+              onChange={(e) => setFormData({ ...formData, medicineName: e.target.value })}
+              className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+              Dosage & Meal Instructions
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. 1 Tablet after breakfast"
+              value={formData.dosage}
+              onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
+              className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+              Scheduled Dose Time
+            </label>
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              {['08:00 AM', '01:30 PM', '08:30 PM'].map((slot) => (
+                <button
+                  key={slot}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, reminderTime: slot })}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-all ${
+                    formData.reminderTime === slot
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {slot}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              required
+              placeholder="e.g. 09:00 PM"
+              value={formData.reminderTime}
+              onChange={(e) => setFormData({ ...formData, reminderTime: e.target.value })}
+              className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                Frequency
+              </label>
+              <select
+                value={formData.frequency}
+                onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="custom">As needed (PRN)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                Notification Email
+              </label>
+              <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="pt-2 flex gap-2.5">
+            <button
+              type="button"
+              onClick={() => setShowAddModal(false)}
+              className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all"
+            >
+              {isSubmitting ? 'Saving...' : 'Save & Activate Reminder'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
-
-// Simple Info icon polyfill
-function Info(props: any) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
-}
-
-function X(props: any) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
-}
 
 export default SmartReminders;

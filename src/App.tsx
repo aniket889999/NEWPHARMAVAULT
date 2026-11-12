@@ -56,12 +56,13 @@ import { CasesListPage } from './modules/verification/pages/CasesListPage';
 import { CreateCaseWizardPage } from './modules/verification/pages/CreateCaseWizardPage';
 import { CaseDetailPage } from './modules/verification/pages/CaseDetailPage';
 import { ReviewQueuePage } from './modules/verification/pages/ReviewQueuePage';
+import { LandingPage } from './pages/LandingPage';
 
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Public Auth Routes */}
-      <Route path="/" element={<Navigate to="/auth" replace />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<RoleSelection />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage />} />

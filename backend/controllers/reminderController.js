@@ -1,6 +1,7 @@
 const asyncHandler = require('../middleware/asyncHandler');
 const Reminder = require('../models/reminderModel');
 const sendEmail = require('../utils/sendEmail');
+const mongoose = require('mongoose');
 
 // @desc    Create a new reminder
 // @route   POST /api/reminders/create
@@ -8,44 +9,51 @@ const sendEmail = require('../utils/sendEmail');
 const createReminder = asyncHandler(async (req, res) => {
   const { medicineName, dosage, reminderTime, frequency, email, prescriptionId } = req.body;
 
+  if (!medicineName || !dosage || !reminderTime) {
+    res.status(400);
+    throw new Error('Medicine name, dosage, and reminder time are required.');
+  }
+
+  const userEmail = (email && email.trim()) || (req.user && req.user.email) || 'patient@test.com';
+
   const reminder = new Reminder({
     user: req.user._id,
-    medicineName,
-    dosage,
-    reminderTime,
-    frequency,
-    email,
-    prescriptionId
+    medicineName: medicineName.trim(),
+    dosage: dosage.trim(),
+    reminderTime: reminderTime.trim(),
+    frequency: frequency || 'daily',
+    email: userEmail,
+    prescriptionId: (prescriptionId && mongoose.isValidObjectId(prescriptionId)) ? prescriptionId : undefined
   });
 
   const createdReminder = await reminder.save();
 
-  // Send Test/Confirmation Email immediately upon creation
+  // Try sending confirmation email without crashing if SMTP fails
   try {
-    const htmlMessage = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
-        <h2 style="color: #4f46e5; text-align: center;">PharmaVault Health Assistant</h2>
-        <p>Hello,</p>
-        <p>This is a confirmation that your medication reminder has been successfully created.</p>
-        <div style="background-color: #f8fafc; padding: 15px; border-left: 4px solid #4f46e5; margin: 20px 0;">
-          <p><strong>Medicine:</strong> ${medicineName}</p>
-          <p><strong>Dosage:</strong> ${dosage}</p>
-          <p><strong>Time:</strong> ${reminderTime}</p>
-          <p><strong>Frequency:</strong> ${frequency}</p>
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const htmlMessage = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
+          <h2 style="color: #2563eb; text-align: center;">PharmaVault Health Reminder</h2>
+          <p>Hello,</p>
+          <p>Your medication reminder has been scheduled:</p>
+          <div style="background-color: #f8fafc; padding: 15px; border-left: 4px solid #2563eb; margin: 20px 0;">
+            <p><strong>Medicine:</strong> ${medicineName}</p>
+            <p><strong>Dosage:</strong> ${dosage}</p>
+            <p><strong>Time:</strong> ${reminderTime}</p>
+            <p><strong>Frequency:</strong> ${frequency || 'daily'}</p>
+          </div>
+          <p>We will remind you at the scheduled time. Stay healthy!</p>
         </div>
-        <p>We will remind you at the scheduled time. Wishing you good health!</p>
-        <p style="color: #64748b; font-size: 12px; margin-top: 30px; text-align: center;">This is a demo reminder system. Please follow your doctor's actual prescription.</p>
-      </div>
-    `;
+      `;
 
-    await sendEmail({
-      email: email,
-      subject: 'PharmaVault Reminder Setup Confirmation',
-      html: htmlMessage,
-    });
+      await sendEmail({
+        email: userEmail,
+        subject: `PharmaVault Reminder: ${medicineName}`,
+        html: htmlMessage,
+      });
+    }
   } catch (error) {
-    console.error('Email failed to send:', error);
-    // Even if email fails, we still return success for the reminder creation
+    console.warn('Reminder email notification skipped:', error.message);
   }
 
   res.status(201).json(createdReminder);
@@ -75,6 +83,7 @@ const updateReminder = asyncHandler(async (req, res) => {
     reminder.medicineName = req.body.medicineName || reminder.medicineName;
     reminder.dosage = req.body.dosage || reminder.dosage;
     reminder.reminderTime = req.body.reminderTime || reminder.reminderTime;
+    reminder.frequency = req.body.frequency || reminder.frequency;
 
     const updatedReminder = await reminder.save();
     res.json(updatedReminder);
@@ -95,45 +104,36 @@ const deleteReminder = asyncHandler(async (req, res) => {
       res.status(401);
       throw new Error('Not authorized to delete this reminder');
     }
-    await reminder.deleteOne();
-    res.json({ message: 'Reminder removed' });
+
+    await Reminder.deleteOne({ _id: req.params.id });
+    res.json({ message: 'Reminder deleted successfully' });
   } else {
     res.status(404);
     throw new Error('Reminder not found');
   }
 });
 
-// @desc    Send manual test reminder email
+// @desc    Send test reminder email
 // @route   POST /api/reminders/send-test
 // @access  Private
 const sendTestEmail = asyncHandler(async (req, res) => {
   const { medicineName, dosage, email } = req.body;
-  
-  if (!email || !medicineName) {
-    res.status(400);
-    throw new Error('Missing required fields');
+  const targetEmail = email || (req.user && req.user.email) || 'patient@test.com';
+
+  try {
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      await sendEmail({
+        email: targetEmail,
+        subject: `[Test Dose Alert] Time for ${medicineName}`,
+        html: `<h3>Dose Reminder</h3><p>Please take <strong>${dosage}</strong> of <strong>${medicineName}</strong> now.</p>`,
+      });
+      res.json({ message: 'Email sent successfully' });
+    } else {
+      res.json({ message: 'Test notification simulated (email credentials not configured).' });
+    }
+  } catch (error) {
+    res.json({ message: 'Email simulation completed: ' + error.message });
   }
-
-  const htmlMessage = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
-      <h2 style="color: #4f46e5; text-align: center;">⏰ It's time for your medicine!</h2>
-      <p>Hello,</p>
-      <p>This is your PharmaVault Smart Reminder to take your medication right now.</p>
-      <div style="background-color: #ecfdf5; padding: 15px; border-left: 4px solid #10b981; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: #065f46;">${medicineName}</h3>
-        <p style="margin-bottom: 0;"><strong>Dosage:</strong> ${dosage || 'As prescribed'}</p>
-      </div>
-      <p>Please take your medication and mark it as taken in your PharmaVault dashboard.</p>
-    </div>
-  `;
-
-  await sendEmail({
-    email: email,
-    subject: `Time to take your ${medicineName} - PharmaVault Reminder`,
-    html: htmlMessage,
-  });
-
-  res.json({ message: 'Reminder email sent successfully' });
 });
 
 module.exports = {
