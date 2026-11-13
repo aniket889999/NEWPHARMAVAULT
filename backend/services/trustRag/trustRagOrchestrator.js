@@ -9,11 +9,14 @@ const riskSignalService = require('./riskSignalService');
 const auditLoggerService = require('./auditLoggerService');
 const evidenceRoutingService = require('./evidenceRoutingService');
 const llmExplainabilityService = require('./llmExplainabilityService');
+const { RECOGNIZED_MEDICINE_SLOTS } = require('./medicineItemContract');
+const { buildCaseReconciliationSnapshot } = require('./caseReconciliationService');
+const { bumpCaseEvidenceRevision } = require('./caseEvidenceMutationService');
 
 /**
  * TrustRAG Orchestrator
  * Coordinates extraction, identity resolution, controlled evidence routing,
- * consistency checks, risk signals, and explainability.
+ * Session 1/2 medicine reconciliation, consistency checks, risk signals, and explainability.
  *
  * Guarantees:
  * - Documents with omitted pages remain explicitly incomplete and require human review.
@@ -24,19 +27,46 @@ const llmExplainabilityService = require('./llmExplainabilityService');
 class TrustRagOrchestrator {
   /**
    * Helper to check if any field types still have conflicting normalized values across pages
+   * scoped by medicine row or document level.
    * @private
    */
   _hasActiveMultiPageConflict(docFields) {
-    const byType = new Map();
+    const rowMedMap = new Map();
     for (const f of docFields) {
-      if (!byType.has(f.fieldType)) byType.set(f.fieldType, []);
-      byType.get(f.fieldType).push(f);
+      if (f.fieldType === 'medicine_name' && f.candidateRowKey) {
+        rowMedMap.set(
+          f.candidateRowKey,
+          (f.normalizedValue || f.rawValue || '').trim().toLowerCase()
+        );
+      }
     }
 
-    for (const [, fields] of byType.entries()) {
+    const byScopeAndType = new Map();
+    for (const f of docFields) {
+      let scopeKey = 'doc';
+      if (RECOGNIZED_MEDICINE_SLOTS.includes(f.fieldType)) {
+        const medName = f.candidateRowKey ? rowMedMap.get(f.candidateRowKey) : null;
+        scopeKey = medName ? `med:${medName}` : `row:${f.candidateRowKey || 'ungrouped'}`;
+      }
+      const key = `${scopeKey}::${f.fieldType}`;
+      if (!byScopeAndType.has(key)) byScopeAndType.set(key, []);
+      byScopeAndType.get(key).push(f);
+    }
+
+    for (const [, fields] of byScopeAndType.entries()) {
       const pageValues = new Map();
       for (const f of fields) {
-        const val = (f.normalizedValue !== undefined && f.normalizedValue !== '' ? f.normalizedValue : f.rawValue || '').trim().toLowerCase();
+        const rawVal = (
+          f.normalizedValue !== undefined && f.normalizedValue !== ''
+            ? f.normalizedValue
+            : f.rawValue || ''
+        )
+          .trim()
+          .toLowerCase();
+        const val =
+          f.fieldType === 'dosage_strength'
+            ? rawVal.replace(/\s+/g, '')
+            : rawVal.replace(/\s+/g, ' ');
         if (val) {
           const p = f.pageNumber || 1;
           if (!pageValues.has(p)) pageValues.set(p, val);
@@ -67,16 +97,25 @@ class TrustRagOrchestrator {
     }
 
     // Lifecycle transition validation
-    const allowedSourceStates = ['READY_FOR_PROCESSING', 'DOCUMENTS_PENDING', 'NEEDS_CORRECTION'];
+    const allowedSourceStates = [
+      'READY_FOR_PROCESSING',
+      'DOCUMENTS_PENDING',
+      'NEEDS_CORRECTION',
+      'NEEDS_REVIEW'
+    ];
     if (!allowedSourceStates.includes(vCase.status)) {
-      const err = new Error(`Cannot process case in current state '${vCase.status}'. Expected one of: ${allowedSourceStates.join(', ')}`);
+      const err = new Error(
+        `Cannot process case in current state '${vCase.status}'. Expected one of: ${allowedSourceStates.join(', ')}`
+      );
       err.statusCode = 400;
       throw err;
     }
 
     const documents = await Document.find({ caseId });
     if (documents.length === 0) {
-      const err = new Error('No documents uploaded for this case. Upload at least one document before processing.');
+      const err = new Error(
+        'No documents uploaded for this case. Upload at least one document before processing.'
+      );
       err.statusCode = 400;
       throw err;
     }
@@ -104,7 +143,8 @@ class TrustRagOrchestrator {
           { sourceType: 'OFFICIAL_REGISTRY' },
           {
             sourceType: 'CASE_DOCUMENT',
-            claimSupported: /^(Missing required field|Document Completeness|Partial Page Coverage|Medicine Name Alignment|Dosage Strength Alignment|Dosage Form Alignment|Quantity Alignment|Date Sequence Alignment)/i
+            claimSupported:
+              /^(Missing required field|Document Completeness|Partial Page Coverage|Medicine Name Alignment|Dosage Strength Alignment|Dosage Form Alignment|Quantity Alignment|Quantity Consistency|Chronological Date Sequence|Date Sequence Alignment)/i
           }
         ]
       });
@@ -118,12 +158,20 @@ class TrustRagOrchestrator {
 
       // Check and clear obsolete document correction flags ONLY IF legitimate correction resolved issues
       for (const doc of documents) {
-        if (doc.metadata && (doc.metadata.needsCorrection || doc.metadata.hasMultiPageConflict || doc.metadata.needsHumanCorrection)) {
-          const docFields = allFields.filter(f => String(f.documentId) === String(doc._id));
+        if (
+          doc.metadata &&
+          (doc.metadata.needsCorrection ||
+            doc.metadata.hasMultiPageConflict ||
+            doc.metadata.needsHumanCorrection)
+        ) {
+          const docFields = allFields.filter((f) => String(f.documentId) === String(doc._id));
           const stillHasConflict = this._hasActiveMultiPageConflict(docFields);
-          const stillHasUncorrected = docFields.some(f => f.needsCorrection === true);
+          const stillHasUncorrected = docFields.some((f) => f.needsCorrection === true);
+          const hasLayoutBlocker = Array.isArray(doc.metadata?.extractionBlockers)
+            ? doc.metadata.extractionBlockers.length > 0
+            : false;
 
-          if (!stillHasConflict && !stillHasUncorrected && docFields.length > 0) {
+          if (!stillHasConflict && !stillHasUncorrected && !hasLayoutBlocker && docFields.length > 0) {
             doc.metadata = {
               ...doc.metadata,
               hasMultiPageConflict: false,
@@ -136,29 +184,44 @@ class TrustRagOrchestrator {
         }
       }
 
-      // 2. Identity resolution for medicine names in documents
+      // 2. Identity resolution for medicine names in prescription and invoice documents (all rows)
       const resolutions = {};
       for (const doc of documents) {
-        const medField = allFields.find(f => String(f.documentId) === String(doc._id) && f.fieldType === 'medicine_name');
-        if (medField) {
-          const strengthField = allFields.find(f => String(f.documentId) === String(doc._id) && f.fieldType === 'dosage_strength');
+        if (doc.type === 'CLAIM_FORM') continue;
+        const docFields = allFields.filter((f) => String(f.documentId) === String(doc._id));
+        const medFields = docFields.filter((f) => f.fieldType === 'medicine_name');
+
+        for (const medField of medFields) {
+          const strengthField = docFields.find(
+            (f) =>
+              f.fieldType === 'dosage_strength' &&
+              (medField.candidateRowKey
+                ? f.candidateRowKey === medField.candidateRowKey
+                : true)
+          );
           const res = await identityResolutionService.resolveMedicine(
             medField.normalizedValue || medField.rawValue,
-            { strength: strengthField ? (strengthField.normalizedValue || strengthField.rawValue) : null }
+            {
+              strength: strengthField
+                ? strengthField.normalizedValue || strengthField.rawValue
+                : null
+            }
           );
-          resolutions[doc.type] = res;
+          if (!resolutions[doc.type]) {
+            resolutions[doc.type] = res;
+          }
           medField.resolution = res;
-          if (!res.resolved || res.ambiguous) {
+          const hasHumanCorrection = Boolean(
+            medField.correctedBy && medField.correctedAt && medField.needsCorrection === false
+          );
+          if ((!res.resolved || res.ambiguous) && !hasHumanCorrection) {
             medField.needsCorrection = true;
           }
           await medField.save();
         }
       }
 
-      // 3. Controlled Evidence Routing across all 3 tiers:
-      // a. Private case data (fields & documents)
-      // b. Curated medicine knowledge (CanonicalMedicine)
-      // c. Approved official sources (local registry)
+      // 3. Controlled Evidence Routing across all 3 tiers
       await evidenceRoutingService.routeAllEvidence({
         caseId: vCase._id,
         documents,
@@ -166,21 +229,29 @@ class TrustRagOrchestrator {
         resolutions
       });
 
-      // 4. Cross-document consistency checks
+      // Build provisional reconciliation snapshot for item-level checks & signals
+      const provisionalSnapshot = await buildCaseReconciliationSnapshot({
+        vCase,
+        user: actor
+      });
+
+      // 4. Cross-document consistency checks (using Session 1/2 reconciliation)
       const checks = await consistencyCheckService.runChecks({
         caseId: vCase._id,
         documents,
         fields: allFields,
-        resolutions
+        resolutions,
+        reconciliationSnapshot: provisionalSnapshot
       });
 
-      // 5. Risk signal generation (with genuine same-case EvidenceItem IDs and coverage checks)
+      // 5. Risk signal generation
       const signals = await riskSignalService.evaluateRiskSignals({
         caseId: vCase._id,
         documents,
         fields: allFields,
         checks,
-        resolutions
+        resolutions,
+        reconciliationSnapshot: provisionalSnapshot
       });
 
       // Fetch all evidence items for this case
@@ -198,21 +269,36 @@ class TrustRagOrchestrator {
 
       // Check if any document has incomplete page coverage
       const hasIncompleteCoverage = documents.some(
-        d => (d.omittedPageCount && d.omittedPageCount > 0) || (d.pageCoverage && d.pageCoverage.status === 'INCOMPLETE')
+        (d) =>
+          (d.omittedPageCount && d.omittedPageCount > 0) ||
+          (d.pageCoverage && d.pageCoverage.status === 'INCOMPLETE')
       );
 
       // If document is incomplete, never describe as fully analyzed in explanation
       if (hasIncompleteCoverage && explanation && explanation.summary) {
-        if (!explanation.summary.toLowerCase().includes('incomplete') && !explanation.summary.toLowerCase().includes('omitted')) {
-          explanation.summary += ' Document page coverage is incomplete (pages above the 3-page processing limit were omitted and require human reviewer inspection).';
+        if (
+          !explanation.summary.toLowerCase().includes('incomplete') &&
+          !explanation.summary.toLowerCase().includes('omitted')
+        ) {
+          explanation.summary +=
+            ' Document page coverage is incomplete (pages above the 3-page processing limit were omitted and require human reviewer inspection).';
         }
       }
 
       // 7. State Transition & Human-in-the-Loop Evaluation
       // RULE: The system NEVER automatically approves or rejects a case.
-      const hasFieldsNeedingCorrection = allFields.some(f => f.needsCorrection === true);
-      const hasDocNeedingCorrection = documents.some(d => d.metadata && (d.metadata.needsCorrection || d.metadata.needsHumanCorrection));
-      const hasMultiPageConflictSignal = signals.some(s => s.signalType === 'CONFLICTING_MULTI_PAGE_DATA');
+      const hasFieldsNeedingCorrection = allFields.some((f) => f.needsCorrection === true);
+      const hasDocNeedingCorrection = documents.some(
+        (d) =>
+          d.metadata &&
+          (d.metadata.needsCorrection ||
+            d.metadata.needsHumanCorrection ||
+            (Array.isArray(d.metadata.extractionBlockers) &&
+              d.metadata.extractionBlockers.length > 0))
+      );
+      const hasMultiPageConflictSignal = signals.some(
+        (s) => s.signalType === 'CONFLICTING_MULTI_PAGE_DATA'
+      );
 
       if (hasFieldsNeedingCorrection || hasDocNeedingCorrection || hasMultiPageConflictSignal) {
         vCase.status = 'NEEDS_CORRECTION';
@@ -222,13 +308,24 @@ class TrustRagOrchestrator {
         vCase.reviewRequired = true;
       }
 
+      const reconciliationSummary = provisionalSnapshot.comparison
+        ? {
+            status: provisionalSnapshot.comparison.status,
+            reviewRequired: provisionalSnapshot.comparison.reviewRequired,
+            hasInsufficientEvidence: provisionalSnapshot.comparison.hasInsufficientEvidence,
+            summary: provisionalSnapshot.comparison.summary
+          }
+        : null;
+
       vCase.metadata = {
         ...(vCase.metadata || {}),
         explanation,
         resolutions,
+        reconciliationSummary,
         hasIncompleteCoverage
       };
 
+      bumpCaseEvidenceRevision(vCase, { markLegacyFindingsProcessed: true });
       await vCase.save();
 
       await auditLoggerService.logEvent({
@@ -240,6 +337,7 @@ class TrustRagOrchestrator {
         targetId: vCase._id,
         metadata: {
           nextStatus: vCase.status,
+          evidenceRevision: vCase.evidenceRevision,
           checksCount: checks.length,
           signalsCount: signals.length,
           evidenceCount: allEvidence.length,
@@ -254,29 +352,19 @@ class TrustRagOrchestrator {
         caseReference: vCase.caseReference,
         status: vCase.status,
         reviewRequired: vCase.reviewRequired,
+        evidenceRevision: vCase.evidenceRevision,
         extractedFieldCount: allFields.length,
         checksCount: checks.length,
         riskSignalsCount: signals.length,
         evidenceCount: allEvidence.length,
-        hasIncompleteCoverage,
         explanation,
-        signals: signals.map(s => ({ signalType: s.signalType, severity: s.severity, description: s.description }))
+        message: 'Case processed. Human review required.'
       };
-    } catch (procErr) {
+    } catch (procError) {
       vCase.status = 'FAILED';
+      vCase.metadata = { ...(vCase.metadata || {}), lastError: procError.message };
       await vCase.save();
-
-      await auditLoggerService.logEvent({
-        caseId: vCase._id,
-        actorId: actor._id,
-        actorRole: actor.role,
-        action: 'PROCESSING_FAILED',
-        targetType: 'VerificationCase',
-        targetId: vCase._id,
-        metadata: { error: procErr.message }
-      });
-
-      throw procErr;
+      throw procError;
     }
   }
 }

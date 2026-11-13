@@ -59,6 +59,11 @@ const verificationCaseSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    evidenceRevision: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
     schemaVersion: {
       type: String,
       default: '1.0'

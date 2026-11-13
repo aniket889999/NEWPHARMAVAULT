@@ -13,6 +13,8 @@ const {
   correctExtractedField,
   processCase,
   getResults,
+  getCaseReconciliation,
+  confirmMedicineGroups,
   getReviewQueue,
   submitReview,
   listReviews,
@@ -46,6 +48,8 @@ router.post('/cases/:caseId/process', processCase);
 
 // Structured Explainable Results, Lineage & Audit Trail
 router.get('/cases/:caseId/results', getResults);
+router.get('/cases/:caseId/reconciliation', getCaseReconciliation);
+router.put('/cases/:caseId/documents/:documentId/medicine-groups', confirmMedicineGroups);
 router.get('/cases/:caseId/evidence', getEvidence);
 router.get('/cases/:caseId/audit-trail', getAuditTrail);
 

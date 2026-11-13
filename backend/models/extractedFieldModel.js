@@ -34,11 +34,16 @@ const extractedFieldSchema = new mongoose.Schema(
       min: 1
     },
     boundingBox: {
-      type: [Number],
-      default: [0, 0, 0, 0],
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
       validate: {
-        validator: (arr) => Array.isArray(arr) && arr.length === 4,
-        message: 'boundingBox must have exactly 4 numbers [x_min, y_min, x_max, y_max]'
+        validator: (arr) =>
+          arr === null ||
+          arr === undefined ||
+          (Array.isArray(arr) &&
+            arr.length === 4 &&
+            arr.every((n) => typeof n === 'number' && Number.isFinite(n))),
+        message: 'boundingBox must be null or have exactly 4 numbers [x_min, y_min, x_max, y_max]'
       }
     },
     extractionMethod: {
@@ -47,10 +52,15 @@ const extractedFieldSchema = new mongoose.Schema(
     },
     extractionConfidence: {
       type: Number,
-      required: true,
+      required: false,
       min: 0,
       max: 1,
-      default: 1.0
+      default: null
+    },
+    candidateRowKey: {
+      type: String,
+      default: null,
+      index: true
     },
     needsCorrection: {
       type: Boolean,

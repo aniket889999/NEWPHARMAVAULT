@@ -3,11 +3,13 @@ const EvidenceItem = require('../../models/evidenceItemModel');
 const storageService = require('./storageService');
 const localOcrService = require('./localOcrService');
 const pdfRenderingService = require('./pdfRenderingService');
+const { buildProposedGroupsFromPersistedFields } = require('./localMedicineRowExtractor');
+const { RECOGNIZED_MEDICINE_SLOTS } = require('./medicineItemContract');
 
 /**
  * Document Extractor Service (Local Image & PDF OCR Engine)
  *
- * Implements real server-side local OCR extraction for:
+ * Implements server-side local OCR extraction for:
  * 1. Image uploads (PNG, JPEG, WEBP) via Tesseract OCR
  * 2. PDF documents via local sequential PDF page rendering (up to 3 pages) and Tesseract OCR
  *
@@ -15,9 +17,8 @@ const pdfRenderingService = require('./pdfRenderingService');
  * - All PDF rendering and OCR run 100% locally on the backend.
  * - Zero PDF bytes, page images, OCR text, or patient data are sent to external LLMs/APIs.
  * - No fake template fields are created when OCR produces no text or fails.
- * - Preserves actual pageNumber for every OCR candidate and grounded evidence citation.
- * - Single-medicine-per-case MVP boundary: multi-medicine documents trigger human review.
- * - Conflicting multi-page field values mark fields for correction and trigger explainable risk signals.
+ * - Preserves actual pageNumber, boundingBox, and extractionConfidence for every candidate.
+ * - Supports up to 3 candidate medicine rows per prescription/invoice with conservative blockers.
  */
 class DocumentExtractorService {
   /**
@@ -70,14 +71,18 @@ class DocumentExtractorService {
       // Run server-side OCR via LocalOcrService (Tesseract English image OCR)
       const ocrResult = await localOcrService.processImage(imageBuffer);
 
-      // Extract conservative candidates via transparent rule & regex patterns
-      const candidates = await localOcrService.extractConservativeFields(ocrResult, type, {
+      // Extract conservative row and document candidates
+      const rowExtraction = localOcrService.extractDocumentRows(ocrResult, type, {
         pageNumber: 1,
         extractionMethod: 'LOCAL_TESSERACT_IMAGE_OCR'
       });
+      const candidates = rowExtraction.candidates;
 
       // Persist real extracted fields and grounded evidence citations
       const savedFields = await this._saveCandidateFields(document, candidates, 'LOCAL_TESSERACT_IMAGE_OCR');
+      const proposedGroups = buildProposedGroupsFromPersistedFields(savedFields, {
+        blockerCodes: rowExtraction.blockerCodes
+      });
 
       document.pageCount = 1;
       document.processedPageCount = 1;
@@ -87,6 +92,25 @@ class DocumentExtractorService {
         processed: 1,
         omitted: 0,
         status: 'COMPLETE'
+      };
+      document.metadata = {
+        ...(document.metadata || {}),
+        detectedRowCount: rowExtraction.detectedRowCount,
+        extractionBlockers: rowExtraction.blockerCodes,
+        extractionIssues: rowExtraction.issues.map((i) => ({
+          code: i.code,
+          reason: i.reason,
+          pageNumber: i.pageNumber,
+          message: i.message
+        })),
+        proposedMedicineGrouping:
+          proposedGroups.length > 0
+            ? {
+                mode: 'AUTO_PROPOSED',
+                groups: proposedGroups
+              }
+            : null,
+        needsCorrection: rowExtraction.needsReview
       };
       document.processingStatus = 'PROCESSED';
       await document.save();
@@ -145,17 +169,25 @@ class DocumentExtractorService {
       }
 
       // Sequentially execute local Tesseract OCR on each rendered page buffer
-      const allCandidates = [];
+      const ocrPages = [];
       for (const page of renderResult.pages) {
         const ocrResult = await localOcrService.processImage(page.buffer);
-        const pageCandidates = await localOcrService.extractConservativeFields(ocrResult, type, {
+        ocrPages.push({
           pageNumber: page.pageNumber,
-          extractionMethod: 'LOCAL_TESSERACT_PDF_OCR'
+          lines: Array.isArray(ocrResult?.lines) ? ocrResult.lines : [],
+          rawText: typeof ocrResult?.rawText === 'string' ? ocrResult.rawText : '',
+          confidence: ocrResult?.confidence
         });
-        allCandidates.push(...pageCandidates);
       }
 
-      // Detect conflicting field values across distinct pages (e.g. Page 1 vs Page 2)
+      const rowExtraction = localOcrService.extractDocumentRows(
+        { pages: ocrPages },
+        type,
+        { extractionMethod: 'LOCAL_TESSERACT_PDF_OCR' }
+      );
+      const allCandidates = rowExtraction.candidates;
+
+      // Detect conflicting field values across distinct pages (scoped by medicine/document)
       this._detectMultiPageConflicts(allCandidates, document);
 
       // Academic boundary: If no legible text was extracted, create NO fake template fields;
@@ -164,6 +196,9 @@ class DocumentExtractorService {
         document.processingStatus = 'PROCESSED';
         document.metadata = {
           ...(document.metadata || {}),
+          detectedRowCount: 0,
+          extractionBlockers: ['EXTRACTION_INCOMPLETE'],
+          proposedMedicineGrouping: null,
           needsCorrection: true,
           needsHumanCorrection: true,
           processingMessage: 'No legible text detected during local PDF OCR; human reviewer validation required.'
@@ -174,6 +209,29 @@ class DocumentExtractorService {
 
       // Persist real extracted fields and grounded evidence citations with true page numbers
       const savedFields = await this._saveCandidateFields(document, allCandidates, 'LOCAL_TESSERACT_PDF_OCR');
+      const proposedGroups = buildProposedGroupsFromPersistedFields(savedFields, {
+        blockerCodes: rowExtraction.blockerCodes
+      });
+
+      document.metadata = {
+        ...(document.metadata || {}),
+        detectedRowCount: rowExtraction.detectedRowCount,
+        extractionBlockers: rowExtraction.blockerCodes,
+        extractionIssues: rowExtraction.issues.map((i) => ({
+          code: i.code,
+          reason: i.reason,
+          pageNumber: i.pageNumber,
+          message: i.message
+        })),
+        proposedMedicineGrouping:
+          proposedGroups.length > 0
+            ? {
+                mode: 'AUTO_PROPOSED',
+                groups: proposedGroups
+              }
+            : null,
+        needsCorrection: Boolean(document.metadata?.needsCorrection || rowExtraction.needsReview)
+      };
 
       document.processingStatus = 'PROCESSED';
       await document.save();
@@ -195,26 +253,47 @@ class DocumentExtractorService {
 
   /**
    * Detect conflicting values for the same fieldType across distinct pages.
-   * Flags all conflicting candidates with needsCorrection: true and records metadata.
+   * Medicine fields are scoped by their row's medicine_name so distinct medicines on different
+   * pages do not falsely collide, while duplicate medicine rows across pages with conflicting
+   * attributes (e.g. Paracetamol 500mg on page 1 vs Paracetamol 650mg on page 2) are flagged.
    *
    * @private
    * @param {Array<Object>} candidates
    * @param {Object} document
    */
   _detectMultiPageConflicts(candidates, document) {
-    const byType = new Map();
+    // Map candidateRowKey -> normalized medicine_name
+    const rowMedicineMap = new Map();
     for (const c of candidates) {
-      if (!byType.has(c.fieldType)) {
-        byType.set(c.fieldType, []);
+      if (c.fieldType === 'medicine_name' && c.candidateRowKey) {
+        const medVal = (c.normalizedValue || c.rawValue || '').trim().toLowerCase();
+        rowMedicineMap.set(c.candidateRowKey, medVal);
       }
-      byType.get(c.fieldType).push(c);
+    }
+
+    const byScopeAndType = new Map();
+    for (const c of candidates) {
+      let scopeKey = 'doc';
+      if (RECOGNIZED_MEDICINE_SLOTS.includes(c.fieldType)) {
+        const medName = c.candidateRowKey ? rowMedicineMap.get(c.candidateRowKey) : null;
+        scopeKey = medName ? `med:${medName}` : `row:${c.candidateRowKey || 'ungrouped'}`;
+      }
+      const key = `${scopeKey}::${c.fieldType}`;
+      if (!byScopeAndType.has(key)) {
+        byScopeAndType.set(key, []);
+      }
+      byScopeAndType.get(key).push(c);
     }
 
     let hasConflict = false;
-    for (const [fieldType, typeCandidates] of byType.entries()) {
+    for (const [, scopedCandidates] of byScopeAndType.entries()) {
       const pageValues = new Map();
-      for (const c of typeCandidates) {
-        const val = (c.normalizedValue !== undefined && c.normalizedValue !== '' ? c.normalizedValue : c.rawValue || '').trim().toLowerCase();
+      for (const c of scopedCandidates) {
+        const val = (
+          c.normalizedValue !== undefined && c.normalizedValue !== '' ? c.normalizedValue : c.rawValue || ''
+        )
+          .trim()
+          .toLowerCase();
         if (val) {
           const p = c.pageNumber || 1;
           if (!pageValues.has(p)) {
@@ -229,8 +308,7 @@ class DocumentExtractorService {
         for (let i = 1; i < distinctPages.length; i++) {
           if (pageValues.get(distinctPages[i]) !== firstVal) {
             hasConflict = true;
-            // Mark all candidates of this field type as needing correction
-            for (const c of typeCandidates) {
+            for (const c of scopedCandidates) {
               c.needsCorrection = true;
             }
             break;
@@ -261,6 +339,12 @@ class DocumentExtractorService {
     const savedFields = [];
 
     for (const c of candidates) {
+      const hasValidConfidence =
+        typeof c.extractionConfidence === 'number' &&
+        Number.isFinite(c.extractionConfidence) &&
+        c.extractionConfidence >= 0 &&
+        c.extractionConfidence <= 1;
+
       const field = new ExtractedField({
         caseId,
         documentId,
@@ -268,15 +352,22 @@ class DocumentExtractorService {
         rawValue: c.rawValue,
         normalizedValue: c.normalizedValue !== undefined ? c.normalizedValue : c.rawValue,
         pageNumber: c.pageNumber || 1,
-        boundingBox: c.boundingBox || [0, 0, 0, 0],
+        boundingBox: Array.isArray(c.boundingBox) && c.boundingBox.length === 4 ? c.boundingBox : null,
         extractionMethod: c.extractionMethod || extractionMethod || 'LOCAL_TESSERACT_IMAGE_OCR',
-        extractionConfidence: typeof c.extractionConfidence === 'number' ? c.extractionConfidence : 0.9,
-        needsCorrection: c.needsCorrection !== undefined ? c.needsCorrection : (typeof c.extractionConfidence === 'number' && c.extractionConfidence < 0.75),
+        extractionConfidence: hasValidConfidence ? c.extractionConfidence : null,
+        candidateRowKey: c.candidateRowKey || null,
+        needsCorrection:
+          c.needsCorrection !== undefined
+            ? Boolean(c.needsCorrection)
+            : !hasValidConfidence || c.extractionConfidence < 0.75,
         resolution: c.resolution || null
       });
 
       const savedField = await field.save();
       savedFields.push(savedField);
+
+      const evBox = Array.isArray(c.boundingBox) && c.boundingBox.length === 4 ? c.boundingBox : [0, 0, 0, 0];
+      const confPct = hasValidConfidence ? `${Math.round(c.extractionConfidence * 100)}%` : 'unknown';
 
       // Create an initial EvidenceItem representing the document citation
       const evidence = new EvidenceItem({
@@ -284,13 +375,11 @@ class DocumentExtractorService {
         sourceId: savedField._id,
         documentId,
         claimSupported: `Extracted ${c.fieldType}: "${c.rawValue}" (Local OCR)`,
-        evidenceText: `Document page ${c.pageNumber || 1} at bounding box [${(c.boundingBox || [0, 0, 0, 0]).join(
+        evidenceText: `Document page ${c.pageNumber || 1} at bounding box [${evBox.join(
           ', '
-        )}] contains "${c.rawValue}" (Method: ${field.extractionMethod}, Confidence: ${Math.round(
-          field.extractionConfidence * 100
-        )}%)`,
+        )}] contains "${c.rawValue}" (Method: ${field.extractionMethod}, Confidence: ${confPct})`,
         pageNumber: c.pageNumber || 1,
-        boundingBox: c.boundingBox || [0, 0, 0, 0],
+        boundingBox: evBox,
         trustTier: 4
       });
       await evidence.save();

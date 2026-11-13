@@ -27,11 +27,202 @@ components:
       $ref: '../schemas/error.schema.json'
     ReviewDecision:
       $ref: '../schemas/review-decision.schema.json'
+    MedicineItemBundle:
+      $ref: '../schemas/medicine-item.schema.json'
+    MedicineReconciliationResult:
+      $ref: '../schemas/medicine-reconciliation.schema.json'
 
 security:
   - bearerAuth: []
 
 paths:
+  /chat:
+    post:
+      summary: Retrieve evidence-backed chatbot answers
+      operationId: answerEvidenceChat
+      description: >
+        Conversational retrieval from project guides, a versioned academic
+        identity catalogue and a small source-linked educational reference set.
+        Public context can use BM25 plus Gemini embeddings and streamed grounded
+        generation when explicitly enabled. Optional caseId uses owner/tenant
+        current case records and always stays local. Raw questions and history
+        are not exported. Scores are retrieval rankings, not clinical confidence.
+        This is not live web search or medical/insurance decision automation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              additionalProperties: false
+              properties:
+                message:
+                  type: string
+                  minLength: 1
+                  maxLength: 2000
+                caseId:
+                  type: string
+                  pattern: '^[a-fA-F0-9]{24}$'
+                history:
+                  type: array
+                  maxItems: 10
+                  description: Used locally to resolve follow-up topics; never trusted as evidence or exported verbatim.
+                  items:
+                    type: object
+                    required: [role, text]
+                    properties:
+                      role:
+                        type: string
+                        enum: [user, assistant]
+                      text:
+                        type: string
+                        maxLength: 2000
+      responses:
+        '200':
+          description: Cited source quotations, an honest abstention, or a safety response.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reply, mode, retrieval, sources, warnings, disclaimer]
+                properties:
+                  reply:
+                    type: string
+                  mode:
+                    type: string
+                    enum: [LOCAL_EXTRACTIVE, GEMINI_GROUNDED_QUOTES, GEMINI_RAG, CONVERSATIONAL_HELP, CLARIFY, ABSTAIN, SAFETY]
+                  retrieval:
+                    type: object
+                    required: [method, matchedPassages]
+                    properties:
+                      method:
+                        type: string
+                        enum: [BM25, HYBRID_BM25_VECTOR]
+                      matchedPassages:
+                        type: integer
+                        minimum: 0
+                  sources:
+                    type: array
+                    maxItems: 4
+                    items:
+                      type: object
+                      required: [citation, sourceId, title, excerpt, kind, version, score]
+                      properties:
+                        citation:
+                          type: string
+                        sourceId:
+                          type: string
+                        title:
+                          type: string
+                        excerpt:
+                          type: string
+                        kind:
+                          type: string
+                          enum: [PROJECT_GUIDE, ACADEMIC_CATALOGUE, CASE_RECORD, HEALTH_REFERENCE]
+                        version:
+                          type: string
+                        score:
+                          type: number
+                          description: Retrieval ranking score (BM25 or reciprocal-rank fusion), not confidence or clinical accuracy.
+                        sourceUrl:
+                          type: string
+                          format: uri
+                        href:
+                          type: string
+                          pattern: '^/cases/[a-fA-F0-9]{24}$'
+                        documentId:
+                          type: string
+                        pageNumber:
+                          type: integer
+                          minimum: 1
+                  warnings:
+                    type: array
+                    items:
+                      type: string
+                  disclaimer:
+                    type: string
+                  model:
+                    type: string
+                  followupResolved:
+                    type: boolean
+                  routing:
+                    type: object
+                    required: [intent, reasonCode, policyVersion]
+                    properties:
+                      intent:
+                        type: string
+                      reasonCode:
+                        type: string
+                      policyVersion:
+                        type: string
+        '400':
+          description: Invalid or unsupported input.
+        '401':
+          description: Authentication required.
+        '403':
+          description: Private retrieval role denied or tenant context missing.
+        '404':
+          description: Case absent or inaccessible, without cross-tenant enumeration.
+        '429':
+          description: Chat rate limit exceeded.
+  /chat/status:
+    get:
+      summary: Get configured Health Assistant capabilities
+      operationId: getChatCapabilities
+      responses:
+        '200':
+          description: Feature flags and corpus counts; not a guarantee of provider availability.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  generationEnabled:
+                    type: boolean
+                  embeddingEnabled:
+                    type: boolean
+                  model:
+                    type: [string, 'null']
+                  publicPassages:
+                    type: integer
+                  healthReferencePassages:
+                    type: integer
+                  privateCasePolicy:
+                    type: string
+                    const: LOCAL_ONLY
+        '401':
+          description: Authentication required.
+  /chat/stream:
+    post:
+      summary: Stream a conversational evidence-grounded answer
+      operationId: streamEvidenceChat
+      description: >
+        Authenticated POST SSE. Events are status, meta, delta, reset, done and
+        error. Deltas contain complete model paragraphs only after checking their
+        reference IDs and supporting source quotations. Such checking establishes
+        traceability, not semantic or clinical correctness. A reset replaces any
+        incomplete generated text with explicit local fallback. Client disconnect
+        cancels model work. Private-case access is checked before SSE opens.
+      requestBody:
+        $ref: '#/paths/~1chat/post/requestBody'
+      responses:
+        '200':
+          description: Source metadata, validated answer paragraphs and the final response.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          description: Invalid request.
+        '401':
+          description: Authentication required.
+        '403':
+          description: Private case role or tenant context denied.
+        '404':
+          description: Case absent or inaccessible.
+        '429':
+          description: Chat rate limit exceeded.
   /cases:
     post:
       summary: Create a new Verification Case
@@ -401,6 +592,198 @@ paths:
         '200':
           description: Structured verification results
 
+  /cases/{caseId}/reconciliation:
+    get:
+      summary: Get Current Protected Case Reconciliation Snapshot
+      description: >
+        Read-only endpoint that builds the live current-evidence Session 1 medicine
+        bundles, Session 2 reconciliation result, grouping status, role permissions,
+        review eligibility, and deterministic snapshotToken without writing to the database.
+      operationId: getCaseReconciliation
+      security:
+        - bearerAuth: [ "patient", "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin", "admin" ]
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Live protected case reconciliation snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - schemaVersion
+                  - caseId
+                  - caseStatus
+                  - snapshotToken
+                  - evidenceRevision
+                  - prescription
+                  - invoice
+                  - comparison
+                  - groupingDocuments
+                  - permissions
+                  - reviewEligibility
+                  - notices
+                  - legacyFindingsCurrent
+                additionalProperties: false
+                properties:
+                  schemaVersion:
+                    type: string
+                    const: '2.0.0-session3'
+                  caseId:
+                    type: string
+                  caseStatus:
+                    type: string
+                  snapshotToken:
+                    type: string
+                    pattern: '^rs_[a-f0-9]{64}$'
+                  evidenceRevision:
+                    type: integer
+                    minimum: 0
+                  legacyFindingsCurrent:
+                    type: boolean
+                    const: false
+                  permissions:
+                    type: object
+                    additionalProperties: false
+                    required: [ canCorrectFields, canConfirmGroups, canReview ]
+                    properties:
+                      canCorrectFields:
+                        type: boolean
+                      canConfirmGroups:
+                        type: boolean
+                      canReview:
+                        type: boolean
+                  prescription:
+                    oneOf:
+                      - $ref: '#/components/schemas/MedicineItemBundle'
+                      - type: 'null'
+                  invoice:
+                    oneOf:
+                      - $ref: '#/components/schemas/MedicineItemBundle'
+                      - type: 'null'
+                  comparison:
+                    oneOf:
+                      - $ref: '#/components/schemas/MedicineReconciliationResult'
+                      - type: 'null'
+                  groupingDocuments:
+                    type: array
+                    items:
+                      type: object
+                  reviewEligibility:
+                    type: object
+                    additionalProperties: false
+                    required: [ canVerify, blockerCodes, allowedActions ]
+                    properties:
+                      canVerify:
+                        type: boolean
+                      allowedActions:
+                        type: array
+                        items:
+                          type: string
+                          enum: [ VERIFY, RETURN_FOR_CORRECTION, ESCALATE ]
+                      blockerCodes:
+                        type: array
+                        items:
+                          type: string
+                  notices:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [ code, documentId, message ]
+                      properties:
+                        code:
+                          type: string
+                        documentId:
+                          type: [ string, 'null' ]
+                        message:
+                          type: string
+        '401':
+          description: Authentication required
+        '403':
+          description: Forbidden role or missing tenant context
+        '404':
+          description: Case not found or cross-tenant access denied
+
+  /cases/{caseId}/documents/{documentId}/medicine-groups:
+    put:
+      summary: Confirm Staff Medicine Item Grouping for a Document
+      description: >
+        Staff-only endpoint to confirm how extracted medicine fields are grouped
+        into up to 3 medicine rows on a PRESCRIPTION or PHARMACY_INVOICE document.
+      operationId: confirmMedicineGroups
+      security:
+        - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin" ]
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - snapshotToken
+                - observedItemCount
+                - completenessAttested
+                - groups
+              properties:
+                snapshotToken:
+                  type: string
+                  pattern: '^rs_[a-f0-9]{64}$'
+                observedItemCount:
+                  type: integer
+                  minimum: 1
+                  maximum: 3
+                completenessAttested:
+                  type: boolean
+                  const: true
+                groups:
+                  type: array
+                  minItems: 1
+                  maxItems: 3
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required:
+                      - anchorFieldId
+                      - fieldIds
+                    properties:
+                      anchorFieldId:
+                        type: string
+                      fieldIds:
+                        type: array
+                        minItems: 1
+                        maxItems: 8
+                        items:
+                          type: string
+      responses:
+        '200':
+          description: Medicine groups confirmed and updated reconciliation snapshot returned
+        '400':
+          description: Invalid grouping payload or field validation error
+        '403':
+          description: Forbidden (patient, super_admin, or unauthorized role)
+        '404':
+          description: Case or document not found
+        '409':
+          description: Conflict (Stale snapshot token, case finalised/processing, or concurrent mutation)
+
   /cases/{caseId}/evidence:
     get:
       summary: Get lineage and evidence
@@ -452,19 +835,27 @@ paths:
           application/json:
             schema:
               type: object
+              additionalProperties: false
               properties:
                 normalizedValue:
                   type: string
-              required: ["normalizedValue"]
+                  minLength: 1
+                  maxLength: 500
+                snapshotToken:
+                  type: string
+                  pattern: '^rs_[a-f0-9]{64}$'
+              required: ["normalizedValue", "snapshotToken"]
       responses:
         '200':
           description: Field corrected
         '400':
-          description: Validation error
+          description: Validation error or invalid snapshotToken
         '403':
           description: Forbidden (patient, super_admin, or unauthorized role)
         '404':
           description: Extracted field not found
+        '409':
+          description: Conflict (Stale snapshot token, case finalised/processing, or concurrent mutation)
 
   /review-queue:
     get:
@@ -492,6 +883,8 @@ paths:
     post:
       summary: Submit a human review decision
       operationId: submitReview
+      security:
+        - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin", "admin" ]
       parameters:
         - name: caseId
           in: path
@@ -504,15 +897,30 @@ paths:
           application/json:
             schema:
               type: object
+              additionalProperties: false
               properties:
+                action:
+                  type: string
+                  enum: [ "VERIFY", "RETURN_FOR_CORRECTION", "ESCALATE" ]
                 decision:
                   type: string
-                  enum: [ "APPROVE", "REJECT", "REQUEST_CLARIFICATION", "ESCALATE" ]
+                  enum: [ "APPROVE", "REQUEST_CLARIFICATION", "ESCALATE" ]
+                snapshotToken:
+                  type: string
+                  pattern: '^rs_[a-f0-9]{64}$'
                 reasonCode:
                   type: string
+                  minLength: 1
+                  maxLength: 80
                 notes:
                   type: string
-              required: [ "decision", "reasonCode" ]
+                  minLength: 10
+                  maxLength: 2000
+                evidenceItemIds:
+                  type: array
+                  items:
+                    type: string
+              required: [ "snapshotToken", "reasonCode", "notes" ]
       responses:
         '201':
           description: Decision recorded
@@ -520,6 +928,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReviewDecision'
+        '400':
+          description: Validation error (missing/invalid snapshotToken, short notes, or unsupported decision)
+        '403':
+          description: Forbidden role
+        '404':
+          description: Case not found or cross-tenant access denied
+        '409':
+          description: Conflict (Stale snapshot token, review blocked by unresolved blockers, or case busy)
 
   /cases/{caseId}/fhir-bundle:
     get:

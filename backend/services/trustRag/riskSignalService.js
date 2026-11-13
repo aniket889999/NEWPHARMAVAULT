@@ -1,16 +1,18 @@
 const RiskSignal = require('../../models/riskSignalModel');
 const EvidenceItem = require('../../models/evidenceItemModel');
+const { RECOGNIZED_MEDICINE_SLOTS } = require('./medicineItemContract');
 
 /**
  * Risk Signal Service
  * Detects risk signals across extracted fields, consistency checks,
- * medicine resolutions, and document coverage metadata.
+ * medicine resolutions, reconciliation snapshots, and document coverage metadata.
  *
  * Guarantees:
  * - RiskSignal.evidenceItemIds reference actual EvidenceItem records belonging to the SAME case,
  *   never ExtractedField IDs.
  * - Missing-information evidence identifies the missing requirement and inspected coverage
  *   without inventing source text or coordinates.
+ * - CLAIM_FORM is not required to contain medicine_name or medicine line items.
  * - Documents with omitted pages emit high-severity risk signals requiring human review.
  */
 class RiskSignalService {
@@ -24,7 +26,7 @@ class RiskSignalService {
       caseId,
       _id: { $in: candidateIds }
     });
-    return validItems.map(item => item._id);
+    return validItems.map((item) => item._id);
   }
 
   /**
@@ -34,20 +36,31 @@ class RiskSignalService {
    * @param {Array} params.documents
    * @param {Array} params.fields
    * @param {Array} params.checks
-   * @param {Object} params.resolutions
+   * @param {Object} [params.resolutions]
+   * @param {Object} [params.reconciliationSnapshot]
    * @returns {Promise<Array>} Array of generated RiskSignal documents
    */
-  async evaluateRiskSignals({ caseId, documents, fields, checks, resolutions = {} }) {
-    // Clean previous risk signals for clean re-processing
+  async evaluateRiskSignals({
+    caseId,
+    documents,
+    fields,
+    checks,
+    resolutions = {},
+    reconciliationSnapshot = null
+  }) {
     await RiskSignal.deleteMany({ caseId });
 
     const signals = [];
 
     // 1. LOW_OCR_CONFIDENCE
-    const lowConfFields = fields.filter(f => f.extractionConfidence < 0.75);
+    const lowConfFields = fields.filter(
+      (f) =>
+        typeof f.extractionConfidence !== 'number' ||
+        !Number.isFinite(f.extractionConfidence) ||
+        f.extractionConfidence < 0.75
+    );
     if (lowConfFields.length > 0) {
-      // Find actual EvidenceItems referencing these fields
-      const lowConfFieldIds = lowConfFields.map(f => f._id);
+      const lowConfFieldIds = lowConfFields.map((f) => f._id);
       const evItems = await EvidenceItem.find({
         caseId,
         sourceId: { $in: lowConfFieldIds }
@@ -57,43 +70,49 @@ class RiskSignalService {
         caseId,
         signalType: 'LOW_OCR_CONFIDENCE',
         severity: 'MEDIUM',
-        description: `${lowConfFields.length} field(s) have low extraction confidence (< 75%): ${lowConfFields.map(f => f.fieldType).join(', ')}.`,
-        evidenceItemIds: evItems.map(e => e._id),
+        description: `${lowConfFields.length} field(s) have low extraction confidence (< 75%): ${lowConfFields
+          .map((f) => f.fieldType)
+          .join(', ')}.`,
+        evidenceItemIds: evItems.map((e) => e._id),
         detectedBy: 'FIELD_CONFIDENCE_MONITOR',
-        rulesetVersion: '1.0',
+        rulesetVersion: '2.0',
         reviewRequired: true
       });
       signals.push(await signal.save());
     }
 
-    // 2. MISSING_REQUIRED_FIELD
+    // 2. MISSING_REQUIRED_FIELD (CLAIM_FORM does not require medicine_name)
     const requiredPerDoc = {
       PRESCRIPTION: ['medicine_name', 'dosage_strength', 'quantity', 'prescription_date'],
       PHARMACY_INVOICE: ['medicine_name', 'quantity', 'total_amount', 'invoice_date'],
-      CLAIM_FORM: ['medicine_name', 'claimed_amount']
+      CLAIM_FORM: ['claimed_amount']
     };
 
     const missingFieldList = [];
     const missingEvidenceIds = [];
 
     for (const doc of documents) {
-      const docFields = fields.filter(f => String(f.documentId) === String(doc._id));
+      const docFields = fields.filter((f) => String(f.documentId) === String(doc._id));
       const required = requiredPerDoc[doc.type] || [];
-      const inspectedCoverageText = `${doc.processedPageCount || Math.min(doc.pageCount || 1, 3)} of ${doc.pageCount || 1} page(s)`;
+      const inspectedCoverageText = `${
+        doc.processedPageCount || Math.min(doc.pageCount || 1, 3)
+      } of ${doc.pageCount || 1} page(s)`;
 
       for (const req of required) {
-        const found = docFields.find(f => f.fieldType === req && f.rawValue && f.rawValue.trim().length > 0);
+        const found = docFields.find(
+          (f) => f.fieldType === req && f.rawValue && f.rawValue.trim().length > 0
+        );
         if (!found) {
           missingFieldList.push(`${doc.type}: ${req}`);
 
-          // Missing-information evidence: identifies missing requirement and inspected coverage
-          // without inventing source text or coordinates
           const missingEvidence = new EvidenceItem({
             caseId,
             sourceId: doc._id,
             documentId: doc._id,
             claimSupported: `Missing required field: ${doc.type} ${req}`,
-            evidenceText: `Inspected ${doc.type} (${doc.originalFilename || 'upload'}, ${inspectedCoverageText} analyzed). Required clinical/financial field "${req}" was not detected.`,
+            evidenceText: `Inspected ${doc.type} (${
+              doc.originalFilename || 'upload'
+            }, ${inspectedCoverageText} analyzed). Required clinical/financial field "${req}" was not detected.`,
             pageNumber: 1,
             boundingBox: [0, 0, 0, 0],
             trustTier: 4,
@@ -117,16 +136,21 @@ class RiskSignalService {
         description: `Missing required clinical/financial fields: ${missingFieldList.join(', ')}.`,
         evidenceItemIds: missingEvidenceIds,
         detectedBy: 'FIELD_COMPLETENESS_VALIDATOR',
-        rulesetVersion: '1.0',
+        rulesetVersion: '2.0',
         reviewRequired: true
       });
       signals.push(await signal.save());
     }
 
     // 3. MEDICINE_STRENGTH_MISMATCH
-    const strengthFail = checks.find(c => c.checkType === 'DOSAGE_STRENGTH_CONSISTENCY' && c.status === 'FAIL');
+    const strengthFail = checks.find(
+      (c) => c.checkType === 'DOSAGE_STRENGTH_CONSISTENCY' && c.status === 'FAIL'
+    );
     if (strengthFail) {
-      const validEvidenceIds = await this._filterSameCaseEvidence(caseId, strengthFail.evidenceItemIds);
+      const validEvidenceIds = await this._filterSameCaseEvidence(
+        caseId,
+        strengthFail.evidenceItemIds
+      );
       const signal = new RiskSignal({
         caseId,
         signalType: 'MEDICINE_STRENGTH_MISMATCH',
@@ -134,16 +158,21 @@ class RiskSignalService {
         description: strengthFail.message,
         evidenceItemIds: validEvidenceIds,
         detectedBy: 'CROSS_DOC_CONSISTENCY_ENGINE',
-        rulesetVersion: '1.0',
+        rulesetVersion: '2.0',
         reviewRequired: true
       });
       signals.push(await signal.save());
     }
 
     // 4. MEDICINE_NAME_MISMATCH
-    const medNameFail = checks.find(c => c.checkType === 'MEDICINE_NAME_CONSISTENCY' && c.status === 'FAIL');
+    const medNameFail = checks.find(
+      (c) => c.checkType === 'MEDICINE_NAME_CONSISTENCY' && c.status === 'FAIL'
+    );
     if (medNameFail) {
-      const validEvidenceIds = await this._filterSameCaseEvidence(caseId, medNameFail.evidenceItemIds);
+      const validEvidenceIds = await this._filterSameCaseEvidence(
+        caseId,
+        medNameFail.evidenceItemIds
+      );
       const signal = new RiskSignal({
         caseId,
         signalType: 'MEDICINE_NAME_MISMATCH',
@@ -151,16 +180,21 @@ class RiskSignalService {
         description: medNameFail.message,
         evidenceItemIds: validEvidenceIds,
         detectedBy: 'CROSS_DOC_CONSISTENCY_ENGINE',
-        rulesetVersion: '1.0',
+        rulesetVersion: '2.0',
         reviewRequired: true
       });
       signals.push(await signal.save());
     }
 
     // 5. QUANTITY_MISMATCH
-    const qtyFail = checks.find(c => c.checkType === 'QUANTITY_CONSISTENCY' && c.status === 'FAIL');
+    const qtyFail = checks.find(
+      (c) => c.checkType === 'QUANTITY_CONSISTENCY' && c.status === 'FAIL'
+    );
     if (qtyFail) {
-      const validEvidenceIds = await this._filterSameCaseEvidence(caseId, qtyFail.evidenceItemIds);
+      const validEvidenceIds = await this._filterSameCaseEvidence(
+        caseId,
+        qtyFail.evidenceItemIds
+      );
       const signal = new RiskSignal({
         caseId,
         signalType: 'QUANTITY_MISMATCH',
@@ -168,16 +202,21 @@ class RiskSignalService {
         description: qtyFail.message,
         evidenceItemIds: validEvidenceIds,
         detectedBy: 'CROSS_DOC_CONSISTENCY_ENGINE',
-        rulesetVersion: '1.0',
+        rulesetVersion: '2.0',
         reviewRequired: true
       });
       signals.push(await signal.save());
     }
 
     // 6. DATE_INCONSISTENCY
-    const dateFail = checks.find(c => c.checkType === 'DATE_SEQUENCE_CONSISTENCY' && c.status === 'FAIL');
+    const dateFail = checks.find(
+      (c) => c.checkType === 'DATE_SEQUENCE_CONSISTENCY' && c.status === 'FAIL'
+    );
     if (dateFail) {
-      const validEvidenceIds = await this._filterSameCaseEvidence(caseId, dateFail.evidenceItemIds);
+      const validEvidenceIds = await this._filterSameCaseEvidence(
+        caseId,
+        dateFail.evidenceItemIds
+      );
       const signal = new RiskSignal({
         caseId,
         signalType: 'DATE_INCONSISTENCY',
@@ -185,16 +224,16 @@ class RiskSignalService {
         description: dateFail.message,
         evidenceItemIds: validEvidenceIds,
         detectedBy: 'CHRONOLOGY_AUDITOR',
-        rulesetVersion: '1.0',
+        rulesetVersion: '2.0',
         reviewRequired: true
       });
       signals.push(await signal.save());
     }
 
     // 7. DUPLICATE_DOCUMENT_SIGNAL
-    const hashes = documents.map(d => d.sha256).filter(Boolean);
+    const hashes = documents.map((d) => d.sha256).filter(Boolean);
     const hasDuplicateHash = new Set(hashes).size !== hashes.length;
-    const types = documents.map(d => d.type);
+    const types = documents.map((d) => d.type);
     const hasDuplicateType = new Set(types).size !== types.length;
 
     if (hasDuplicateHash || hasDuplicateType) {
@@ -204,7 +243,7 @@ class RiskSignalService {
 
       const docEvidence = await EvidenceItem.find({
         caseId,
-        documentId: { $in: documents.map(d => d._id) }
+        documentId: { $in: documents.map((d) => d._id) }
       });
 
       const signal = new RiskSignal({
@@ -212,17 +251,23 @@ class RiskSignalService {
         signalType: 'DUPLICATE_DOCUMENT_SIGNAL',
         severity: 'MEDIUM',
         description: reason,
-        evidenceItemIds: docEvidence.map(e => e._id),
+        evidenceItemIds: docEvidence.map((e) => e._id),
         detectedBy: 'INTEGRITY_AUDITOR',
-        rulesetVersion: '1.0',
+        rulesetVersion: '2.0',
         reviewRequired: true
       });
       signals.push(await signal.save());
     }
 
     // 8. UNRESOLVED_MEDICINE_IDENTITY
-    const medNameInconclusive = checks.find(c => c.checkType === 'MEDICINE_NAME_CONSISTENCY' && c.status === 'INCONCLUSIVE');
-    const hasUnresolvedMed = Object.values(resolutions).some(r => r && !r.resolved);
+    const medNameInconclusive = checks.find(
+      (c) => c.checkType === 'MEDICINE_NAME_CONSISTENCY' && c.status === 'INCONCLUSIVE'
+    );
+    const hasUnresolvedMed =
+      Object.values(resolutions).some((r) => r && !r.resolved) ||
+      (reconciliationSnapshot?.comparison?.rows || []).some((r) =>
+        (r.issueCodes || []).includes('UNKNOWN_MEDICINE_IDENTITY')
+      );
     if (medNameInconclusive || hasUnresolvedMed) {
       let evIds = [];
       if (medNameInconclusive?.evidenceItemIds?.length) {
@@ -233,28 +278,35 @@ class RiskSignalService {
           caseId,
           claimSupported: /medicine_name|Medicine Name/i
         });
-        evIds = medEv.map(e => e._id);
+        evIds = medEv.map((e) => e._id);
       }
 
-      const signal = new RiskSignal({
-        caseId,
-        signalType: 'UNRESOLVED_MEDICINE_IDENTITY',
-        severity: 'HIGH',
-        description: medNameInconclusive
-          ? medNameInconclusive.message
-          : 'Extracted medicine name could not be safely resolved against curated academic catalogue. Human confirmation required.',
-        evidenceItemIds: evIds,
-        detectedBy: 'IDENTITY_RESOLUTION_SERVICE',
-        rulesetVersion: '1.0',
-        reviewRequired: true
-      });
-      signals.push(await signal.save());
+      if (evIds.length > 0) {
+        const signal = new RiskSignal({
+          caseId,
+          signalType: 'UNRESOLVED_MEDICINE_IDENTITY',
+          severity: 'HIGH',
+          description: medNameInconclusive
+            ? medNameInconclusive.message
+            : 'Extracted medicine name could not be safely resolved against curated academic catalogue. Human confirmation required.',
+          evidenceItemIds: evIds,
+          detectedBy: 'IDENTITY_RESOLUTION_SERVICE',
+          rulesetVersion: '2.0',
+          reviewRequired: true
+        });
+        signals.push(await signal.save());
+      }
     }
 
     // 9. DOSAGE_FORM_DISCREPANCY
-    const formDiscrepancy = checks.find(c => c.checkType === 'DOSAGE_FORM_CONSISTENCY' && c.status === 'INCONCLUSIVE');
+    const formDiscrepancy = checks.find(
+      (c) => c.checkType === 'DOSAGE_FORM_CONSISTENCY' && c.status === 'INCONCLUSIVE'
+    );
     if (formDiscrepancy) {
-      const validEvidenceIds = await this._filterSameCaseEvidence(caseId, formDiscrepancy.evidenceItemIds);
+      const validEvidenceIds = await this._filterSameCaseEvidence(
+        caseId,
+        formDiscrepancy.evidenceItemIds
+      );
       const signal = new RiskSignal({
         caseId,
         signalType: 'DOSAGE_FORM_DISCREPANCY',
@@ -262,55 +314,69 @@ class RiskSignalService {
         description: formDiscrepancy.message,
         evidenceItemIds: validEvidenceIds,
         detectedBy: 'CROSS_DOC_CONSISTENCY_ENGINE',
-        rulesetVersion: '1.0',
+        rulesetVersion: '2.0',
         reviewRequired: true
       });
       signals.push(await signal.save());
     }
 
     // 10. AMBIGUOUS_MEDICINE_IDENTITY
-    const hasAmbiguous = Object.values(resolutions).some(r => r && r.ambiguous === true);
+    const hasAmbiguous =
+      Object.values(resolutions).some((r) => r && r.ambiguous === true) ||
+      (reconciliationSnapshot?.comparison?.rows || []).some((r) =>
+        (r.issueCodes || []).includes('AMBIGUOUS_MEDICINE_IDENTITY')
+      );
     if (hasAmbiguous) {
       const medEv = await EvidenceItem.find({
         caseId,
         claimSupported: /medicine_name|Medicine Name/i
       });
-
-      const signal = new RiskSignal({
-        caseId,
-        signalType: 'AMBIGUOUS_MEDICINE_IDENTITY',
-        severity: 'HIGH',
-        description: 'Medicine name resolves to multiple conflicting records in curated academic catalogue. Review candidate options.',
-        evidenceItemIds: medEv.map(e => e._id),
-        detectedBy: 'IDENTITY_RESOLUTION_SERVICE',
-        rulesetVersion: '1.0',
-        reviewRequired: true
-      });
-      signals.push(await signal.save());
+      if (medEv.length > 0) {
+        const signal = new RiskSignal({
+          caseId,
+          signalType: 'AMBIGUOUS_MEDICINE_IDENTITY',
+          severity: 'HIGH',
+          description:
+            'Medicine name resolves to multiple conflicting records in curated academic catalogue. Review candidate options.',
+          evidenceItemIds: medEv.map((e) => e._id),
+          detectedBy: 'IDENTITY_RESOLUTION_SERVICE',
+          rulesetVersion: '2.0',
+          reviewRequired: true
+        });
+        signals.push(await signal.save());
+      }
     }
 
     // 11. INSUFFICIENT_EVIDENCE (Missing documents or incomplete triangle)
-    const hasUnresolved = Object.values(resolutions).some(r => r && !r.resolved);
+    const hasUnresolved = Object.values(resolutions).some((r) => r && !r.resolved);
     const incompleteTriangle = documents.length < 3;
     if (documents.length < 2 || hasUnresolved || incompleteTriangle) {
-      const reason = documents.length < 2
-        ? 'Fewer than 2 verification documents available; cannot substantiate cross-document evidence.'
-        : incompleteTriangle
+      const reason =
+        documents.length < 2
+          ? 'Fewer than 2 verification documents available; cannot substantiate cross-document evidence.'
+          : incompleteTriangle
           ? `Case contains only ${documents.length} of 3 required documents (Prescription, Invoice, Claim).`
           : 'Failed to verify medicine against allow-listed canonical medical evidence.';
 
       const insEvidence = new EvidenceItem({
         caseId,
-        sourceId: documents[0] ? documents[0]._id : new (require('mongoose').Types.ObjectId)(),
+        sourceId: documents[0]
+          ? documents[0]._id
+          : new (require('mongoose').Types.ObjectId)(),
         documentId: documents[0] ? documents[0]._id : null,
         claimSupported: 'Document Completeness and Verification Coverage',
-        evidenceText: `Inspected case document coverage: ${documents.length} document(s) uploaded (${documents.map(d => `${d.type}: ${d.processedPageCount || 1}/${d.pageCount || 1} pages`).join(', ')}). ${reason}`,
+        evidenceText: `Inspected case document coverage: ${
+          documents.length
+        } document(s) uploaded (${documents
+          .map((d) => `${d.type}: ${d.processedPageCount || 1}/${d.pageCount || 1} pages`)
+          .join(', ')}). ${reason}`,
         pageNumber: 1,
         boundingBox: [0, 0, 0, 0],
         trustTier: 4,
         sourceType: 'CASE_DOCUMENT',
         sourceLabel: 'Case Document Coverage Audit',
-        relevanceReason: 'Identifies document coverage gap or missing verification documents.',
+        relevanceReason:
+          'Identifies document coverage gap or missing verification documents.',
         retrievedAt: new Date(),
         sourceVersion: '1.0'
       });
@@ -323,22 +389,25 @@ class RiskSignalService {
         description: reason,
         evidenceItemIds: [savedInsEv._id],
         detectedBy: 'EVIDENCE_RETRIEVAL_GUARD',
-        rulesetVersion: '1.0',
+        rulesetVersion: '2.0',
         reviewRequired: true
       });
       signals.push(await signal.save());
     }
 
-    // 12. INSUFFICIENT_EVIDENCE for Incomplete Page Coverage (Requirement 4)
-    // PDFs above the processing limit must remain explicitly incomplete and require human review
+    // 12. INSUFFICIENT_EVIDENCE for Incomplete Page Coverage
     for (const doc of documents) {
-      if (doc.omittedPageCount > 0 || (doc.pageCount > (doc.processedPageCount || 3))) {
+      if (doc.omittedPageCount > 0 || doc.pageCount > (doc.processedPageCount || 3)) {
         const coverageEvidence = new EvidenceItem({
           caseId,
           sourceId: doc._id,
           documentId: doc._id,
           claimSupported: `Partial Page Coverage Limit: ${doc.type}`,
-          evidenceText: `Document "${doc.originalFilename || doc.type}" has ${doc.pageCount} pages. Only ${doc.processedPageCount || 3} pages were analyzed; ${doc.omittedPageCount || (doc.pageCount - 3)} page(s) were omitted under processing limits. Human review is required.`,
+          evidenceText: `Document "${doc.originalFilename || doc.type}" has ${
+            doc.pageCount
+          } pages. Only ${doc.processedPageCount || 3} pages were analyzed; ${
+            doc.omittedPageCount || doc.pageCount - 3
+          } page(s) were omitted under processing limits. Human review is required.`,
           pageNumber: 1,
           boundingBox: [0, 0, 0, 0],
           trustTier: 4,
@@ -354,32 +423,64 @@ class RiskSignalService {
           caseId,
           signalType: 'INSUFFICIENT_EVIDENCE',
           severity: 'HIGH',
-          description: `Document "${doc.originalFilename || doc.type}" contains ${doc.pageCount} pages, exceeding the 3-page processing limit. Only ${doc.processedPageCount || 3} pages were analyzed; ${doc.omittedPageCount || (doc.pageCount - 3)} page(s) were omitted. Document cannot be considered fully analyzed without human review.`,
+          description: `Document "${doc.originalFilename || doc.type}" contains ${
+            doc.pageCount
+          } pages, exceeding the 3-page processing limit. Only ${
+            doc.processedPageCount || 3
+          } pages were analyzed; ${
+            doc.omittedPageCount || doc.pageCount - 3
+          } page(s) were omitted. Document cannot be considered fully analyzed without human review.`,
           evidenceItemIds: [savedCovEv._id],
           detectedBy: 'COVERAGE_LIMIT_VALIDATOR',
-          rulesetVersion: '1.0',
+          rulesetVersion: '2.0',
           reviewRequired: true
         });
         signals.push(await signal.save());
       }
     }
 
-    // 13. CONFLICTING_MULTI_PAGE_DATA
-    // Detects when the same field type appears with conflicting values on different pages of a document
+    // 13. CONFLICTING_MULTI_PAGE_DATA (Scoped by medicine row / document level)
     for (const doc of documents) {
-      const docFields = fields.filter(f => String(f.documentId) === String(doc._id));
-      const fieldsByType = new Map();
+      const docFields = fields.filter((f) => String(f.documentId) === String(doc._id));
+      const rowMedNameMap = new Map();
       for (const f of docFields) {
-        if (!fieldsByType.has(f.fieldType)) {
-          fieldsByType.set(f.fieldType, []);
+        if (f.fieldType === 'medicine_name' && f.candidateRowKey) {
+          rowMedNameMap.set(
+            f.candidateRowKey,
+            (f.normalizedValue || f.rawValue || '').trim().toLowerCase()
+          );
         }
-        fieldsByType.get(f.fieldType).push(f);
       }
 
-      for (const [fieldType, typeFields] of fieldsByType.entries()) {
+      const fieldsByScopeAndType = new Map();
+      for (const f of docFields) {
+        let scopeKey = 'doc';
+        if (RECOGNIZED_MEDICINE_SLOTS.includes(f.fieldType)) {
+          const medName = f.candidateRowKey ? rowMedNameMap.get(f.candidateRowKey) : null;
+          scopeKey = medName ? `med:${medName}` : `row:${f.candidateRowKey || 'ungrouped'}`;
+        }
+        const key = `${scopeKey}::${f.fieldType}`;
+        if (!fieldsByScopeAndType.has(key)) {
+          fieldsByScopeAndType.set(key, []);
+        }
+        fieldsByScopeAndType.get(key).push(f);
+      }
+
+      for (const [scopedKey, typeFields] of fieldsByScopeAndType.entries()) {
+        const fieldType = scopedKey.split('::')[1];
         const pagesMap = new Map();
         for (const f of typeFields) {
-          const val = (f.normalizedValue !== undefined && f.normalizedValue !== '' ? f.normalizedValue : f.rawValue || '').trim().toLowerCase();
+          const rawVal = (
+            f.normalizedValue !== undefined && f.normalizedValue !== ''
+              ? f.normalizedValue
+              : f.rawValue || ''
+          )
+            .trim()
+            .toLowerCase();
+          const val =
+            fieldType === 'dosage_strength'
+              ? rawVal.replace(/\s+/g, '')
+              : rawVal.replace(/\s+/g, ' ');
           if (val) {
             const pageNum = f.pageNumber || 1;
             if (!pagesMap.has(pageNum)) {
@@ -394,8 +495,6 @@ class RiskSignalService {
           for (let i = 1; i < distinctPages.length; i++) {
             const current = pagesMap.get(distinctPages[i]);
             if (current.val !== first.val) {
-              // Retrieve actual EvidenceItem records for these fields in this case
-              // NEVER pass ExtractedField IDs to evidenceItemIds!
               const conflictFieldIds = [first.field._id, current.field._id].filter(Boolean);
               const conflictEvItems = await EvidenceItem.find({
                 caseId,
@@ -406,10 +505,16 @@ class RiskSignalService {
                 caseId,
                 signalType: 'CONFLICTING_MULTI_PAGE_DATA',
                 severity: 'HIGH',
-                description: `Conflicting values for "${fieldType}" detected across pages in ${doc.type} (Page ${first.field.pageNumber || 1}: "${first.field.rawValue}" vs Page ${current.field.pageNumber || 1}: "${current.field.rawValue}"). Human reviewer correction required.`,
-                evidenceItemIds: conflictEvItems.map(e => e._id),
+                description: `Conflicting values for "${fieldType}" detected across pages in ${
+                  doc.type
+                } (Page ${first.field.pageNumber || 1}: "${
+                  first.field.rawValue
+                }" vs Page ${current.field.pageNumber || 1}: "${
+                  current.field.rawValue
+                }"). Human reviewer correction required.`,
+                evidenceItemIds: conflictEvItems.map((e) => e._id),
                 detectedBy: 'MULTI_PAGE_INTEGRITY_AUDITOR',
-                rulesetVersion: '1.0',
+                rulesetVersion: '2.0',
                 reviewRequired: true
               });
               signals.push(await signal.save());
