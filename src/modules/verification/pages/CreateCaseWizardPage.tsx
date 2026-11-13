@@ -491,7 +491,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
         <button
           type="button"
-          disabled={isUploading}
+          disabled={isUploading || isUploaded}
           onClick={() => fileInputRef.current?.click()}
           className="w-full py-2 px-3 border border-slate-200 hover:border-indigo-400 text-slate-700 hover:text-indigo-600 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
         >
@@ -500,14 +500,14 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
           ) : (
             <UploadCloud className="w-3.5 h-3.5" />
           )}
-          <span>{isUploaded ? 'Replace Document' : 'Upload File (PDF/Image)'}</span>
+          <span>{isUploaded ? 'Document uploaded' : 'Upload File (PDF/Image)'}</span>
         </button>
 
         {/* Local development fixture only — must never be used with real healthcare documents. */}
         {import.meta.env.DEV && onQuickUpload && (
           <button
             type="button"
-            disabled={isUploading}
+            disabled={isUploading || isUploaded}
             onClick={onQuickUpload}
             className="w-full py-1.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1"
             title="Use synthetic standardized document fixture (Development Only)"

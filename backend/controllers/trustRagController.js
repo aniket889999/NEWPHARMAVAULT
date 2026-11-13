@@ -425,13 +425,11 @@ const uploadDocument = asyncHandler(async (req, res) => {
 
       const allDocs = await Document.find({ caseId: vCase._id });
       const uniqueTypes = new Set(allDocs.map((d) => d.type));
-      const hasTriangle =
-        uniqueTypes.has('PRESCRIPTION') &&
-        uniqueTypes.has('PHARMACY_INVOICE') &&
-        uniqueTypes.has('CLAIM_FORM');
+      const hasRequiredMedicinePair =
+        uniqueTypes.has('PRESCRIPTION') && uniqueTypes.has('PHARMACY_INVOICE');
 
       if (vCase.status === 'DRAFT' || vCase.status === 'DOCUMENTS_PENDING') {
-        vCase.status = hasTriangle ? 'READY_FOR_PROCESSING' : 'DOCUMENTS_PENDING';
+        vCase.status = hasRequiredMedicinePair ? 'READY_FOR_PROCESSING' : 'DOCUMENTS_PENDING';
       }
 
       bumpCaseEvidenceRevision(vCase);
@@ -573,13 +571,29 @@ const getDocumentPagePreview = asyncHandler(async (req, res) => {
 // @route   GET /api/v1/cases/:caseId/reconciliation
 // @access  Private (patient owner, same-tenant staff, super_admin)
 const getCaseReconciliation = asyncHandler(async (req, res) => {
-  const vCase = await getAccessibleCase(req.params.caseId, req.user, req.tenantContext, res);
-  const snapshot = await buildCaseReconciliationSnapshot({
-    vCase,
-    user: req.user
-  });
-  res.setHeader('Cache-Control', 'private, no-store');
-  res.status(200).json(snapshot);
+  const initialCase = await getAccessibleCase(req.params.caseId, req.user, req.tenantContext, res);
+  try {
+    const snapshot = await withCaseMutationGuard(initialCase._id, async () => {
+      const vCase = await VerificationCase.findById(initialCase._id);
+      if (!vCase) {
+        const err = new Error('Verification case not found');
+        err.statusCode = 404;
+        err.code = 'CASE_NOT_FOUND';
+        throw err;
+      }
+      return buildCaseReconciliationSnapshot({
+        vCase,
+        user: req.user
+      });
+    });
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.status(200).json(snapshot);
+  } catch (err) {
+    if (err.code && err.statusCode) {
+      return sendControlledError(res, err);
+    }
+    throw err;
+  }
 });
 
 // @desc    Confirm medicine item groups for a prescription or invoice document

@@ -25,4 +25,6 @@ tests/reconciliation-v2/backend.acceptance.test.cjs
 tests/reconciliation-v2/consumer.test.cjs
 ```
 
-Real API/database and browser acceptance remains open until Gemini's Session 3 implementation is independently inspected. Follow `docs/integration-v2/SESSION_3_CONTRACT.md`; never clean or seed a development database to make an integration test pass. Held-out product evaluation is deferred to Session 5.
+Corrective real API/database and manual synthetic-browser evidence is recorded in `docs/integration-v2/SESSION_3_REINSPECTION.md`. It is separate from these static client tests. Full release and legacy-caller compatibility remain open. Follow `docs/integration-v2/SESSION_3_CONTRACT.md`; never clean or seed a development database to make a test pass. Held-out product evaluation is deferred to Session 5.
+
+The opt-in `node tests/integration-v2/browserHarness.cjs --synthetic-browser-check` creates only run-scoped synthetic accounts, cases and watermarked images on the guarded disposable database. Provision local English OCR data first. It starts a separate loopback frontend on 5174, never reads .env, and disables external AI. Enter `cleanup` or press Ctrl+C in that harness terminal when finished; verify its scoped-cleanup acknowledgement. It is a manual fixture, not an automated browser-test result.

@@ -584,23 +584,52 @@ async function buildCaseReconciliationSnapshot({ vCase, user = null }) {
       );
     }
 
-    const totalPages = doc.pageCount ?? doc.pageCoverage?.total ?? null;
-    const processedPages = doc.processedPageCount ?? doc.pageCoverage?.processed ?? null;
-    const omittedPages = doc.omittedPageCount ?? doc.pageCoverage?.omitted ?? 0;
-    const covStatus = doc.pageCoverage?.status;
+    const topTotal = doc.pageCount;
+    const topProcessed = doc.processedPageCount;
+    const topOmitted = doc.omittedPageCount;
+    const cov = doc.pageCoverage && typeof doc.pageCoverage === 'object' ? doc.pageCoverage : null;
+    const covTotal = cov ? cov.total : null;
+    const covProcessed = cov ? cov.processed : null;
+    const covOmitted = cov ? cov.omitted : null;
+    const covStatus = cov ? cov.status : null;
 
-    if (
-      omittedPages > 0 ||
-      covStatus === 'INCOMPLETE' ||
-      covStatus === 'UNKNOWN' ||
-      (typeof totalPages === 'number' &&
-        typeof processedPages === 'number' &&
-        processedPages < totalPages)
-    ) {
+    const hasValidTopCounts =
+      Number.isInteger(topTotal) &&
+      topTotal >= 1 &&
+      Number.isInteger(topProcessed) &&
+      topProcessed >= 1 &&
+      Number.isInteger(topOmitted) &&
+      topOmitted === 0 &&
+      topProcessed === topTotal;
+
+    const hasValidNestedCoverage =
+      cov !== null &&
+      Number.isInteger(covTotal) &&
+      covTotal >= 1 &&
+      Number.isInteger(covProcessed) &&
+      covProcessed >= 1 &&
+      Number.isInteger(covOmitted) &&
+      covOmitted === 0 &&
+      covProcessed === covTotal &&
+      covStatus === 'COMPLETE';
+
+    const coverageAgrees =
+      hasValidTopCounts &&
+      hasValidNestedCoverage &&
+      topTotal === covTotal &&
+      topProcessed === covProcessed &&
+      topOmitted === covOmitted &&
+      doc.metadata?.incompleteCoverage !== true;
+
+    const hasOutOfRangeFieldPage =
+      hasValidTopCounts &&
+      docFields.some((f) => Number.isInteger(f.pageNumber) && f.pageNumber > topProcessed);
+
+    if (!coverageAgrees || hasOutOfRangeFieldPage) {
       addNotice(
         'PAGE_COVERAGE_INCOMPLETE',
         docIdStr,
-        `${doc.type} document has incomplete or unknown page coverage (${processedPages ?? 0} of ${totalPages ?? '?'} page(s) processed).`,
+        `${doc.type} document has incomplete, unknown, or contradictory page coverage (${topProcessed ?? 0} of ${topTotal ?? '?'} page(s) processed).`,
         true
       );
     }

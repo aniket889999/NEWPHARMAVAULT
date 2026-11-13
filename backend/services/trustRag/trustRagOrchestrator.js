@@ -101,7 +101,8 @@ class TrustRagOrchestrator {
       'READY_FOR_PROCESSING',
       'DOCUMENTS_PENDING',
       'NEEDS_CORRECTION',
-      'NEEDS_REVIEW'
+      'NEEDS_REVIEW',
+      'FAILED'
     ];
     if (!allowedSourceStates.includes(vCase.status)) {
       const err = new Error(

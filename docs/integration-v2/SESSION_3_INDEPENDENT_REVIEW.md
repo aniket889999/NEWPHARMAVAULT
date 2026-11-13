@@ -1,5 +1,7 @@
 # Session 3 independent acceptance — 13 November 2026
 
+> Historical first-pass findings. The corrective re-inspection is recorded in [SESSION_3_REINSPECTION.md](SESSION_3_REINSPECTION.md): the four failures are fixed and the scoped core workflow passes; full release gates remain open.
+
 **Decision: PARTIAL / NOT ACCEPTED.** Gemini's supplied suites pass, but four additional contract checks fail. Do not merge as a completed Session 3 release, start Session 4, or advertise live verification readiness yet.
 
 ## Results actually observed

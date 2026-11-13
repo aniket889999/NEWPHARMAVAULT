@@ -45,7 +45,7 @@ function main() {
     const files = [integrationPath];
     const creationTest = 'tests/integration-v2/caseCreationGate.test.cjs';
     if (fs.existsSync(path.join(root, creationTest))) files.push(creationTest);
-    groups.push(runTests('Session 3 client only — live integration pending', files));
+    groups.push(runTests('Session 3 client-only acceptance', files));
   }
   let fingerprints;
   try { fingerprints = frozenFingerprints(); } catch { fingerprints = { status: 'FAIL', changedFiles: [], error: 'Frozen evidence could not be checked.' }; }
@@ -53,9 +53,9 @@ function main() {
   const report = { schemaVersion: 'checkpoint-evidence/1.0.0', generatedAt: new Date().toISOString(), commit: revision.status === 0 ? revision.stdout.trim() : null,
     scope: 'Offline checkpoint checks only; not a full-app build or product performance score.',
     status: fingerprints.status === 'PASS' && groups.every(group => group.status === 'PASS') ? 'PASS' : 'FAIL', groups, fingerprints,
-    notEvaluated: ['Full-application release readiness', 'Session 3 live API/database and browser workflow', 'OCR or clinical accuracy', 'Held-out research performance', 'Research novelty percentage', 'Production deployment and FHIR/NHCX certification'] };
+    notEvaluated: ['Full-application release readiness', 'Live API/database and browser workflow in this offline runner (separate evidence required)', 'OCR or clinical accuracy', 'Held-out research performance', 'Research novelty percentage', 'Production deployment and FHIR/NHCX certification'] };
   const rows = groups.map(group => `| ${group.label} | ${group.status} | ${group.counts?.pass ?? 'unknown'} | ${group.counts?.fail ?? 'unknown'} | ${group.counts?.skipped ?? 'unknown'} |`);
-  const summary = ['# Offline checkpoint evidence', '', report.scope, '', '| Group | Result | Passed | Failed | Skipped |', '|---|---|---:|---:|---:|', ...rows, '', `Frozen fingerprints: ${fingerprints.status}`, '', 'Live integration, clinical/OCR accuracy, held-out performance and production readiness remain unmeasured.', ''].join('\n');
+  const summary = ['# Offline checkpoint evidence', '', report.scope, '', '| Group | Result | Passed | Failed | Skipped |', '|---|---|---:|---:|---:|', ...rows, '', `Frozen fingerprints: ${fingerprints.status}`, '', 'This offline runner does not evaluate live integration. See the separate Session 3 review. Clinical/OCR accuracy, held-out performance and production readiness remain unmeasured.', ''].join('\n');
   process.stdout.write('\n' + summary);
   const reportArgument = process.argv.find(arg => arg.startsWith('--report-dir='));
   if (reportArgument) {

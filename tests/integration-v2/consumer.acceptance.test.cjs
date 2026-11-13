@@ -149,5 +149,15 @@ test('viewer rejects invalid coordinates and renders only the exact same-case so
   const field = { ...snapshot.groupingDocuments[0].fields[0], documentType: 'PRESCRIPTION', rawValue: 'EXACT-SOURCE-VALUE', normalizedValue: 'EXACT-SOURCE-VALUE' };
   const other = { ...field, id: 'c'.repeat(24), documentId: second.id, rawValue: 'WRONG-SOURCE-VALUE', normalizedValue: 'WRONG-SOURCE-VALUE' };
   const html = render(DocumentEvidenceViewer, { caseId: snapshot.caseId, documents: [second, ...docs], extractedFields: [field, other], initialDocumentId: first.id });
-  assert.match(html, /EXACT-SOURCE-VALUE/); assert.doesNotMatch(html, /WRONG-SOURCE-VALUE|Teal: Verified/);
+  assert.match(html, /EXACT-SOURCE-VALUE/); assert.doesNotMatch(html, /WRONG-SOURCE-VALUE|Teal: Verified|>Verified</);
+});
+
+test('a completed case is read-only, not presented as still awaiting verification', () => {
+  const snapshot = makeSnapshot(); snapshot.caseStatus = 'VERIFIED';
+  snapshot.permissions = { canCorrectFields: false, canConfirmGroups: false, canReview: false };
+  snapshot.reviewEligibility = { canVerify: false, blockerCodes: ['CASE_NOT_REVIEWABLE'], allowedActions: [] };
+  assert.ok(parseCaseSnapshot(snapshot, snapshot.caseId));
+  const html = workspace(snapshot, 'pharmacist');
+  assert.match(html, /Human verification recorded/); assert.match(html, /Evidence is read-only/);
+  assert.doesNotMatch(html, /Verification is blocked|What still needs attention|Confirm source grouping/);
 });

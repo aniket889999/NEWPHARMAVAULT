@@ -838,7 +838,7 @@ export const DocumentEvidenceViewer: React.FC<DocumentEvidenceViewerProps> = ({
                             Needs Correction
                           </span>
                         ) : (
-                          <span className="text-teal-700 font-medium">Verified</span>
+                          <span className="text-teal-700 font-medium">Extracted</span>
                         )}
                       </div>
                     </button>

@@ -48,6 +48,8 @@ jobs:
         run: node --test backend/tests/testDatabaseGuard.test.js
       - name: Run actual independent HTTP contract regressions
         run: node scripts/session3-integration-checks.cjs
+      - name: Check production request boundaries and outbound privacy
+        run: node --test backend/tests/productionHardening.test.js backend/tests/productionHardening.u2.test.js
       - name: Upload actual results even when checks fail
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

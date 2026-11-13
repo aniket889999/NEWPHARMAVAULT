@@ -2,7 +2,7 @@
 
 **Date**: 13 November 2026  
 **Owner**: Gemini (Backend Integration, Local Medicine-Row Extraction, Snapshot-Bound Human Review, OpenAPI & Integration Tests)  
-**Status**: Complete — Ready for GPT Independent Inspection
+**Status**: Corrections Applied — Ready for GPT Re-Inspection
 
 ---
 
@@ -33,7 +33,7 @@
 - `backend/controllers/trustRagController.js`:
   - Added `getCaseReconciliation` (`GET /api/v1/cases/:caseId/reconciliation`) and `confirmMedicineGroups` (`PUT /api/v1/cases/:caseId/documents/:documentId/medicine-groups`).
   - Updated `correctExtractedField` (`PATCH /api/v1/cases/:caseId/extracted-fields/:fieldId`) to require `{ normalizedValue, snapshotToken }`, reject extra keys, enforce `withCaseMutationGuard` and `assertCaseMutableForEvidence`, reject missing/malformed tokens with `400 INVALID_SNAPSHOT_TOKEN` and stale tokens with `409 STALE_REVIEW_SNAPSHOT`, preserve `rawValue`, bump `evidenceRevision`, and invalidate prior grouping/readiness.
-  - Updated `submitReview` (`POST /api/v1/cases/:caseId/reviews`) to require `snapshotToken`, bounded `reasonCode` (`1..80` chars), bounded `notes` (`10..2000` trimmed chars), optional validated same-case `evidenceItemIds`, fresh snapshot verification (`409 STALE_REVIEW_SNAPSHOT` on mismatch), `canVerify` gate enforcement on `VERIFY` and legacy `APPROVE` (`409 REVIEW_BLOCKED` with `blockerCodes`), while keeping `RETURN_FOR_CORRECTION` and `ESCALATE` available on current blocked snapshots; uses conditional `findOneAndUpdate` on `{ _id, status, evidenceRevision }` and records `snapshotToken` and `evidenceRevision` in `ReviewDecision` and `AuditEvent`.
+  - Updated `submitReview` (`POST /api/v1/cases/:caseId/reviews`) to require `snapshotToken`, bounded `reasonCode` (`1..80` chars), bounded `notes` (`10..2000` trimmed chars), optional validated same-case `evidenceItemIds`, fresh snapshot verification (`409 STALE_REVIEW_SNAPSHOT` on mismatch), `canVerify` gate enforcement on `VERIFY` and legacy `APPROVE` (`409 REVIEW_BLOCKED` with `blockerCodes`), while keeping `RETURN_FOR_CORRECTION` and `ESCALATE` available on current blocked snapshots; uses conditional `findOneAndUpdate` on `{ _id, status, evidenceRevision }`, returns `snapshotToken` and `evidenceRevision` in the review response, and records them in `AuditEvent` metadata (not persisted on the `ReviewDecision` document itself).
   - Wrapped `uploadDocument`, `processCase`, and `updateCase` in `withCaseMutationGuard`.
 - `backend/routes/trustRagRoutes.js`: Mounted `GET /cases/:caseId/reconciliation` and `PUT /cases/:caseId/documents/:documentId/medicine-groups`.
 
@@ -73,4 +73,21 @@
 - **Bounded Printed-English Row Extraction**: `localMedicineRowExtractor` supports up to 3 explicit printed-English medicine rows per prescription/invoice within the 3-page PDF / 5 MiB / 2048 px limits. Arbitrary handwritten prescriptions, multilingual layouts, complex multi-column tables, or >3 items are surfaced as explicit blockers (`UNSUPPORTED_LAYOUT`, `ITEM_LIMIT_EXCEEDED`, `PAGE_COVERAGE_INCOMPLETE`) requiring human review rather than silently truncated.
 - **Legacy Pre-Session-3 Test Suites**: Existing pre-Session-3 integration test files (`backend/tests/trustRag.test.js`, `backend/tests/u1AuthorizationAndLifecycle.test.js`, `backend/tests/evidenceRoutingExplainability.test.js`, `backend/tests/pdfRenderingAndOcr.test.js`, `backend/tests/u5GoldenWorkflow.test.js`) were not edited so as not to touch tests outside the assigned Session 3 scope without explicit review; callers of `PATCH /extracted-fields/:fieldId` and `POST /reviews` in those legacy tests predated the mandatory `snapshotToken` contract tested in `backend/tests/caseReconciliationIntegration.test.js`.
 - **No Automatic Clinical or Claim Adjudication**: `Verify` checks document-to-document medicine consistency only after human completeness attestation and never auto-approves a case or adjudicates insurance policy eligibility.
+
+---
+
+## 4. Post-Review Corrective Pass (13 November 2026)
+
+### Fixes Applied in Assigned Backend Files
+1. `backend/services/trustRag/caseReconciliationService.js` (`buildCaseReconciliationSnapshot`): Replaced the permissive `??` fallback in document coverage validation with strict per-document checks across every uploaded document (including optional `CLAIM_FORM`). Now requires coherent positive integer `pageCount` / `processedPageCount`, zero `omittedPageCount`, `pageCoverage.status === 'COMPLETE'`, agreement between top-level counts and `pageCoverage`, `metadata.incompleteCoverage !== true`, and no field `pageNumber` exceeding processed pages; otherwise surfaces `PAGE_COVERAGE_INCOMPLETE` and blocks `VERIFY` (`409 REVIEW_BLOCKED`).
+2. `backend/controllers/trustRagController.js` (`getCaseReconciliation`): Wrapped snapshot generation in `withCaseMutationGuard(initialCase._id, ...)` with an inside-lock `VerificationCase.findById` re-read so concurrent `GET /reconciliation` during an active mutation returns `409 CASE_BUSY`.
+3. `backend/controllers/trustRagController.js` (`uploadDocument`): Replaced the `CLAIM_FORM`-requiring `hasTriangle` check with `hasRequiredMedicinePair` (`PRESCRIPTION` + `PHARMACY_INVOICE`) so `DRAFT`/`DOCUMENTS_PENDING` cases transition to `READY_FOR_PROCESSING` without requiring an optional claim form.
+4. `backend/services/trustRag/trustRagOrchestrator.js` (`processCase`): Added `'FAILED'` to `allowedSourceStates` to allow explicit `POST /process` retries while keeping finalised cases immutable.
+
+### Post-Correction Verification Results
+- `node --test tests/integration-v2/backend.independent.test.cjs`: **7 / 7 passing** (0 fail, exit 0).
+- `node --test backend/tests/caseReconciliationIntegration.test.js`: **8 / 8 passing** (0 fail, exit 0).
+- `node --test backend/tests/localMedicineRows.test.js backend/tests/testDatabaseGuard.test.js backend/tests/foundationMedicineItems.test.js tests/foundation-v2/adapter.acceptance.test.cjs tests/foundation-v2/manifest.test.cjs backend/tests/medicineQuantity.test.js backend/tests/medicineReconciliation.test.js tests/reconciliation-v2/backend.acceptance.test.cjs tests/reconciliation-v2/consumer.test.cjs tests/integration-v2/consumer.acceptance.test.cjs`: **331 / 331 passing** (0 fail, exit 0).
+- `node tests/integration-v2/typecheck-owned.cjs`: **`ownedDiagnostics: 0`** (`fullAppDiagnostics: 76` pre-existing).
+- `node --check` on `caseReconciliationService.js`, `trustRagController.js`, and `trustRagOrchestrator.js`, plus `npm run validate:contract` (0 errors, 11 warnings) and `npm run validate:schemas` (11 / 11 valid): **exit 0**.
 

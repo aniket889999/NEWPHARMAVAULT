@@ -18,6 +18,7 @@ process.env.JWT_SECRET = 'synthetic-session3-independent-test-secret';
 process.env.GEMINI_API_KEY = 'synthetic-test-key-not-for-network';
 process.env.TRUSTRAG_ALLOW_EXTERNAL_AI = 'false';
 process.env.TRUSTRAG_USE_LLM_EXPLANATIONS = 'false';
+process.env.CORS_ALLOWED_ORIGINS = 'http://127.0.0.1:5173';
 process.env.DOCUMENT_STORAGE_ROOT = tempStorage;
 const { assertTestDatabase } = backend('./utils/testDatabaseGuard.js');
 assertTestDatabase(process.env.MONGO_URI);
@@ -134,4 +135,15 @@ test('GPT independent Session 3 contract edge cases', async t => {
     assert.equal(response.status, 202, 'A recoverable failed case with existing synthetic source fields must support explicit retry');
     assert.ok(['NEEDS_REVIEW', 'NEEDS_CORRECTION'].includes(response.body.status));
   });
+});
+
+test('browser PUT grouping preflight keeps the strict configured-origin policy', async () => {
+  const route = '/api/v1/cases/' + 'a'.repeat(24) + '/documents/' + 'b'.repeat(24) + '/medicine-groups';
+  const response = await request(app).options(route).set('Origin', 'http://127.0.0.1:5173').set('Access-Control-Request-Method', 'PUT').set('Access-Control-Request-Headers', 'authorization,content-type').expect(204);
+  assert.equal(response.headers['access-control-allow-origin'], 'http://127.0.0.1:5173');
+  assert.ok(response.headers['access-control-allow-methods'].split(',').includes('PUT'), 'The real browser must be allowed to send the protected grouping request');
+  const processing = await request(app).options('/api/v1/cases/' + 'a'.repeat(24) + '/process').set('Origin', 'http://127.0.0.1:5173').set('Access-Control-Request-Method', 'POST').set('Access-Control-Request-Headers', 'authorization,content-type,idempotency-key').expect(204);
+  assert.ok(processing.headers['access-control-allow-headers'].toLowerCase().split(',').includes('idempotency-key'), 'The processing client\'s existing idempotency header must pass browser preflight');
+  const denied = await request(app).options(route).set('Origin', 'https://unapproved.example.invalid').set('Access-Control-Request-Method', 'PUT').expect(403);
+  assert.equal(denied.headers['access-control-allow-origin'], undefined);
 });
