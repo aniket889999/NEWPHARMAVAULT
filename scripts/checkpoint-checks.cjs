@@ -41,7 +41,12 @@ function main() {
     runTests('Report integrity', ['tests/checkpoint-report.test.cjs']),
   ];
   const integrationPath = 'tests/integration-v2/consumer.acceptance.test.cjs';
-  if (fs.existsSync(path.join(root, integrationPath))) groups.push(runTests('Session 3 client only — live integration pending', [integrationPath]));
+  if (fs.existsSync(path.join(root, integrationPath))) {
+    const files = [integrationPath];
+    const creationTest = 'tests/integration-v2/caseCreationGate.test.cjs';
+    if (fs.existsSync(path.join(root, creationTest))) files.push(creationTest);
+    groups.push(runTests('Session 3 client only — live integration pending', files));
+  }
   let fingerprints;
   try { fingerprints = frozenFingerprints(); } catch { fingerprints = { status: 'FAIL', changedFiles: [], error: 'Frozen evidence could not be checked.' }; }
   const revision = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });

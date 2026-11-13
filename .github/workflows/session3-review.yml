@@ -1,0 +1,60 @@
+name: Session 3 independent contract review
+
+on:
+  push:
+    branches: [wip/session-3-integration-review]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: session3-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  protected-case-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out the reviewed revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+      - name: Install locked test dependencies
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm ci --prefix backend --ignore-scripts --no-audit --no-fund
+      - name: Check disposable-database isolation policy
+        run: node --test backend/tests/testDatabaseGuard.test.js
+      - name: Run actual independent HTTP contract regressions
+        run: node scripts/session3-integration-checks.cjs
+      - name: Upload actual results even when checks fail
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: session3-independent-contract-evidence
+          path: |
+            reports/checkpoints/session3-independent.json
+            reports/checkpoints/session3-independent.tap
+          if-no-files-found: warn
+          retention-days: 14

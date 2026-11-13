@@ -4,15 +4,15 @@ import { verificationApi } from '../api/verificationApi';
 import { DocumentType, VerificationCase } from '../types';
 import { VerificationNav } from '../components/VerificationNav';
 import { LifecycleStepper } from '../components/LifecycleStepper';
+import { caseCreationGate } from '../integration/caseCreationGate';
+import { isEntityId, safeApiMessage } from '../integration/snapshot';
 import {
   FilePlus,
   UploadCloud,
   CheckCircle2,
-  AlertCircle,
   FileText,
   Cpu,
   ArrowRight,
-  ShieldCheck,
   RefreshCw,
   Sparkles
 } from 'lucide-react';
@@ -84,7 +84,7 @@ export const CreateCaseWizardPage: React.FC = () => {
   const [createdCase, setCreatedCase] = useState<VerificationCase | null>(null);
   const [isCreatingCase, setIsCreatingCase] = useState<boolean>(false);
 
-  // Upload States for 3 Tri-Documents
+  // Prescription + invoice are required; the claim is optional supporting evidence.
   const [uploadedDocs, setUploadedDocs] = useState<Record<DocumentType, boolean>>({
     PRESCRIPTION: false,
     PHARMACY_INVOICE: false,
@@ -92,6 +92,8 @@ export const CreateCaseWizardPage: React.FC = () => {
   });
   const [uploadingDoc, setUploadingDoc] = useState<DocumentType | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const createdCaseId = createdCase?.id || createdCase?._id;
+  const creationGate = caseCreationGate(uploadedDocs, createdCase?.status, !!uploadingDoc || isProcessing);
 
   // Step 1: Submit Case Creation
   const handleCreateCase = async (e: React.FormEvent) => {
@@ -104,10 +106,8 @@ export const CreateCaseWizardPage: React.FC = () => {
       );
       setCreatedCase(newCase);
       toast.success(`Verification case ${newCase.caseReference} created!`);
-    } catch (err: any) {
-      console.error('Case creation failed:', err);
-      const msg = err.response?.data?.message || err.message || 'Failed to initialize case';
-      toast.error(msg);
+    } catch (err: unknown) {
+      toast.error(safeApiMessage(err, 'The case could not be created. Please retry.'));
     } finally {
       setIsCreatingCase(false);
     }
@@ -118,7 +118,7 @@ export const CreateCaseWizardPage: React.FC = () => {
     docType: DocumentType,
     fileObj: File
   ) => {
-    if (!createdCase) return;
+    if (!createdCaseId || !isEntityId(createdCaseId) || uploadingDoc || isProcessing || uploadedDocs[docType]) return;
 
     if (!fileObj) {
       toast.error('A valid document file is required.');
@@ -170,23 +170,23 @@ export const CreateCaseWizardPage: React.FC = () => {
         else mimeType = 'image/jpeg';
       }
 
-      await verificationApi.uploadDocument(createdCase.id || createdCase._id, {
+      await verificationApi.uploadDocument(createdCaseId, {
         type: docType,
         filename: fileObj.name,
         mimeType,
         file: dataUri
       });
 
+      // Acknowledged uploads must not be repeated if only the following status refresh fails.
+      setUploadedDocs(prev => ({ ...prev, [docType]: true }));
+
       // Refresh case to see new status (e.g. READY_FOR_PROCESSING)
-      const refreshedCase = await verificationApi.getCase(createdCase.id || createdCase._id);
+      const refreshedCase = await verificationApi.getCase(createdCaseId);
       setCreatedCase(refreshedCase);
 
-      setUploadedDocs(prev => ({ ...prev, [docType]: true }));
       toast.success(`${docType.replace(/_/g, ' ')} uploaded successfully!`);
-    } catch (err: any) {
-      console.error(`Upload error for ${docType}:`, err);
-      const msg = err.response?.data?.message || err.message || `Failed to upload ${docType}`;
-      toast.error(msg);
+    } catch (err: unknown) {
+      toast.error(safeApiMessage(err, 'Upload was not confirmed. Inspect the case documents before retrying.'));
     } finally {
       setUploadingDoc(null);
     }
@@ -194,25 +194,18 @@ export const CreateCaseWizardPage: React.FC = () => {
 
   // Step 5: Process Case
   const handleTriggerProcessing = async () => {
-    if (!createdCase) return;
+    if (!createdCaseId || !isEntityId(createdCaseId) || !creationGate.canProcess) return;
     try {
       setIsProcessing(true);
-      await verificationApi.processCase(createdCase.id || createdCase._id);
-      toast.success('TrustRAG verification pipeline executed successfully!');
-      navigate(`/cases/${createdCase.id || createdCase._id}`);
-    } catch (err: any) {
-      console.error('Processing trigger error:', err);
-      const msg = err.response?.data?.message || err.message || 'Error processing case';
-      toast.error(msg);
+      await verificationApi.processCase(createdCaseId);
+      toast.success('Extraction and checks completed; inspect the source evidence for human validation.');
+      navigate(`/cases/${createdCaseId}`);
+    } catch (err: unknown) {
+      toast.error(safeApiMessage(err, 'Processing was not confirmed. Inspect the current case before retrying.'));
     } finally {
       setIsProcessing(false);
     }
   };
-
-  const isReadyForProcessing =
-    uploadedDocs.PRESCRIPTION &&
-    uploadedDocs.PHARMACY_INVOICE &&
-    uploadedDocs.CLAIM_FORM;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
@@ -231,7 +224,7 @@ export const CreateCaseWizardPage: React.FC = () => {
               </h1>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Initialize a case, securely upload Tri-Document evidence (Rx, Invoice, Claim), and run TrustRAG cross-verification.
+              Create a case, upload a prescription and invoice, then extract and compare their evidence. A claim form is optional.
             </p>
           </div>
         </div>
@@ -240,7 +233,6 @@ export const CreateCaseWizardPage: React.FC = () => {
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-2xs">
           <LifecycleStepper
             currentStatus={createdCase ? createdCase.status : 'DRAFT'}
-            isReviewRequired={createdCase ? createdCase.reviewRequired : false}
           />
         </div>
 
@@ -251,7 +243,7 @@ export const CreateCaseWizardPage: React.FC = () => {
               Step 1: Initialize Verification Case
             </h3>
             <p className="text-xs text-slate-500 mb-6">
-              Create the verification envelope. Once created, you will upload the required three healthcare documents.
+              Create the case, then upload a prescription and pharmacy invoice. Add a claim form only when relevant; it is not needed for medicine comparison.
             </p>
 
             <form onSubmit={handleCreateCase} className="space-y-4">
@@ -337,13 +329,13 @@ export const CreateCaseWizardPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Tri-Document Upload Grid */}
+            {/* Required medicine sources + optional claim metadata */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Document 1: PRESCRIPTION */}
               <DocumentUploadCard
                 docType="PRESCRIPTION"
                 title="Prescription (Rx)"
-                subtitle="Issued by licensed physician"
+                subtitle="Required medicine source"
                 isUploaded={uploadedDocs.PRESCRIPTION}
                 isUploading={uploadingDoc === 'PRESCRIPTION'}
                 onUploadFile={file => handleFileUpload('PRESCRIPTION', file)}
@@ -358,7 +350,7 @@ export const CreateCaseWizardPage: React.FC = () => {
               <DocumentUploadCard
                 docType="PHARMACY_INVOICE"
                 title="Pharmacy Invoice"
-                subtitle="Dispensation bill with batch & price"
+                subtitle="Required dispensing invoice"
                 isUploaded={uploadedDocs.PHARMACY_INVOICE}
                 isUploading={uploadingDoc === 'PHARMACY_INVOICE'}
                 onUploadFile={file => handleFileUpload('PHARMACY_INVOICE', file)}
@@ -372,8 +364,8 @@ export const CreateCaseWizardPage: React.FC = () => {
               {/* Document 3: CLAIM_FORM */}
               <DocumentUploadCard
                 docType="CLAIM_FORM"
-                title="Health Claim Form"
-                subtitle="Policyholder claim submission"
+                title="Health Claim Form (Optional)"
+                subtitle="Supporting claim metadata, when relevant"
                 isUploaded={uploadedDocs.CLAIM_FORM}
                 isUploading={uploadingDoc === 'CLAIM_FORM'}
                 onUploadFile={file => handleFileUpload('CLAIM_FORM', file)}
@@ -392,9 +384,7 @@ export const CreateCaseWizardPage: React.FC = () => {
                   TrustRAG Processing Gate
                 </h4>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {isReadyForProcessing
-                    ? 'All 3 documents ingested. Case is READY_FOR_PROCESSING.'
-                    : 'Upload all 3 required documents above to enable TrustRAG verification.'}
+                  {creationGate.message}
                 </p>
               </div>
 
@@ -408,7 +398,7 @@ export const CreateCaseWizardPage: React.FC = () => {
 
                 <button
                   onClick={handleTriggerProcessing}
-                  disabled={!isReadyForProcessing || isProcessing}
+                  disabled={!creationGate.canProcess}
                   className="px-6 py-2.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all flex items-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed"
                 >
                   {isProcessing ? (

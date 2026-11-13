@@ -1,0 +1,11 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { loadClient } = require('./load-client.cjs');
+const { caseCreationGate } = loadClient('integration/caseCreationGate.ts');
+const pair = { PRESCRIPTION: true, PHARMACY_INVOICE: true, CLAIM_FORM: false };
+test('a ready medicine pair needs no claim form', () => { assert.equal(caseCreationGate(pair, 'READY_FOR_PROCESSING', false).canProcess, true); });
+test('optional claim inclusion does not change ready pair semantics', () => { assert.equal(caseCreationGate({ ...pair, CLAIM_FORM: true }, 'READY_FOR_PROCESSING', false).canProcess, true); });
+test('a missing prescription or invoice remains blocked', () => { for (const type of ['PRESCRIPTION', 'PHARMACY_INVOICE']) assert.equal(caseCreationGate({ ...pair, [type]: false }, 'READY_FOR_PROCESSING', false).canProcess, false); });
+test('server readiness cannot be bypassed by client upload booleans', () => { for (const status of ['DRAFT', 'DOCUMENTS_PENDING', 'PROCESSING', 'NEEDS_REVIEW', 'VERIFIED', 'FAILED', undefined]) assert.equal(caseCreationGate(pair, status, false).canProcess, false); });
+test('an active upload/operation blocks processing', () => { assert.equal(caseCreationGate(pair, 'READY_FOR_PROCESSING', true).canProcess, false); });

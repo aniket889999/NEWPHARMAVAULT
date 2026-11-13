@@ -1,0 +1,20 @@
+'use strict';
+// Real synthetic HTTP/DB checks, kept separate from the accepted offline suite.
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const { parseTestCounts } = require('./checkpoint-checks.cjs');
+const root = path.resolve(__dirname, '..');
+const result = spawnSync(process.execPath, ['--test', 'tests/integration-v2/backend.independent.test.cjs'], { cwd: root, encoding: 'utf8', timeout: 120000, maxBuffer: 8 * 1024 * 1024 });
+if (result.stdout) process.stdout.write(result.stdout);
+if (result.stderr) process.stderr.write(result.stderr);
+const parsed = parseTestCounts(result.stdout || '', result.status);
+const report = { schemaVersion: 'session3-independent-review/1.0.0', generatedAt: new Date().toISOString(), scope: 'Synthetic HTTP/database contract regressions; parent tests included in TAP counts. Not clinical, OCR-accuracy or research evaluation.', ...parsed, exitCode: result.status, processError: result.error ? 'Test process did not finish normally.' : null };
+const directory = path.join(root, 'reports/checkpoints');
+fs.mkdirSync(directory, { recursive: true });
+fs.writeFileSync(path.join(directory, 'session3-independent.json'), JSON.stringify(report, null, 2) + '\n');
+fs.writeFileSync(path.join(directory, 'session3-independent.tap'), result.stdout || 'Test output unavailable.\n');
+const summary = `# Session 3 independent contract review\n\nResult: **${report.status}**\n\nTests: ${parsed.counts?.tests ?? 'unknown'}; pass: ${parsed.counts?.pass ?? 'unknown'}; fail: ${parsed.counts?.fail ?? 'unknown'}. TAP includes the parent test.\n\nA failing result keeps Session 3 PARTIAL. See docs/integration-v2/SESSION_3_INDEPENDENT_REVIEW.md.\n`;
+if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+process.stdout.write(summary);
+process.exitCode = report.status === 'PASS' && result.status === 0 ? 0 : 1;

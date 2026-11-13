@@ -8,7 +8,7 @@ Sessions 1–2 are accepted **offline**: up to three source-linked medicine item
 
 Session 3 case-page, grouping and human-review integration is **PARTIAL** until the backend, real database/OCR and browser workflow are independently accepted. Sessions 4–5 and held-out product evaluation have not started. The badge measures bounded offline checks, not full-app, clinical or production readiness.
 
-**This WIP branch contains the Session 3 client only.** Its required backend API is pending integration; review/correction controls deliberately fail closed without a current snapshot. See [client publication limits and checks](docs/integration-v2/PUBLICATION_CHECKPOINT.md).
+**This integration WIP branch is not accepted.** It contains the proposed Session 3 backend and client plus four independently reproduced failures. In particular, contradictory supporting claim-page metadata still permits document verification. See the [independent review and corrective handoff](docs/integration-v2/SESSION_3_INDEPENDENT_REVIEW.md). The separate Session 3 contract-review workflow reports real HTTP/DB failures; the offline badge above does not override it. No merge or production use yet.
 
 ## Project Description
 An academic final-year engineering prototype for evidence-grounded prescription, pharmacy-invoice and health-claim verification with human review.

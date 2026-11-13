@@ -1,5 +1,7 @@
 # Session 3 client publication — PARTIAL
 
+**13 November integration update:** the proposed Gemini backend and GPT's independent regressions are now recorded on `wip/session-3-integration-review`. It is still NOT ACCEPTED: four real HTTP checks fail. The original client-only snapshot below remains historical. Use [the current independent review](SESSION_3_INDEPENDENT_REVIEW.md), not the earlier client pass, for acceptance. This publication copy currently has zero owned strict diagnostics and 83 other full-app diagnostics; the active-source review's 76 count describes its separate working checkout.
+
 Publication branch: `wip/session-3-client`. Date: 12 November 2026.
 
 This is a recoverable work-in-progress checkpoint, **not an accepted live Session 3 release**. It contains only GPT's case-page, grouping, source-viewer, correction/review client, client tests and contract/prompt documentation. Gemini's in-progress backend was deliberately not copied or labelled complete.
