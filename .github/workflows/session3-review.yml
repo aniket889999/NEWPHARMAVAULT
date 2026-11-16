@@ -52,6 +52,8 @@ jobs:
         run: node --test backend/tests/productionHardening.test.js backend/tests/productionHardening.u2.test.js
       - name: Check pharmacy chat policy, local private scope and provider boundaries
         run: npm run test:chat
+      - name: Check V2-01 bounded public diagnostic and real protected readiness routes
+        run: npm run test:readiness && npm run test:readiness:http
       - name: Check legacy projections and real protected result-revision handling
         run: node --test tests/release-v2/legacyProjection.test.cjs
       - name: Check Session 4 exact-source answers and signed dependency receipts

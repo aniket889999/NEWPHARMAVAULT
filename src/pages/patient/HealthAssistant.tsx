@@ -8,16 +8,13 @@ import { VerificationCase } from '../../modules/verification/types';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../api/apiClient';
 import { portalHome } from '../../features/navigation/portalPolicy';
-
-interface ChatCapabilities {
-  generationEnabled: boolean;
-  embeddingEnabled: boolean;
-  model: string | null;
-  healthReferencePassages: number;
-}
+import { ChatReadinessNotice } from '../../features/chatReadiness/ChatReadinessNotice';
+import { parseChatCapabilities } from '../../features/chatReadiness/presentation';
+import type { ChatCapabilities } from '../../features/chatReadiness/presentation';
 
 const HealthAssistant: React.FC = () => {
   const { user } = useAuth();
+  const userId = user?._id;
   const [params, setParams] = useSearchParams();
   const caseId = params.get('caseId') || undefined;
   const { activeConversation, conversations, createConversation, setActiveConversation, deleteConversation, isLoading } = useChatStore();
@@ -27,17 +24,32 @@ const HealthAssistant: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     let cancelled = false;
     setCases([]);
     setCaseLoadError(false);
     verificationApi.getCases().then(data => { if (!cancelled) setCases(data); })
       .catch(() => { if (!cancelled) setCaseLoadError(true); });
-    apiClient.get<ChatCapabilities>('/v1/chat/status')
-      .then(({ data }) => { if (!cancelled) setCapabilities(data); })
-      .catch(() => { if (!cancelled) setCapabilities(null); });
     return () => { cancelled = true; };
-  }, [user?._id]);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false, sequence = 0;
+    const controller = new AbortController();
+    const check = () => {
+      const request = ++sequence;
+      void apiClient.get<unknown>('/v1/chat/status', { signal: controller.signal })
+        .then(({ data }) => { if (!cancelled && request === sequence) setCapabilities(parseChatCapabilities(data)); })
+        .catch(() => { if (!cancelled && request === sequence) setCapabilities(null); });
+    };
+    const checkVisible = () => { if (document.visibilityState === 'visible') check(); };
+    check();
+    const interval = window.setInterval(checkVisible, 30000);
+    window.addEventListener('focus', checkVisible);
+    document.addEventListener('visibilitychange', checkVisible);
+    return () => { cancelled = true; controller.abort(); window.clearInterval(interval); window.removeEventListener('focus', checkVisible); document.removeEventListener('visibilitychange', checkVisible); };
+  }, [userId, isLoading]);
 
   useEffect(() => {
     // StrictMode may replay effects before a captured render updates.
@@ -91,7 +103,7 @@ const HealthAssistant: React.FC = () => {
             <div className="flex items-center gap-3">
               <button onClick={() => setSidebarOpen(true)} aria-label="Open chat sidebar" className="rounded p-1 text-slate-500 lg:hidden"><Menu size={19} /></button>
               <div><h1 className="text-sm font-semibold text-slate-900 md:text-base">Health Assistant <span className="ml-1 font-normal text-slate-400">/ TrustRAG</span></h1>
-                <p className="mt-0.5 text-[10px] text-slate-400">{caseId ? 'Local, authorized case evidence' : capabilities?.generationEnabled ? 'Gemini generation enabled · source-backed answers' : 'Local source mode · generation is not enabled'}</p>
+                <ChatReadinessNotice capabilities={capabilities} privateScope={Boolean(caseId)} />
               </div>
             </div>
             <button onClick={newChat} aria-label="Start a new chat" className="rounded-full border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"><Plus size={16} /></button>
@@ -103,7 +115,7 @@ const HealthAssistant: React.FC = () => {
               {caseId && !cases.some(c => c.id === caseId) && <option value={caseId}>Selected case - server checks access</option>}
               {cases.map(c => <option key={c.id} value={c.id}>{c.caseReference} · {c.status}</option>)}
             </select>
-            {capabilities?.embeddingEnabled && !caseId && <span className="rounded-full bg-teal-50 px-2 py-1 text-[10px] text-teal-700">Semantic retrieval enabled</span>}
+            {capabilities?.embeddingEnabled && !caseId && <span className="rounded-full bg-teal-50 px-2 py-1 text-[10px] text-teal-700">Semantic retrieval configured · checked per answer</span>}
           </div>
           {caseLoadError && <p className="mt-2 text-xs text-amber-800">Could not load case choices. Public reference chat remains available.</p>}
         </header>

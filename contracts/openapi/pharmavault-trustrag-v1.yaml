@@ -19,6 +19,8 @@ components:
       bearerFormat: JWT
 
   schemas:
+    ChatProviderReadiness:
+      $ref: '../schemas/chat-provider-readiness.schema.json'
     VerificationCase:
       $ref: '../schemas/verification-case.schema.json'
     Document:
@@ -40,6 +42,54 @@ security:
   - bearerAuth: []
 
 paths:
+  /chat/status:
+    get:
+      summary: Read public chat configuration and recent provider observation
+      operationId: getChatCapabilities
+      description: >
+        Protected metadata read with no upstream model request. Enabled flags
+        describe configuration, not live availability. A recent observation
+        concerns public generation format/citation checks only and expires after
+        five minutes. Private case evidence remains local. No credential values,
+        queries, replies, private case identifiers or upstream errors are exposed.
+      responses:
+        '200':
+          description: Current configuration and bounded in-memory public observation
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: 'private, no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [generationEnabled, embeddingEnabled, model, publicPassages, healthReferencePassages, privateCasePolicy, providerReadiness]
+                properties:
+                  generationEnabled:
+                    type: boolean
+                    description: Configuration eligibility only, not proven provider availability.
+                  embeddingEnabled:
+                    type: boolean
+                    description: Configuration only; actual retrieval method is reported per answer.
+                  model:
+                    type: [string, 'null']
+                  publicPassages:
+                    type: integer
+                    minimum: 0
+                  healthReferencePassages:
+                    type: integer
+                    minimum: 0
+                  privateCasePolicy:
+                    const: LOCAL_ONLY
+                  providerReadiness:
+                    $ref: '#/components/schemas/ChatProviderReadiness'
+        '401':
+          description: Missing or invalid authentication
+        '403':
+          description: Invalid staff tenant context
+
   /chat:
     post:
       summary: Retrieve evidence-backed chatbot answers
@@ -170,33 +220,6 @@ paths:
           description: Case absent or inaccessible, without cross-tenant enumeration.
         '429':
           description: Chat rate limit exceeded.
-  /chat/status:
-    get:
-      summary: Get configured Health Assistant capabilities
-      operationId: getChatCapabilities
-      responses:
-        '200':
-          description: Feature flags and corpus counts; not a guarantee of provider availability.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  generationEnabled:
-                    type: boolean
-                  embeddingEnabled:
-                    type: boolean
-                  model:
-                    type: [string, 'null']
-                  publicPassages:
-                    type: integer
-                  healthReferencePassages:
-                    type: integer
-                  privateCasePolicy:
-                    type: string
-                    const: LOCAL_ONLY
-        '401':
-          description: Authentication required.
   /chat/stream:
     post:
       summary: Stream a conversational evidence-grounded answer
