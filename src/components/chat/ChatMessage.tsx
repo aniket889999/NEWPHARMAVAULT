@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pill, User, ShieldCheck, ShieldAlert, Activity, ChevronDown, ChevronUp, ArrowRight, Share2, BrainCircuit, Volume2, VolumeX } from 'lucide-react';
+import { User, ShieldCheck, ShieldAlert, Activity, ChevronDown, ChevronUp, ArrowRight, Share2, BrainCircuit, Volume2, VolumeX } from 'lucide-react';
 import { ChatMessage as ChatMessageType } from '../../types';
 import ReactMarkdown from 'react-markdown';
 import { useChatStore } from '../../stores/chatStore';

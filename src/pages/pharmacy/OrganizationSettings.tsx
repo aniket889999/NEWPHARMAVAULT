@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
-import { 
-  Building2, 
-  MapPin, 
-  ShieldCheck, 
-  CreditCard, 
-  Plus, 
-  Settings, 
-  Activity, 
-  AlertCircle,
-  Users,
-  ChevronRight
-} from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Building2, MapPin, ShieldCheck, CreditCard, Plus, Settings, Users, ChevronRight } from 'lucide-react';
 
 const OrganizationSettings: React.FC = () => {
   const [data, setData] = useState<any>(null);

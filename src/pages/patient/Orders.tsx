@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import apiClient from '../../api/apiClient';
-import { useAuth } from '../../context/AuthContext';
 import { Package } from 'lucide-react';
 
 const PatientOrders: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
-  const { user } = useAuth();
 
   useEffect(() => {
     const fetchOrders = async () => {

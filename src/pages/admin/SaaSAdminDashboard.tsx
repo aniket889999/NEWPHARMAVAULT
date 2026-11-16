@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
-import { 
-  Building2, 
-  Users, 
-  CreditCard, 
-  Zap, 
-  ShieldCheck, 
-  Workflow, 
-  Activity, 
-  Search,
-  Globe,
-  Settings,
-  MoreVertical,
-  ArrowUpRight
-} from 'lucide-react';
+import { Building2, CreditCard, Zap, ShieldCheck, Workflow, Activity, Search, Globe, ArrowUpRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const SaaSAdminDashboard: React.FC = () => {

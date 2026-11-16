@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { GitCompare, Plus, X, TrendingUp, DollarSign, AlertTriangle, Package } from 'lucide-react';
+import { GitCompare, X } from 'lucide-react';
 import { ComparisonService } from '../../services/comparisonService';
-import { ComparisonResult, ComparisonCriteria, Medicine } from '../../types';
+import { ComparisonResult, ComparisonCriteria } from '../../types';
 import { enhancedMedicines } from '../../data/enhancedMedicines';
 import LoadingSpinner from '../ui/LoadingSpinner';
 

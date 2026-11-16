@@ -157,7 +157,7 @@ const PatientIntelligence: React.FC = () => {
               Behavioral Timeline
             </h3>
             <div className="relative border-l-2 border-slate-100 ml-3 space-y-6 pb-4">
-              {timeline.map((event: any, i: number) => (
+              {timeline.map((event: any) => (
                 <div key={event.id} className="relative pl-6">
                   <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-white ${
                     event.type.includes('missed') ? 'bg-red-400' : 
@@ -182,7 +182,6 @@ const PatientIntelligence: React.FC = () => {
               <div className="text-indigo-300 font-bold mb-2">Patient Profile</div>
               {graphData?.edges.map((edge: any, i: number) => {
                 const target = graphData.nodes.find((n: any) => n.id === edge.target)?.label;
-                const source = graphData.nodes.find((n: any) => n.id === edge.source)?.label;
                 return (
                   <div key={i} className="flex items-center text-slate-400">
                     <span className="text-slate-500 mr-2">└─</span>

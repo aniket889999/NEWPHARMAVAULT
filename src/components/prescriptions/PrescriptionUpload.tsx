@@ -1,30 +1,10 @@
 import React, { useState, useRef } from 'react';
 import Tesseract from 'tesseract.js';
-import { Upload, FileText, CheckCircle, AlertTriangle, X, ShoppingCart, Info, ScanText, Search, Edit2, Bell, ChevronRight } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertTriangle, X, ShoppingCart, ScanText, Search, Bell, ChevronRight } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../../stores/cartStore';
 import toast from 'react-hot-toast';
-
-// Levenshtein distance for fuzzy matching
-const levenshteinDistance = (a: string, b: string): number => {
-  if (a.length === 0) return b.length;
-  if (b.length === 0) return a.length;
-  const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
-  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
-  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,
-        matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + cost
-      );
-    }
-  }
-  return matrix[a.length][b.length];
-};
 
 // Creates a downscaled preview image for saving to Database (avoids massive base64 strings)
 const createThumbnail = (imageSrc: string): Promise<string> => {
@@ -87,17 +67,17 @@ const PrescriptionUpload: React.FC = () => {
   const [processingStatus, setProcessingStatus] = useState<string>('');
   
   const [ocrText, setOcrText] = useState<string>('');
-  const [cleanedText, setCleanedText] = useState<string>('');
+  const [, setCleanedText] = useState<string>('');
   const [extractedMedicines, setExtractedMedicines] = useState<any[]>([]);
-  const [unknownWords, setUnknownWords] = useState<string[]>([]);
-  const [confidence, setConfidence] = useState<number>(0);
-  const [isVisionFallback, setIsVisionFallback] = useState(false);
+  const [, setUnknownWords] = useState<string[]>([]);
+  const [, setConfidence] = useState<number>(0);
+  const [, setIsVisionFallback] = useState(false);
   
   // UI States
   const [step, setStep] = useState(1);
-  const [showManualCorrection, setShowManualCorrection] = useState(false);
+  const [, setShowManualCorrection] = useState(false);
   const [manualSearchQuery, setManualSearchQuery] = useState('');
-  const [inventoryList, setInventoryList] = useState<any[]>([]);
+  const [inventoryList] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -378,7 +358,7 @@ const PrescriptionUpload: React.FC = () => {
                             </button>
                             <button 
                               onClick={() => {
-                                addItem({ id: med.matchedInventoryId || med.id || 'unknown', name: med.medicineName || med.name, price: med.price || 0, quantity: 1 });
+                                addItem({ id: med.matchedInventoryId || med.id || 'unknown', name: med.medicineName || med.name, price: med.price || 0 });
                                 toast.success('Added to cart!');
                               }}
                               className="text-xs bg-green-50 text-green-700 px-3 py-1.5 rounded-lg font-bold hover:bg-green-100 flex items-center transition-colors"

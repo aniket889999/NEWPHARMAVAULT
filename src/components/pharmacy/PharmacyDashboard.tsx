@@ -1,16 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Store,
-  Package,
-  TrendingDown,
-  AlertTriangle,
-  Trash2,
-  Plus,
-  Search,
-  Filter,
-  Calendar,
-  BarChart3
-} from 'lucide-react';
+import { Package, TrendingDown, AlertTriangle, Trash2, Plus, Search, Filter, Calendar, BarChart3 } from 'lucide-react';
 
 interface InventoryItem {
   id: string;

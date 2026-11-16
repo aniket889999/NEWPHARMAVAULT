@@ -27,7 +27,7 @@ const AuthenticityChecker: React.FC = () => {
           setIsScanning(false);
           parseQrAndVerify(text);
         },
-        (error) => {} // ignore continuous errors
+        () => {} // ignore continuous scan misses
       );
     }
     

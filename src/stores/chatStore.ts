@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import { Conversation, ChatMessage, Medicine, QuestionType } from '../types';
-import { getMedicineByName } from '../data/medicines';
 import { questionTemplates } from '../data/questions';
-import axios from 'axios';
 import apiClient from '../api/apiClient';
 
 interface ChatState {
@@ -147,7 +145,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     } catch (error: any) {
       console.error("[AI] Message delivery failed");
       
-      const errorMessage = error.response?.data?.message || error.message || 'Unknown network error';
       
       const botMessage: ChatMessage = {
         id: generateId(),
@@ -259,7 +256,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     } catch (error: any) {
       console.error("[AI] General health query failed");
       
-      const errorMessage = error.response?.data?.message || error.message || 'Unknown network error';
       
       const botMessage: ChatMessage = {
         id: generateId(),

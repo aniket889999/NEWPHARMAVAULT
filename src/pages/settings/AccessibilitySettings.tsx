@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAccessibilityStore } from '../../stores/accessibilityStore';
-import { Ear, Eye, Mic, MessageSquare, ToggleRight, ToggleLeft } from 'lucide-react';
+import { Ear, Eye, MessageSquare, ToggleRight, ToggleLeft } from 'lucide-react';
 
 const AccessibilitySettings: React.FC = () => {
   const a11y = useAccessibilityStore();

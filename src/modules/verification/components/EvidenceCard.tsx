@@ -23,7 +23,6 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({ evidence, isHighligh
 
   const isOfficial = evidence.sourceType === 'OFFICIAL_SOURCE_REGISTRY';
   const isCurated = evidence.sourceType === 'CURATED_MEDICINE_KNOWLEDGE';
-  const isPrivate = evidence.sourceType === 'PRIVATE_CASE_DATA';
 
   const tierLabels: Record<number, { label: string; badge: string }> = {
     1: { label: 'Tier 1: Official Allow-List', badge: 'bg-indigo-100 text-indigo-800 border-indigo-200' },

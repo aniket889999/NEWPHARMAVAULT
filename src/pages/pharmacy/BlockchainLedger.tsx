@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
-import { Database, Link2, ShieldAlert, CheckCircle, RefreshCcw, Plus, Search, QrCode, Download, X } from 'lucide-react';
+import { Database, Link2, ShieldAlert, CheckCircle, RefreshCcw, Plus, QrCode, Download, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 const BlockchainLedger: React.FC = () => {

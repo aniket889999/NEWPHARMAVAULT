@@ -1,4 +1,4 @@
-import { Prescription, Medicine, DrugInteraction, InteractionCheck } from '../types';
+import { Prescription, Medicine, InteractionCheck, PrescribedMedicine } from '../types';
 import { enhancedMedicines, checkDrugInteractions } from '../data/enhancedMedicines';
 
 export class PrescriptionAnalyzer {
@@ -125,7 +125,7 @@ export class PrescriptionAnalyzer {
   }
 
   private generateRecommendations(
-    prescription: Prescription, 
+    _prescription: Prescription,
     medicines: Medicine[], 
     interactions: InteractionCheck
   ): string[] {

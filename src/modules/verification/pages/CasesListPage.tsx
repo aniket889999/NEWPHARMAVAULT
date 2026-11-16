@@ -4,21 +4,7 @@ import { VerificationCase } from '../types';
 import { verificationApi } from '../api/verificationApi';
 import { useAuth } from '../../../context/AuthContext';
 import { VerificationNav } from '../components/VerificationNav';
-import {
-  ShieldCheck,
-  PlusCircle,
-  Filter,
-  RefreshCw,
-  AlertTriangle,
-  FileText,
-  Clock,
-  ArrowRight,
-  Search,
-  CheckCircle2,
-  XCircle,
-  HelpCircle,
-  AlertOctagon
-} from 'lucide-react';
+import { PlusCircle, Filter, RefreshCw, AlertTriangle, FileText, ArrowRight, Search, AlertOctagon } from 'lucide-react';
 
 export const CasesListPage: React.FC = () => {
   const { user } = useAuth();

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Store, Package, Activity, LogOut, FileText, Database, Clock, AlertTriangle, Building2, Globe, ShieldCheck, Inbox } from 'lucide-react';
+import { Store, Package, Activity, LogOut, Database, Clock, AlertTriangle, Building2, Globe, ShieldCheck, Inbox } from 'lucide-react';
 
 const PharmacyLayout: React.FC = () => {
   const { user, logout } = useAuth();

@@ -1,22 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
-import { 
-  ShieldAlert, 
-  CheckCircle, 
-  Clock, 
-  AlertTriangle, 
-  Workflow, 
-  UserCheck, 
-  AlertCircle, 
-  ArrowRight,
-  TrendingUp,
-  History,
-  Filter,
-  RefreshCw,
-  Zap,
-  MoreVertical,
-  Activity as ActivityIcon
-} from 'lucide-react';
+import { ShieldAlert, CheckCircle, AlertTriangle, Workflow, UserCheck, ArrowRight, TrendingUp, History, Filter, RefreshCw, Zap, Activity as ActivityIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const WorkflowCenter: React.FC = () => {

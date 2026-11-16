@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
 import { Medicine } from '../../types';
-import { AlertCircle, ShieldCheck, QrCode, ArrowRight, ShoppingCart, MapPin, X } from 'lucide-react';
+import { AlertCircle, ShieldCheck, QrCode, ShoppingCart, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../../stores/cartStore';
 

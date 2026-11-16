@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Heart, Thermometer, Upload, FileText, Download, Calendar, Plus } from 'lucide-react';
+import { Activity, Heart, Thermometer, Upload, FileText, Download, Calendar } from 'lucide-react';
 
 const mockReports = [
   { id: 1, name: 'Blood Test Results', date: '2025-10-15', type: 'PDF' },
@@ -14,7 +14,7 @@ const mockVitals = [
 ];
 
 const PersonalHealthTracker: React.FC = () => {
-  const [reports, setReports] = useState(mockReports);
+  const [reports] = useState(mockReports);
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">

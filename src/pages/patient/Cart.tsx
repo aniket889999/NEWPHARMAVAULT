@@ -2,13 +2,11 @@ import React, { useState } from 'react';
 import { useCartStore } from '../../stores/cartStore';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
-import { useAuth } from '../../context/AuthContext';
-import { Trash2, ShieldCheck, AlertCircle, ShoppingCart } from 'lucide-react';
+import { Trash2, ShieldCheck, ShoppingCart } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Cart: React.FC = () => {
   const { items, updateQty, removeItem, clearCart, totalPrice } = useCartStore();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [applyingInsurance, setApplyingInsurance] = useState(false);

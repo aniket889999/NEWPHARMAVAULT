@@ -12,7 +12,7 @@
     "build:frontend": "npm run check:ts && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:frontend": "npm run lint",
-    "check:ts": "tsc --noEmit",
+    "check:ts": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
     "check:backend:syntax": "find backend -type f -name '*.js' -not -path '*/node_modules/*' -print0 | xargs -0 -n1 node --check",
     "test:security": "npm --prefix backend run test:security",
     "test:trustrag": "npm --prefix backend run test:trustrag",

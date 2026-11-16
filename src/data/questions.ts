@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 export const questionTemplates: QuestionTemplate[] = [
   {
     id: 'alternatives',
+    category: 'basic',
     text: 'Show me alternatives for this medicine',
     responseTemplate: (medicine: Medicine) => {
       if (!medicine.alternatives || medicine.alternatives.length === 0) {
@@ -20,6 +21,7 @@ Please consult your healthcare provider before switching medications.
   },
   {
     id: 'dosage',
+    category: 'basic',
     text: 'What is the dosage of this medicine?',
     responseTemplate: (medicine: Medicine) => {
       return `
@@ -33,6 +35,7 @@ Please note that this is general guidance. Follow your doctor's specific instruc
   },
   {
     id: 'usage',
+    category: 'basic',
     text: 'What is this medicine used for?',
     responseTemplate: (medicine: Medicine) => {
       if (!medicine.usedFor || medicine.usedFor.length === 0) {
@@ -51,6 +54,7 @@ Always use as directed by your healthcare provider.
   },
   {
     id: 'sideEffects',
+    category: 'basic',
     text: 'What are the side effects of this medicine?',
     responseTemplate: (medicine: Medicine) => {
       if (!medicine.sideEffects || medicine.sideEffects.length === 0) {
@@ -68,6 +72,7 @@ This is not a complete list. Contact your doctor if you experience any unexpecte
   },
   {
     id: 'expiryDate',
+    category: 'basic',
     text: 'What is the expiry date of this medicine?',
     responseTemplate: (medicine: Medicine) => {
       try {

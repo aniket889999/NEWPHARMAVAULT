@@ -10,7 +10,7 @@ const LoginPage: React.FC = () => {
     name: '',
     email: '',
     password: '',
-    role: 'patient' as const,
+    role: 'patient' as 'patient' | 'pharmacist' | 'doctor',
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,24 +39,19 @@ const LoginPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      let success;
-      
       if (isSignup) {
         const { name, email, password, role } = formData;
         if (!name.trim()) {
           throw new Error('Name is required');
         }
-        success = await signup(name, email, password, role);
+        if (role !== 'patient') throw new Error('Staff accounts must be provisioned by an organization administrator.');
+        await signup(name, email, password, 'patient');
       } else {
-        const { email, password } = formData;
-        success = await login(email, password);
+        const { email, password, role } = formData;
+        await login(email, password, role);
       }
 
-      if (success) {
-        navigate('/home');
-      } else {
-        throw new Error(isSignup ? 'Signup failed' : 'Invalid email or password');
-      }
+      navigate('/home');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

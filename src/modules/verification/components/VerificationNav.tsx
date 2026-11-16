@@ -1,15 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import {
-  ShieldCheck,
-  ListFilter,
-  PlusCircle,
-  Inbox,
-  ArrowLeft,
-  User,
-  ExternalLink
-} from 'lucide-react';
+import { ShieldCheck, ListFilter, PlusCircle, Inbox, ArrowLeft, User } from 'lucide-react';
 
 export const VerificationNav: React.FC = () => {
   const { user } = useAuth();

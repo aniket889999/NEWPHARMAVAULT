@@ -15,6 +15,6 @@ export const generateHealthResponse = async (query: string): Promise<string> => 
 };
 
 // Legacy function kept for backward compatibility
-export const generateBasicHealthResponse = (query: string): string => {
+export const generateBasicHealthResponse = (_query: string): string => {
   return "The verified health-assistance service is temporarily unavailable. Please try again. For urgent or severe symptoms, contact a qualified healthcare professional or emergency service.";
 };

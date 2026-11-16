@@ -5,18 +5,7 @@ import { verificationApi } from '../api/verificationApi';
 import { useAuth } from '../../../context/AuthContext';
 import { VerificationNav } from '../components/VerificationNav';
 import { ReviewActionModal } from '../components/ReviewActionModal';
-import {
-  Inbox,
-  AlertTriangle,
-  RefreshCw,
-  ShieldCheck,
-  FileText,
-  Clock,
-  ArrowRight,
-  ShieldAlert,
-  CheckCircle2,
-  Lock
-} from 'lucide-react';
+import { RefreshCw, ShieldCheck, ArrowRight, ShieldAlert, CheckCircle2, Lock } from 'lucide-react';
 
 export const ReviewQueuePage: React.FC = () => {
   const { user } = useAuth();
@@ -225,9 +214,9 @@ export const ReviewQueuePage: React.FC = () => {
         )}
 
         {/* Adjudication Modal */}
-        {selectedCase && (
+        {selectedCase && (selectedCase.id || selectedCase._id) && (
           <ReviewActionModal
-            caseId={selectedCase.id || selectedCase._id}
+            caseId={(selectedCase.id || selectedCase._id)!}
             caseReference={selectedCase.caseReference}
             isOpen={Boolean(selectedCase)}
             onClose={() => setSelectedCase(null)}

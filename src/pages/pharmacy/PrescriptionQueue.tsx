@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
-import { FileText, CheckCircle, XCircle, AlertCircle, Eye, Pill } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Pill } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const PrescriptionQueue: React.FC = () => {

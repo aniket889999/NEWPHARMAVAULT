@@ -1,4 +1,4 @@
-import { Medicine, ActiveIngredient, DrugInteraction } from '../types';
+import { Medicine, DrugInteraction } from '../types';
 
 export const enhancedMedicines: Medicine[] = [
   {

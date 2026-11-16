@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Search, ArrowLeft, Filter } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import React, { useState } from 'react';
+import { Search, Filter } from 'lucide-react';
 import { useChatStore } from '../stores/chatStore';
 import { searchMedicines } from '../data/medicines';
 import MedicineList from '../components/medicine/MedicineList';

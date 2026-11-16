@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, ShieldCheck, Clock, PlusCircle, Bot, Video, FileText, ChevronRight, HeartPulse } from 'lucide-react';
+import { Activity, ShieldCheck, Clock, Bot, Video, FileText, ChevronRight, HeartPulse } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const PatientDashboard: React.FC = () => {

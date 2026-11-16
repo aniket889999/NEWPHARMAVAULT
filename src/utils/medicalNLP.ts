@@ -488,7 +488,7 @@ export const generateMedicalResponse = (userInput: string): string => {
 };
 
 // Format comprehensive medical response
-const formatMedicalResponse = (symptom: string, response: any, originalInput: string) => {
+const formatMedicalResponse = (symptom: string, response: any, _originalInput: string) => {
   const symptomName = symptom.replace(/([A-Z])/g, ' $1').toLowerCase();
   
   return `**${symptomName.charAt(0).toUpperCase() + symptomName.slice(1)}** can have several common causes:
@@ -509,7 +509,7 @@ Remember, this is general information only. Your health and safety are important
 };
 
 // Handle multiple symptoms
-const generateMultiSymptomResponse = (symptoms: string[], responses: any, input: string) => {
+const generateMultiSymptomResponse = (symptoms: string[], responses: any, _input: string) => {
   const symptomNames = symptoms.map(s => s.replace(/([A-Z])/g, ' $1').toLowerCase()).join(' and ');
   
   // Combine causes and advice from all detected symptoms
