@@ -38,7 +38,7 @@ jobs:
       - name: Check Session 4 client contract, historical answers and freshness races
         run: node --test tests/rag-v2/consumer.test.cjs tests/rag-v2/store.test.cjs tests/rag-v2/ui.test.cjs tests/rag-v2/schema.test.cjs tests/chatClient.test.cjs
       - name: Check evaluation isolation and measurement bookkeeping without scoring held-out data
-        run: node --test tests/rag-v2/evaluation-support.test.cjs tests/rag-v2/evaluation-runner.test.cjs
+        run: node --test tests/rag-v2/evaluation-support.test.cjs tests/rag-v2/evaluation-runner.test.cjs tests/rag-v2/published-results.test.cjs
       - name: Build the frontend with strict application and tooling checks
         run: npm run build:frontend
       - name: Strict typecheck of the standalone comparison

@@ -1,0 +1,358 @@
+{
+  "schemaVersion": "pharmavault-session5-published-summary/1.0.0",
+  "synthetic": true,
+  "provenanceNote": "Development ran before removal of one extra EOF newline in caseAssistantRoutes.js; its actual pre-format hash is retained. Every other development source and all held-out sources match the committed freeze. No implementation or protocol was tuned after held-out scoring.",
+  "implementationCommit": "566db2349a8f96879f2ec6ac4ba71af1edb2b131",
+  "freezeCommit": "f02bda41d7e557267365bacff16a3f5f9639d297",
+  "environment": {
+    "node": "v22.15.0",
+    "platform": "darwin",
+    "architecture": "arm64"
+  },
+  "results": {
+    "development": {
+      "status": "COMPLETED",
+      "generatedAt": "2026-11-16T13:20:51.645Z",
+      "dataset": {
+        "version": "foundation-v2-fixtures/1.0.0",
+        "scenarios": 24,
+        "families": 6,
+        "lockSha256": "dd25343c7961c26b9d76dc427c1b17d919d0593b84b398237c8bdb60681febb0"
+      },
+      "retrieval": {
+        "LEXICAL_UNSCOPED": {
+          "scenarios": 24,
+          "answered": {
+            "numerator": 24,
+            "denominator": 24,
+            "value": 1
+          },
+          "requestedReferenceRecallAt4": {
+            "numerator": 36,
+            "denominator": 44,
+            "value": 0.8181818181818182
+          },
+          "wrongEntityOrSourceAnswers": {
+            "numerator": 11,
+            "denominator": 24,
+            "value": 0.4583333333333333
+          },
+          "localDurationMs": 2.86928800000004
+        },
+        "ITEM_SCOPED_NO_FRESHNESS": {
+          "scenarios": 24,
+          "answered": {
+            "numerator": 24,
+            "denominator": 24,
+            "value": 1
+          },
+          "requestedReferenceRecallAt4": {
+            "numerator": 24,
+            "denominator": 44,
+            "value": 0.5454545454545454
+          },
+          "wrongEntityOrSourceAnswers": {
+            "numerator": 0,
+            "denominator": 24,
+            "value": 0
+          },
+          "localDurationMs": 34.949750999999935
+        },
+        "ITEM_SCOPED_DEPENDENCY_FRESHNESS": {
+          "scenarios": 24,
+          "answered": {
+            "numerator": 24,
+            "denominator": 24,
+            "value": 1
+          },
+          "requestedReferenceRecallAt4": {
+            "numerator": 24,
+            "denominator": 44,
+            "value": 0.5454545454545454
+          },
+          "wrongEntityOrSourceAnswers": {
+            "numerator": 0,
+            "denominator": 24,
+            "value": 0
+          },
+          "localDurationMs": 34.949750999999935
+        }
+      },
+      "temporal": {
+        "NO_INVALIDATION": {
+          "sameAnswerCohort": 24,
+          "exactStaleDetection": {
+            "numerator": 0,
+            "denominator": 24,
+            "value": 0
+          },
+          "falseFreshAfterDependentEdit": {
+            "numerator": 24,
+            "denominator": 24,
+            "value": 1
+          },
+          "falseStaleAfterUnrelatedEdit": {
+            "numerator": 0,
+            "denominator": 24,
+            "value": 0
+          },
+          "lostFreshnessAfterUnrelatedEdit": {
+            "numerator": 0,
+            "denominator": 24,
+            "value": 0
+          }
+        },
+        "WHOLE_CASE_REVISION": {
+          "sameAnswerCohort": 24,
+          "exactStaleDetection": {
+            "numerator": 24,
+            "denominator": 24,
+            "value": 1
+          },
+          "falseFreshAfterDependentEdit": {
+            "numerator": 0,
+            "denominator": 24,
+            "value": 0
+          },
+          "falseStaleAfterUnrelatedEdit": {
+            "numerator": 24,
+            "denominator": 24,
+            "value": 1
+          },
+          "lostFreshnessAfterUnrelatedEdit": {
+            "numerator": 24,
+            "denominator": 24,
+            "value": 1
+          }
+        },
+        "SIGNED_DEPENDENCIES": {
+          "sameAnswerCohort": 24,
+          "exactStaleDetection": {
+            "numerator": 24,
+            "denominator": 24,
+            "value": 1
+          },
+          "falseFreshAfterDependentEdit": {
+            "numerator": 0,
+            "denominator": 24,
+            "value": 0
+          },
+          "falseStaleAfterUnrelatedEdit": {
+            "numerator": 0,
+            "denominator": 24,
+            "value": 0
+          },
+          "lostFreshnessAfterUnrelatedEdit": {
+            "numerator": 0,
+            "denominator": 24,
+            "value": 0
+          }
+        }
+      },
+      "observedNetworkAttempts": 0,
+      "runArtifactSha256": "62f20eb2812d4063f3e865f18093421b788ed6aef95b93135fc555da895eb0e3",
+      "codeSha256": {
+        "backend/services/trustRag/caseAssistantService.js": "1a74b9615a351f2f7042540c8b7bedf3fa9269f3e28aff12425f5277381cee51",
+        "backend/routes/caseAssistantRoutes.js": "3def69159fb5eb4104a5925ba589022c25afa1acc72cfb313ff6c4590add2b90",
+        "backend/routes/trustRagRoutes.js": "07ab551c0077eed3638fc2f9b17b335a16bc66578e706adbf629ae9887b6aaa2",
+        "backend/services/trustRag/caseReconciliationService.js": "0ca22d7367cf14720c1c51b1098ac4124719ad4d7a150c0fdb8b5496585f673f",
+        "backend/services/trustRag/caseEvidenceMutationService.js": "7997b6de6b6dcabe7a4ec9b83fceb512feca7669ed3e68345a19fd979f8f3c0e",
+        "backend/services/chatRagService.js": "4426ba60ad61e52da81ab0c19443f76aac014146e63432e75608e42d328a2cd5",
+        "backend/services/trustRag/medicineItemContract.js": "b43d5feb2f00c70c8c826731b9455122e69c36efd8d278474cd3e49d370109e5",
+        "backend/services/trustRag/medicineQuantityService.js": "43d8bad5134932dbbb116e44580f0bb75deabc263a434f7cbcf929e5c24f479b",
+        "backend/services/trustRag/medicineReconciliationService.js": "6fffa2608e3bb565cc5ce44a0d24e994287cedcbb684127139cd94d6f77dd91d",
+        "backend/data/academicMedicineCatalogue.js": "54975b54f12d3194d5c56f394d6a6d393f688b064550f0ecb03187afedcf0e86",
+        "tests/rag-v2/evaluation-support.cjs": "10001d5bd4102f5e2635545839f06aba1e56cf1ccc30ec437070558129c51358",
+        "tests/rag-v2/run-evaluation.cjs": "b0445a03771fe43fdb934e7f871121dea50f6c9887bf7de0ae8de0a99925b068",
+        "tests/foundation-v2/fixtures.cjs": "f9c051918a6e268516c87a82980b07f2d4168ffb1e02f6842cf6529ff8ee0d23",
+        "src/features/caseAssistant/contract.ts": "9a567bcb68e020781ba6cbfe6ee6a9d8bb8941c10a3ee995354dcf7ea7464ca9",
+        "src/features/caseAssistant/types.ts": "79716988946c7b4e810978915506b0a909cdfa2975e8a1f81e82616bc60dc499",
+        "tests/foundation-v2/development.manifest.json": "c29fe6063608ef172256a455cd276813361cca9c8ce830ee7cd5dfe024b9d957",
+        "tests/foundation-v2/heldout.manifest.json": "1a2c9ddaaf55c484ebe27171e32303e0ced70d805a1b59db4c4c2212275bd23d",
+        "tests/foundation-v2/dataset-lock.json": "dd25343c7961c26b9d76dc427c1b17d919d0593b84b398237c8bdb60681febb0",
+        "docs/rag-v2/EVALUATION_PROTOCOL.md": "236629dd372b6f208ac01613d0c89f30085e0f4a2c361cf38fd9935bc6454a9c"
+      },
+      "scope": "Structured synthetic medicine/source retrieval and content-freshness mechanisms only. Same quoted-source renderer across retrieval ablations; native generated prose is not scored.",
+      "limitations": [
+        "No OCR/layout, clinical correctness, payment eligibility, clinician-efficiency or competitor evaluation.",
+        "Temporal policies reuse the identical candidate-supported cited answer to isolate invalidation; this is not a full-system clinical comparison.",
+        "Unrelated administrative edits are represented by changed case revision/token with identical visible medicine evidence, matching the server projection boundary.",
+        "Abstention and coverage are reported, not silently removed. Temporal metrics are restricted to answers with an actual receipt and primary cited field; cohort size is explicit.",
+        "Runtime is one warm process-local function pass, not API latency or a cold/warm performance study. API cost is unmeasured.",
+        "Small template-linked synthetic family split; not external validation. No novelty percentage or publication guarantee."
+      ]
+    },
+    "heldout": {
+      "status": "COMPLETED",
+      "generatedAt": "2026-11-16T13:24:55.965Z",
+      "dataset": {
+        "version": "foundation-v2-fixtures/1.0.0",
+        "scenarios": 16,
+        "families": 4,
+        "lockSha256": "dd25343c7961c26b9d76dc427c1b17d919d0593b84b398237c8bdb60681febb0"
+      },
+      "retrieval": {
+        "LEXICAL_UNSCOPED": {
+          "scenarios": 16,
+          "answered": {
+            "numerator": 16,
+            "denominator": 16,
+            "value": 1
+          },
+          "requestedReferenceRecallAt4": {
+            "numerator": 16,
+            "denominator": 30,
+            "value": 0.5333333333333333
+          },
+          "wrongEntityOrSourceAnswers": {
+            "numerator": 9,
+            "denominator": 16,
+            "value": 0.5625
+          },
+          "localDurationMs": 10.823789999999804
+        },
+        "ITEM_SCOPED_NO_FRESHNESS": {
+          "scenarios": 16,
+          "answered": {
+            "numerator": 16,
+            "denominator": 16,
+            "value": 1
+          },
+          "requestedReferenceRecallAt4": {
+            "numerator": 16,
+            "denominator": 30,
+            "value": 0.5333333333333333
+          },
+          "wrongEntityOrSourceAnswers": {
+            "numerator": 0,
+            "denominator": 16,
+            "value": 0
+          },
+          "localDurationMs": 22.65295800000007
+        },
+        "ITEM_SCOPED_DEPENDENCY_FRESHNESS": {
+          "scenarios": 16,
+          "answered": {
+            "numerator": 16,
+            "denominator": 16,
+            "value": 1
+          },
+          "requestedReferenceRecallAt4": {
+            "numerator": 16,
+            "denominator": 30,
+            "value": 0.5333333333333333
+          },
+          "wrongEntityOrSourceAnswers": {
+            "numerator": 0,
+            "denominator": 16,
+            "value": 0
+          },
+          "localDurationMs": 22.65295800000007
+        }
+      },
+      "temporal": {
+        "NO_INVALIDATION": {
+          "sameAnswerCohort": 16,
+          "exactStaleDetection": {
+            "numerator": 0,
+            "denominator": 16,
+            "value": 0
+          },
+          "falseFreshAfterDependentEdit": {
+            "numerator": 16,
+            "denominator": 16,
+            "value": 1
+          },
+          "falseStaleAfterUnrelatedEdit": {
+            "numerator": 0,
+            "denominator": 16,
+            "value": 0
+          },
+          "lostFreshnessAfterUnrelatedEdit": {
+            "numerator": 0,
+            "denominator": 16,
+            "value": 0
+          }
+        },
+        "WHOLE_CASE_REVISION": {
+          "sameAnswerCohort": 16,
+          "exactStaleDetection": {
+            "numerator": 16,
+            "denominator": 16,
+            "value": 1
+          },
+          "falseFreshAfterDependentEdit": {
+            "numerator": 0,
+            "denominator": 16,
+            "value": 0
+          },
+          "falseStaleAfterUnrelatedEdit": {
+            "numerator": 16,
+            "denominator": 16,
+            "value": 1
+          },
+          "lostFreshnessAfterUnrelatedEdit": {
+            "numerator": 16,
+            "denominator": 16,
+            "value": 1
+          }
+        },
+        "SIGNED_DEPENDENCIES": {
+          "sameAnswerCohort": 16,
+          "exactStaleDetection": {
+            "numerator": 16,
+            "denominator": 16,
+            "value": 1
+          },
+          "falseFreshAfterDependentEdit": {
+            "numerator": 0,
+            "denominator": 16,
+            "value": 0
+          },
+          "falseStaleAfterUnrelatedEdit": {
+            "numerator": 0,
+            "denominator": 16,
+            "value": 0
+          },
+          "lostFreshnessAfterUnrelatedEdit": {
+            "numerator": 0,
+            "denominator": 16,
+            "value": 0
+          }
+        }
+      },
+      "observedNetworkAttempts": 0,
+      "runArtifactSha256": "219e475ed14f777981194a325543240c02d4e9f6a9ef1b19e10605441c026fa1",
+      "codeSha256": {
+        "backend/services/trustRag/caseAssistantService.js": "1a74b9615a351f2f7042540c8b7bedf3fa9269f3e28aff12425f5277381cee51",
+        "backend/routes/caseAssistantRoutes.js": "352d36cb3a8f64c6cbe747eb9f87b0a13e15ddc211f0f990e74f3275ec2b06a9",
+        "backend/routes/trustRagRoutes.js": "07ab551c0077eed3638fc2f9b17b335a16bc66578e706adbf629ae9887b6aaa2",
+        "backend/services/trustRag/caseReconciliationService.js": "0ca22d7367cf14720c1c51b1098ac4124719ad4d7a150c0fdb8b5496585f673f",
+        "backend/services/trustRag/caseEvidenceMutationService.js": "7997b6de6b6dcabe7a4ec9b83fceb512feca7669ed3e68345a19fd979f8f3c0e",
+        "backend/services/chatRagService.js": "4426ba60ad61e52da81ab0c19443f76aac014146e63432e75608e42d328a2cd5",
+        "backend/services/trustRag/medicineItemContract.js": "b43d5feb2f00c70c8c826731b9455122e69c36efd8d278474cd3e49d370109e5",
+        "backend/services/trustRag/medicineQuantityService.js": "43d8bad5134932dbbb116e44580f0bb75deabc263a434f7cbcf929e5c24f479b",
+        "backend/services/trustRag/medicineReconciliationService.js": "6fffa2608e3bb565cc5ce44a0d24e994287cedcbb684127139cd94d6f77dd91d",
+        "backend/data/academicMedicineCatalogue.js": "54975b54f12d3194d5c56f394d6a6d393f688b064550f0ecb03187afedcf0e86",
+        "tests/rag-v2/evaluation-support.cjs": "10001d5bd4102f5e2635545839f06aba1e56cf1ccc30ec437070558129c51358",
+        "tests/rag-v2/run-evaluation.cjs": "b0445a03771fe43fdb934e7f871121dea50f6c9887bf7de0ae8de0a99925b068",
+        "tests/foundation-v2/fixtures.cjs": "f9c051918a6e268516c87a82980b07f2d4168ffb1e02f6842cf6529ff8ee0d23",
+        "src/features/caseAssistant/contract.ts": "9a567bcb68e020781ba6cbfe6ee6a9d8bb8941c10a3ee995354dcf7ea7464ca9",
+        "src/features/caseAssistant/types.ts": "79716988946c7b4e810978915506b0a909cdfa2975e8a1f81e82616bc60dc499",
+        "tests/foundation-v2/development.manifest.json": "c29fe6063608ef172256a455cd276813361cca9c8ce830ee7cd5dfe024b9d957",
+        "tests/foundation-v2/heldout.manifest.json": "1a2c9ddaaf55c484ebe27171e32303e0ced70d805a1b59db4c4c2212275bd23d",
+        "tests/foundation-v2/dataset-lock.json": "dd25343c7961c26b9d76dc427c1b17d919d0593b84b398237c8bdb60681febb0",
+        "docs/rag-v2/EVALUATION_PROTOCOL.md": "236629dd372b6f208ac01613d0c89f30085e0f4a2c361cf38fd9935bc6454a9c"
+      },
+      "scope": "Structured synthetic medicine/source retrieval and content-freshness mechanisms only. Same quoted-source renderer across retrieval ablations; native generated prose is not scored.",
+      "limitations": [
+        "No OCR/layout, clinical correctness, payment eligibility, clinician-efficiency or competitor evaluation.",
+        "Temporal policies reuse the identical candidate-supported cited answer to isolate invalidation; this is not a full-system clinical comparison.",
+        "Unrelated administrative edits are represented by changed case revision/token with identical visible medicine evidence, matching the server projection boundary.",
+        "Abstention and coverage are reported, not silently removed. Temporal metrics are restricted to answers with an actual receipt and primary cited field; cohort size is explicit.",
+        "Runtime is one warm process-local function pass, not API latency or a cold/warm performance study. API cost is unmeasured.",
+        "Small template-linked synthetic family split; not external validation. No novelty percentage or publication guarantee."
+      ]
+    }
+  }
+}
