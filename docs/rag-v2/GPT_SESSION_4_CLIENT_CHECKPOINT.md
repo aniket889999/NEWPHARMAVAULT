@@ -1,4 +1,5 @@
 # Session 4 frontend/contract checkpoint — PARTIAL
+Historical client-only checkpoint. Superseded by GPT_SESSION_4_REINSPECTION.md after backend handoff and live integration on 16 November 2026; the original open-gate statements below describe that earlier point in time.
 Date: 16 November 2026. Owner: GPT. This is client acceptance, not completed live Session 4.
 
 ## Implemented

@@ -63,4 +63,7 @@ router.route('/cases/:caseId/reviews')
 // Standards Export
 router.get('/cases/:caseId/fhir-bundle', getFhirBundle);
 
+// Session 4 Item-Bound Case Assistant
+router.use('/cases/:caseId/assistant', require('./caseAssistantRoutes'));
+
 module.exports = router;
