@@ -27,6 +27,7 @@ const organizationRoutes = require('./routes/organizationRoutes');
 const branchRoutes = require('./routes/branchRoutes');
 const trustRagRoutes = require('./routes/trustRagRoutes');
 const chatRagRoutes = require('./routes/chatRagRoutes');
+const prioritizedCaseAssistantRoutes = require('./routes/prioritizedCaseAssistantRoutes');
 
 const { protect } = require('./middleware/authMiddleware');
 const { tenantMiddleware } = require('./middleware/tenantMiddleware');
@@ -98,6 +99,8 @@ app.use('/api/branches', branchRoutes);
 
 // PharmaVault TrustRAG v1 Routes
 app.use('/api/v1/chat', protect, tenantMiddleware, chatRagRoutes);
+// Separate extension: the frozen Session 4 answer/freshness routes stay intact.
+app.use('/api/v1/cases/:caseId/assistant', prioritizedCaseAssistantRoutes);
 app.use('/api/v1', protect, tenantMiddleware, trustRagRoutes);
 
 app.use(notFound);

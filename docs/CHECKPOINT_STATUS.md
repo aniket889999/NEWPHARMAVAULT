@@ -5,11 +5,12 @@ This repository contains reproducible academic engineering checkpoints, not a cl
 |---|---|---|
 | Session 1: Foundation | 7cdce5c on main | Frozen eight-slot adapter; 125 offline builder/independent/data-integrity checks |
 | Session 2: Matching and quantities | aef0e64 on main | Frozen offline matching/quantity engine and comparison consumer |
-| Session 3: Case integration / human review | Accepted prototype scope on wip/session-3-integration-review | Four original HTTP regressions fixed; real synthetic browser walkthrough completed; strict full frontend build repaired; full backend 258/258 and new projection regressions 12/12 pass. See sprint-six/SESSION_3_CLOSURE.md. |
-| Session 4: Item-bound RAG / answer freshness | Accepted prototype scope on the review branch | Independently corrected backend + real chat client integration, exact source viewer, unrelated/dependent correction walkthrough. Full backend 270/270; focused acceptance 111/111. See rag-v2/GPT_SESSION_4_REINSPECTION.md. |
+| Session 3: Case integration / human review | Accepted prototype scope on main through 6630f21 | Four original HTTP regressions fixed; real synthetic browser walkthrough completed; strict full frontend build repaired; full backend 258/258 and new projection regressions 12/12 pass. See sprint-six/SESSION_3_CLOSURE.md. |
+| Session 4: Item-bound RAG / answer freshness | Accepted prototype scope on main through 6630f21 | Independently corrected backend + real chat client integration, exact source viewer, unrelated/dependent correction walkthrough. Full backend 270/270; focused acceptance 111/111. See rag-v2/GPT_SESSION_4_REINSPECTION.md. |
 | Session 5: Research evaluation / demo | Completed bounded synthetic feasibility track | Implementation frozen before scoring; 24 development and 16 held-out structured scenarios, exact denominators and limitations published. See rag-v2/SESSION_5_RESEARCH_RESULTS.md and rag-v2/MENTOR_DEMO_GUIDE.md. |
+| Session 6: Attribute-first citation priority | Prototype acceptance on feature/session-6-citation-priority; separate review publication | New compatible protected endpoint and complete expandable source panel. Full backend 286/286 and client regression 110/110 pass; live synthetic source-link walkthrough. No new research score claimed. See citation-priority/SESSION_6_CHECKPOINT.md. |
 
-Main still contains the accepted earlier checkpoints; WIP publication does not automatically merge feature work. Earlier reports preserve their then-current failures and no-commit statements as historical evidence. Use this status and the linked current reports instead of stale first-pass decisions.
+Sessions 3–5 were explicitly approved and fast-forward merged into main at 6630f21 on 16 November 2026. Session 6 is a separate extension branch, not an automatic main merge. Earlier reports preserve their then-current failures and no-commit statements as historical evidence. Use this status and the linked current reports instead of stale first-pass decisions.
 
 ## Reproduce bounded engineering evidence
 ```sh

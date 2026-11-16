@@ -60,7 +60,7 @@ test('API forwards bounded payload and cancellation, never caller history/role/e
   const api = createCaseAssistantApi({ post: async (...args) => { calls.push(args); return { data: calls.length === 1 ? a : f.freshness(a) }; } });
   await api.answer(f.CASE, '  recorded strength?  ', f.ITEM, signal);
   await api.checkFreshness(f.CASE, [{ ...receipt(a)[0], role: 'admin', dependencies: ['forged'] }], signal);
-  assert.equal(calls[0][0], '/v1/cases/' + f.CASE + '/assistant/answers');
+  assert.equal(calls[0][0], '/v1/cases/' + f.CASE + '/assistant/prioritized-answers');
   assert.deepEqual(calls[0][1], { message: 'recorded strength?', medicineItemId: f.ITEM });
   assert.deepEqual(calls[1][1], { receipts: receipt(a) }); assert.equal(calls[0][2].signal, signal);
 });

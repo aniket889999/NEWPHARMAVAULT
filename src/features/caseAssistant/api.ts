@@ -14,7 +14,7 @@ export function createCaseAssistantApi(transport: Transport = apiClient) {
   return {
     async answer(caseId: string, message: string, medicineItemId: string | null = null, signal?: AbortSignal) {
       if (!isCaseId(caseId) || !message.trim() || message.length > 2000 || (medicineItemId !== null && !isMedicineItemId(medicineItemId))) throw new Error('Select a valid case and medicine scope.');
-      const { data } = await post('/v1/cases/' + caseId + '/assistant/answers', { message: message.trim(), medicineItemId }, signal);
+      const { data } = await post('/v1/cases/' + caseId + '/assistant/prioritized-answers', { message: message.trim(), medicineItemId }, signal);
       const answer = parseCaseAnswer(data, caseId, medicineItemId);
       if (!answer) throw new Error('The case answer did not satisfy its evidence contract. No answer was accepted.');
       return answer;

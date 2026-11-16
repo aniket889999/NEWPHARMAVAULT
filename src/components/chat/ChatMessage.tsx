@@ -3,7 +3,7 @@ import { Check, ChevronDown, Copy, ExternalLink, FileText, Sparkles } from 'luci
 import ReactMarkdown from 'react-markdown';
 import { ChatMessage as Message } from '../../types';
 import { EvidenceFreshness } from '../../features/caseAssistant/EvidenceFreshness';
-import { caseSourceHref } from '../../features/caseAssistant/contract';
+import { CaseEvidenceSources } from '../../features/caseAssistant/CaseEvidenceSources';
 
 function officialLink(url?: string) {
   if (!url) return undefined;
@@ -54,18 +54,14 @@ const ChatMessage: React.FC<{ message: Message; onCheckEvidence?: () => void; on
             <button onClick={() => setShowSources(!showSources)} className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50" aria-expanded={showSources}>
               <FileText size={13} /> Sources · {rag.sources.length}<ChevronDown size={13} className={showSources ? 'rotate-180' : ''} />
             </button>
-            {showSources && <div className="mt-3 grid gap-2">
+            {showSources && caseAnswer && <CaseEvidenceSources answer={caseAnswer} />}
+            {showSources && !caseAnswer && <div className="mt-3 grid gap-2">
               {rag.sources.map(source => <div key={source.sourceId} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
                 <p className="text-xs font-semibold text-slate-800">[{source.citation}] {source.title}</p>
                 <p className="mt-1 text-xs leading-6 text-slate-600">{source.excerpt}</p>
                 <p className="mt-2 text-[10px] text-slate-400">{source.version}{source.pageNumber ? ' · Page ' + source.pageNumber : ''}</p>
                 {officialLink(source.sourceUrl) && <a href={officialLink(source.sourceUrl)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-teal-700 underline">Read original NHS reference <ExternalLink size={11} /></a>}
                 {source.href && /^\/cases\/[a-f0-9]{24}$/i.test(source.href) && <a href={source.href} className="mt-2 inline-block text-xs text-teal-700 underline">Open protected case</a>}
-                {caseAnswer && (() => {
-                  const original = caseAnswer.sources.find(s => s.sourceId === source.sourceId);
-                  const href = original && caseSourceHref(caseAnswer.caseId, original);
-                  return href ? <a href={href} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-teal-700 underline">Open current protected source{original.pageNumber ? ' · page ' + original.pageNumber : ''}</a> : null;
-                })()}
               </div>)}
             </div>}
             <p className="mt-2 text-[10px] text-slate-400">{rag.retrieval.method === 'CASE_ITEM_EVIDENCE' ? 'Case- and medicine-bound local evidence' : rag.retrieval.method === 'HYBRID_BM25_VECTOR' ? 'Hybrid keyword + semantic retrieval' : 'Keyword retrieval'} · Citations are traceability, not a guarantee of correctness.</p>

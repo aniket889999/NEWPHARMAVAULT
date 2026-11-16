@@ -636,6 +636,53 @@ paths:
         '404': { description: Case unavailable or cross-tenant access denied }
         '409': { description: CASE_BUSY during concurrent evidence mutation }
         '429': { description: Request rate limit exceeded }
+  /cases/{caseId}/assistant/prioritized-answers:
+    post:
+      summary: Read local case evidence with attribute-first citation priority
+      operationId: answerCurrentCaseEvidenceWithPriority
+      description: >
+        Session 6 compatible extension over the frozen local answer service.
+        Reorders already-authorized citations by requested field and interleaves
+        documents within each field. Preserves every source, factual conclusion,
+        warning and signed content-dependency receipt. Does not expand retrieval,
+        guarantee evidence sufficiency or approve clinical/insurance decisions.
+        Legacy answers and freshness endpoints remain available unchanged.
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [message]
+              properties:
+                message: { type: string, minLength: 1, maxLength: 2000 }
+                medicineItemId:
+                  anyOf:
+                    - { type: string, pattern: '^mi_[a-f0-9]{24}$' }
+                    - { type: 'null' }
+      responses:
+        '200':
+          description: Existing answer wire shape with content-preserving citation priority; private no-store.
+          headers:
+            X-PharmaVault-Citation-Policy:
+              description: Server-side citation-ordering policy version, not a confidence score.
+              schema: { type: string, const: 'attribute-balanced/1.0.0' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CaseAssistantAnswer' }
+        '400': { description: Invalid or unsupported request fields }
+        '401': { description: Authentication required }
+        '403': { description: Role or tenant context is not permitted }
+        '404': { description: Case unavailable or cross-tenant access denied }
+        '409': { description: CASE_BUSY during concurrent evidence mutation }
+        '429': { description: Request rate limit exceeded }
+        '500': { description: Controlled internal failure without source content or server details }
   /cases/{caseId}/assistant/freshness:
     post:
       summary: Check signed answer dependencies against current authorized evidence
