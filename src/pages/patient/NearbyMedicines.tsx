@@ -84,14 +84,18 @@ const NearbyMedicines: React.FC = () => {
   const [filter, setFilter] = useState<'nearest' | 'cheapest' | 'instock'>('nearest');
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
   
-  // Default to Pune if location fails
-  const DEFAULT_LAT = 18.5204;
-  const DEFAULT_LNG = 73.8567;
+  // This legacy directory contains synthetic Mumbai entries, not live stock.
+  const DEFAULT_LAT = 19.0750;
+  const DEFAULT_LNG = 72.8750;
   
   const [userLocation, setUserLocation] = useState({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
   const [locationError, setLocationError] = useState(false);
 
   useEffect(() => {
+    fetchNearbyPharmacies(DEFAULT_LAT, DEFAULT_LNG);
+  }, [medicineName]);
+
+  const requestLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -107,12 +111,12 @@ const NearbyMedicines: React.FC = () => {
     } else {
       fetchNearbyPharmacies(DEFAULT_LAT, DEFAULT_LNG);
     }
-  }, [medicineName]);
+  };
 
   const fetchNearbyPharmacies = async (lat: number, lng: number) => {
     setLoading(true);
     try {
-      const { data } = await apiClient.get(`/pharmacies/nearby?medicine=${encodeURIComponent(medicineName)}&lat=${lat}&lng=${lng}`);
+      const { data } = await apiClient.get(`/pharmacy/nearby?medicine=${encodeURIComponent(medicineName)}&lat=${lat}&lng=${lng}`);
       setPharmacies(data.data);
       if (data.data.length > 0) setSelectedPharmacy(data.data[0]);
     } catch (error) {
@@ -130,10 +134,7 @@ const NearbyMedicines: React.FC = () => {
   });
 
   const handleReserve = (pharm: Pharmacy) => {
-    toast.success(`Reserved ${medicineName} at ${pharm.name}! Check your SMS for details.`, {
-      icon: '✅',
-      duration: 4000
-    });
+    toast(`Demo only: no reservation or SMS was sent to ${pharm.name}. Contact a real pharmacy to confirm availability.`);
   };
 
   const handleGetDirections = (pharm: Pharmacy) => {
@@ -142,6 +143,7 @@ const NearbyMedicines: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col bg-slate-50">
+      <div className="bg-amber-50 px-6 py-3 text-sm text-amber-950">Simulated pharmacy directory: stock, prices and certification badges are examples, not live verified data. Reservations and SMS are not connected. <button type="button" className="ml-2 underline" onClick={requestLocation}>Use my location for map distances</button></div>
       {/* Header */}
       <div className="bg-white border-b px-6 py-4 flex items-center justify-between shrink-0 shadow-sm z-10 relative">
         <div className="flex items-center">
@@ -164,7 +166,7 @@ const NearbyMedicines: React.FC = () => {
 
       {locationError && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-2 flex items-center text-yellow-800 text-sm shrink-0">
-          <Info size={16} className="mr-2 text-yellow-600"/> Location access denied. Showing default region (Pune). Please enable location services for accurate distances.
+          <Info size={16} className="mr-2 text-yellow-600"/> Location unavailable. Showing the synthetic Mumbai demo region.
         </div>
       )}
 

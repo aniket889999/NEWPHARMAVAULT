@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:all": "node scripts/dev-local.cjs",
+    "test:integration-ui": "node --test tests/project-integration/client.test.cjs",
     "dev:chat:backend": "node backend/scripts/startChatDemo.js",
     "test:chat": "node --test backend/tests/chatRag.test.js backend/tests/conversationalRag.test.js backend/tests/pharmacyChatPolicy.test.js tests/chatClient.test.cjs",
     "build": "npm run check:ts && vite build",

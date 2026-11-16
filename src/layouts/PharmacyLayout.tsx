@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Store, Package, Activity, LogOut, Database, Clock, AlertTriangle, Building2, Globe, ShieldCheck, Inbox } from 'lucide-react';
+import { Store, Package, Activity, LogOut, Database, Clock, AlertTriangle, Building2, Globe, ShieldCheck, Inbox, MessageSquare } from 'lucide-react';
 
 const PharmacyLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -43,6 +43,9 @@ const PharmacyLayout: React.FC = () => {
           <Link to="/cases" className="flex items-center p-3 rounded-lg hover:bg-slate-800 hover:text-white transition-colors text-indigo-400 font-medium">
             <ShieldCheck className="w-5 h-5 mr-3 text-indigo-400" /> Verification Cases
           </Link>
+          <Link to="/assistant" className="flex items-center p-3 rounded-lg bg-teal-950/40 text-teal-300 hover:bg-slate-800 transition-colors font-medium">
+            <MessageSquare className="w-5 h-5 mr-3" /> Evidence Chat · TrustRAG
+          </Link>
           <Link to="/review-queue" className="flex items-center p-3 rounded-lg hover:bg-slate-800 hover:text-white transition-colors text-amber-400 font-medium">
             <Inbox className="w-5 h-5 mr-3 text-amber-400" /> Review Queue
           </Link>
@@ -82,6 +85,7 @@ const PharmacyLayout: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
+        <p className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-xs text-amber-900">Academic prototype. Legacy intelligence, ledger and regulatory panels are not independently validated clinical, certification or insurance services.</p>
         <Outlet />
       </main>
     </div>

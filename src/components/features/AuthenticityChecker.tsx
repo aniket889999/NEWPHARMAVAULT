@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../../api/apiClient';
 import { ShieldCheck, AlertTriangle, Search, QrCode, XCircle, Upload, CheckCircle } from 'lucide-react';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 
@@ -84,8 +84,7 @@ const AuthenticityChecker: React.FC = () => {
   const verifyAuthenticity = async (b: string, m: string) => {
     setIsProcessing(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const { data } = await axios.post(`${API_URL}/blockchain/verify`, {
+      const { data } = await apiClient.post('/blockchain/verify', {
         batch: b, manufacturer: m, expiry: expiry
       });
       
@@ -93,8 +92,7 @@ const AuthenticityChecker: React.FC = () => {
       let cdscoResponse = null;
       if (data && data.data && data.data.name) {
          try {
-           const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-           const res = await axios.get(`${API_URL}/regulatory/cdsco/${data.data.name}`);
+           const res = await apiClient.get(`/regulatory/cdsco/${encodeURIComponent(data.data.name)}`);
            cdscoResponse = res.data;
            setCdscoData(cdscoResponse);
            

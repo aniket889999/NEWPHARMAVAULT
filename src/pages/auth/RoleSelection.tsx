@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Store, ShieldCheck } from 'lucide-react';
+import { STAFF_PORTALS } from '../../features/navigation/portalPolicy';
 
 const RoleSelection: React.FC = () => {
   const navigate = useNavigate();
+  const [staffRole, setStaffRole] = useState<string>('claims_reviewer');
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -36,7 +38,6 @@ const RoleSelection: React.FC = () => {
         </div>
 
         <div
-          onClick={() => navigate('/login?role=claims_reviewer')}
           className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 hover:shadow-lg hover:border-indigo-500 transition-all cursor-pointer flex flex-col items-center text-center group"
         >
           <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6 group-hover:bg-indigo-100 transition-colors">
@@ -44,6 +45,11 @@ const RoleSelection: React.FC = () => {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Reviewer Portal</h2>
           <p className="text-gray-500">TrustRAG verification queue, cross-document discrepancies, evidence lineage, and HITL adjudication.</p>
+          <label htmlFor="staff-role" className="mt-5 text-sm text-slate-600">Existing staff account role</label>
+          <select id="staff-role" value={staffRole} onChange={event => setStaffRole(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            {STAFF_PORTALS.map(option => <option key={option.role} value={option.role}>{option.label}</option>)}
+          </select>
+          <button type="button" onClick={() => navigate('/login?role=' + staffRole)} className="mt-3 w-full rounded-lg bg-indigo-600 px-3 py-2 font-semibold text-white">Continue to staff sign-in</button>
         </div>
       </div>
     </div>

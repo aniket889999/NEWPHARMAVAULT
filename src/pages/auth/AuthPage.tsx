@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { portalHome, portalTitle as titleForRole } from '../../features/navigation/portalPolicy';
 
 const AuthPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -23,21 +24,14 @@ const AuthPage: React.FC = () => {
     try {
       if (isLogin) {
         await login(email, password, role);
-        toast.success(`Welcome back to ${isPharmacy ? 'Pharmacy' : 'Patient'} Portal!`);
+        toast.success(`Welcome back to ${titleForRole(role)}!`);
       } else {
         await signup(name, email, password, role);
         toast.success('Account created successfully!');
       }
-      if (role === 'claims_reviewer' || role === 'pharmacist') {
-        navigate('/review-queue');
-      } else if (role === 'patient') {
-        navigate('/patient/dashboard');
-      } else {
-        navigate('/pharmacy/dashboard');
-      }
-    } catch (err: any) {
-      console.error(err);
-      const msg = err.response?.data?.message || err.message || 'Authentication failed. Please check your credentials.';
+      navigate(portalHome(role));
+    } catch {
+      const msg = 'Authentication failed. Check your credentials and selected portal. Staff accounts must be provisioned by an organization administrator.';
       setError(msg);
       toast.error(msg);
     }
@@ -46,7 +40,7 @@ const AuthPage: React.FC = () => {
   const isPharmacy = role === 'pharmacy';
   const isReviewer = role === 'claims_reviewer' || role === 'pharmacist';
 
-  const portalTitle = isReviewer ? 'Reviewer Portal' : isPharmacy ? 'Pharmacy Portal' : 'Patient Portal';
+  const portalTitle = titleForRole(role);
   const portalColor = isReviewer ? 'text-indigo-600' : isPharmacy ? 'text-green-600' : 'text-primary-600';
   const btnColor = isReviewer
     ? 'bg-indigo-600 hover:bg-indigo-700'
@@ -107,7 +101,7 @@ const AuthPage: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-4 pt-4 border-t border-gray-100">
+        {role === 'patient' && <div className="mt-4 pt-4 border-t border-gray-100">
           <p className="text-xs text-center text-gray-400 mb-3 uppercase tracking-wider font-bold">Hackathon Demo Access</p>
           <button 
             type="button"
@@ -128,9 +122,9 @@ const AuthPage: React.FC = () => {
           >
             Fill Demo {isReviewer ? 'Reviewer' : isPharmacy ? 'Pharmacy' : 'Patient'} Credentials
           </button>
-        </div>
+        </div>}
 
-        <div className="mt-6 text-center text-sm">
+        {role === 'patient' ? <div className="mt-6 text-center text-sm">
           <span className="text-gray-500">
             {isLogin ? "Don't have an account? " : "Already have an account? "}
           </span>
@@ -140,7 +134,7 @@ const AuthPage: React.FC = () => {
           >
             {isLogin ? 'Sign Up' : 'Sign In'}
           </button>
-        </div>
+        </div> : <p className="mt-6 text-sm text-slate-500">Staff access is provisioned, not publicly registered. Select the role matching your existing account.</p>}
         
         <div className="mt-4 text-center">
           <button onClick={() => navigate('/auth')} className="text-sm text-gray-400 hover:text-gray-600">

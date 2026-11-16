@@ -117,9 +117,9 @@ const AppRoutes: React.FC = () => {
       </Route>
 
       {/* Research & Evaluation Route */}
-      <Route path="/research/dashboard" element={<ResearchDashboard />} />
-      <Route path="/research/knowledge-graph" element={<KnowledgeGraphExplorer />} />
-      <Route path="/research/ai-safety" element={<AISafetyDashboard />} />
+      <Route path="/research/dashboard" element={<RoleRoute allowedRoles={['super_admin', 'research_evaluator']}><ResearchDashboard /></RoleRoute>} />
+      <Route path="/research/knowledge-graph" element={<RoleRoute allowedRoles={['super_admin', 'research_evaluator']}><KnowledgeGraphExplorer /></RoleRoute>} />
+      <Route path="/research/ai-safety" element={<RoleRoute allowedRoles={['super_admin']}><AISafetyDashboard /></RoleRoute>} />
 
       {/* TrustRAG Verification Routes (Work Order 3B) */}
       <Route
@@ -165,7 +165,7 @@ const AppRoutes: React.FC = () => {
 
       {/* Catch-all */}
       {/* Super Admin Routes */}
-      <Route path="/admin" element={<PharmacyLayout />}>
+      <Route path="/admin" element={<RoleRoute allowedRoles={['super_admin']}><PharmacyLayout /></RoleRoute>}>
         <Route path="saas" element={<SaaSAdminDashboard />} />
       </Route>
 

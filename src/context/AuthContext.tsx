@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import apiClient from '../api/apiClient';
 import { useChatStore } from '../stores/chatStore';
+import { parseSessionCache } from '../features/navigation/sessionCache';
 
 export interface User {
   _id: string;
@@ -37,9 +38,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const restored = parseSessionCache(storedUser);
+    if (restored) setUser(restored);
+    else { localStorage.removeItem('user'); localStorage.removeItem('token'); }
     setIsLoading(false);
   }, []);
 
@@ -74,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('pharmavault_user');
   };
 
   return (

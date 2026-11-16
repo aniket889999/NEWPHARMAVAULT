@@ -43,8 +43,8 @@ const OrganizationSettings: React.FC = () => {
         </div>
         <h1 className="text-2xl font-bold text-slate-800">Set Up Your Organization</h1>
         <p className="text-slate-500">PharmaVault X is now multi-tenant. To access enterprise features, please initialize your pharmacy organization.</p>
-        <button className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors">
-          Initialize Organization
+        <button disabled title="Organization setup is not wired in this legacy screen" className="bg-slate-300 text-slate-600 px-8 py-3 rounded-xl font-bold">
+          Organization setup · not connected
         </button>
       </div>
     );
@@ -66,7 +66,7 @@ const OrganizationSettings: React.FC = () => {
              {data.organization.status.toUpperCase()}
            </span>
            <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold border border-indigo-200">
-             {data.subscription.planName.toUpperCase()} PLAN
+             {data.subscription?.planName?.toUpperCase() || 'NO SUBSCRIPTION RECORD'}
            </span>
         </div>
       </div>
@@ -103,9 +103,9 @@ const OrganizationSettings: React.FC = () => {
                 <MapPin size={20} className="text-indigo-600" />
                 Branch Management
               </h2>
-              <button className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md shadow-indigo-100">
+              <button disabled title="Branch creation form is not wired in this legacy screen" className="flex items-center gap-2 bg-slate-200 text-slate-500 px-4 py-2 rounded-lg text-sm font-bold">
                 <Plus size={16} />
-                Add Branch
+                Add Branch · not connected
               </button>
             </div>
             <div className="divide-y divide-slate-100">
@@ -139,7 +139,7 @@ const OrganizationSettings: React.FC = () => {
 
         {/* Subscription & Usage */}
         <div className="space-y-6">
-          <div className="bg-slate-900 rounded-2xl p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+          {data.subscription ? <div className="bg-slate-900 rounded-2xl p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
             <CreditCard size={100} className="absolute -right-4 -bottom-4 text-white/5 rotate-12" />
             <h3 className="text-xl font-bold mb-6">Subscription</h3>
             <div className="space-y-6">
@@ -168,11 +168,11 @@ const OrganizationSettings: React.FC = () => {
                 </div>
               </div>
 
-              <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-900/40">
-                Upgrade Plan
+              <button disabled className="w-full bg-slate-700 text-slate-300 py-3 rounded-xl font-bold">
+                Billing not connected
               </button>
             </div>
-          </div>
+          </div> : <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-950"><h3 className="mb-2 font-semibold">No subscription record</h3><p>Your organization is available, but subscription and billing details have not been configured. No usage, plan allowance or renewal date is inferred.</p></div>}
 
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
              <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">

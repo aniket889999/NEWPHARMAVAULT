@@ -25,6 +25,9 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      // Failed sign-in is not an expired existing session. Let the form handle it
+      // without a modal, redirect or accidental credential-bearing error logs.
+      if (/\/(?:users\/login|users\/register)$/.test(error.config?.url || '')) return Promise.reject(error);
       console.error('[API CLIENT] 401 Unauthorized - Invalid or missing token');
       
       // Clear all potential token keys to be safe

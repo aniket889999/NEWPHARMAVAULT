@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Clock, Activity, IndianRupee, BrainCircuit, ShieldAlert, Award, FileSignature } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../api/apiClient';
 import { Link } from 'react-router-dom';
 
 const PharmacyDashboard: React.FC = () => {
@@ -8,30 +8,25 @@ const PharmacyDashboard: React.FC = () => {
   const [insights, setInsights] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [nabhStatus, setNabhStatus] = useState<any>(null);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const fetchIntelligence = async () => {
       try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-        const userStr = localStorage.getItem('pharmavault_user');
-        const token = userStr ? JSON.parse(userStr).token : '';
-
-        const headers = { Authorization: `Bearer ${token}` };
-
         // Fetch Intelligence Dashboard
-        const { data } = await axios.get(`${API_URL}/pharmacy/intelligence`, { headers });
+        const { data } = await apiClient.get('/pharmacy/intelligence');
         setMetrics(data.metrics);
         setInsights(data.insights);
         
         // Fetch NABH Status
         try {
-          const nabhRes = await axios.get(`${API_URL}/regulatory/pharmacy-status`);
+          const nabhRes = await apiClient.get('/regulatory/pharmacy-status');
           setNabhStatus(nabhRes.data);
         } catch(e) {}
         
         setLoading(false);
       } catch (error) {
-        console.error('Failed to fetch intelligence', error);
+        setLoadError(true);
         setLoading(false);
       }
     };
@@ -40,22 +35,28 @@ const PharmacyDashboard: React.FC = () => {
 
   return (
     <div className="p-8 bg-slate-50 min-h-full">
+      <section className="mb-6 rounded-2xl bg-slate-900 p-6 text-white">
+        <h2 className="text-xl font-semibold">TrustRAG is part of this pharmacy workspace</h2>
+        <p className="mt-2 text-sm text-slate-300">Use the same authorized session for evidence chat, verification cases and human review.</p>
+        <div className="mt-4 flex flex-wrap gap-3"><Link to="/assistant" className="rounded-lg bg-teal-400 px-4 py-2 font-semibold text-slate-950">Open Evidence Chat</Link><Link to="/cases" className="rounded-lg border border-slate-600 px-4 py-2">Verification Cases</Link><Link to="/review-queue" className="rounded-lg border border-slate-600 px-4 py-2">Review Queue</Link></div>
+      </section>
+      {loadError && <p role="alert" className="mb-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Inventory data could not be loaded. No healthy/optimal status has been established. Evidence Chat and Cases remain separate links above.</p>}
       <div className="flex justify-between items-start mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center">
             Pharmacy Smart Dashboard
             {nabhStatus?.nabhCertified && (
               <span className="ml-4 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200">
-                <Award size={14} className="mr-1" /> NABH Certified ({nabhStatus.licenseNumber})
+                <Award size={14} className="mr-1" /> Simulated certification value ({nabhStatus.licenseNumber})
               </span>
             )}
             {!loading && metrics && (
               <span className={`ml-4 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${metrics.healthScore > 80 ? 'bg-green-100 text-green-800 border border-green-200' : metrics.healthScore > 50 ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
-                Health Score: {metrics.healthScore}/100
+                Illustrative inventory score: {metrics.healthScore}/100
               </span>
             )}
           </h1>
-          <p className="text-slate-500 mt-1">Real-time AI-powered inventory and workflow overview.</p>
+          <p className="text-slate-500 mt-1">Prototype inventory overview. Regulatory and ledger panels are demonstrations, not official certification.</p>
         </div>
       </div>
       
@@ -66,7 +67,7 @@ const PharmacyDashboard: React.FC = () => {
             <div>
               <p className="text-slate-500 text-sm font-medium mb-1">Total Inventory Value</p>
               <h3 className="text-2xl font-bold text-slate-900">
-                {loading ? '...' : `₹${metrics?.totalValue.toLocaleString('en-IN')}`}
+                {loading ? '...' : typeof metrics?.totalValue === 'number' ? `₹${metrics.totalValue.toLocaleString('en-IN')}` : 'Unavailable'}
               </h3>
             </div>
             <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center group-hover:bg-green-100 transition-colors">
@@ -142,7 +143,7 @@ const PharmacyDashboard: React.FC = () => {
             {loading ? (
               <p className="text-sm text-gray-500">Loading insights...</p>
             ) : insights.length === 0 ? (
-              <p className="text-sm text-gray-500">All systems optimal. No critical insights generated.</p>
+                <p className="text-sm text-gray-500">{loadError ? 'Insights unavailable.' : 'No rule-based inventory insights were returned.'}</p>
             ) : (
               insights.map((insight, idx) => (
                 <div key={idx} className="flex justify-between items-start border-l-4 border-indigo-500 pl-4 py-3 bg-indigo-50/50 rounded-r-lg">
@@ -164,12 +165,12 @@ const PharmacyDashboard: React.FC = () => {
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div>
                 <p className="text-sm font-bold text-gray-800">Total Registered Batches</p>
-                <p className="text-xs text-gray-500 mt-1">Secured immutably via SHA-256</p>
+                <p className="text-xs text-gray-500 mt-1">Local hash-chain entries · not an immutable distributed ledger</p>
               </div>
               <span className="text-xl font-bold text-emerald-600">{loading ? '...' : metrics?.blockchainBatches}</span>
             </div>
             <p className="text-xs text-emerald-700 bg-emerald-50 p-3 rounded-lg border border-emerald-100 flex items-center font-medium">
-              <Activity size={14} className="mr-2" /> PharmaVault Ledger is actively protecting your supply chain from counterfeit drugs.
+              <Activity size={14} className="mr-2" /> Academic local-ledger demonstration. This does not certify the supply chain or detect counterfeit medicines.
             </p>
           </div>
         </div>

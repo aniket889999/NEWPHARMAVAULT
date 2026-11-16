@@ -42,7 +42,7 @@ const PatientLayout: React.FC = () => {
             <ShieldCheck className="w-5 h-5 mr-3" /> Authenticity Check
           </Link>
           <Link to="/patient/health-assistant" className="flex items-center p-3 text-gray-700 rounded-lg hover:bg-primary-50 hover:text-primary-600">
-            <Stethoscope className="w-5 h-5 mr-3" /> Health Assistant
+            <Stethoscope className="w-5 h-5 mr-3" /> Evidence Chat · TrustRAG
           </Link>
           <Link to="/patient/cart" className="flex items-center p-3 text-gray-700 rounded-lg hover:bg-primary-50 hover:text-primary-600">
             <ShoppingCart className="w-5 h-5 mr-3" /> Cart
@@ -73,6 +73,7 @@ const PatientLayout: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
+        <p className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-xs text-amber-900">Academic prototype: TrustRAG cases and Evidence Chat are the core workflow. Legacy shopping, consultations, regulatory checks and health widgets include demo or incomplete functions—not clinical services.</p>
         <Outlet />
       </main>
     </div>

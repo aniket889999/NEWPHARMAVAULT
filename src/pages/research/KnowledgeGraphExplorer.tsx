@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../../api/apiClient';
 import { 
   Network, Search, ArrowRight, ShieldCheck, 
   Activity, Database, BrainCircuit, Users, Building
@@ -15,8 +15,7 @@ const KnowledgeGraphExplorer: React.FC = () => {
     if (!query) return;
     setLoading(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-      const res = await axios.get(`${baseUrl}/graph/medicine/${encodeURIComponent(query)}`);
+      const res = await apiClient.get(`/graph/medicine/${encodeURIComponent(query)}`);
       setGraphData(res.data);
     } catch (err) {
       console.error(err);
@@ -30,8 +29,7 @@ const KnowledgeGraphExplorer: React.FC = () => {
   const traverseSymptom = async (symptom: string) => {
     setLoading(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-      const res = await axios.post(`${baseUrl}/graph/traverse`, { symptom });
+      const res = await apiClient.post('/graph/traverse', { symptom });
       toast.success(`Found ${res.data.treats.length} medicines for ${symptom}`);
       // Hacky display update
       setGraphData({
@@ -54,6 +52,7 @@ const KnowledgeGraphExplorer: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
+      <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Legacy academic graph demonstration. Connections and confidence labels are not clinical recommendations or measured research accuracy.</p>
       
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 text-white">

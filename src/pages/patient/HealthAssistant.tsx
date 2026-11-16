@@ -7,6 +7,7 @@ import { verificationApi } from '../../modules/verification/api/verificationApi'
 import { VerificationCase } from '../../modules/verification/types';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../api/apiClient';
+import { portalHome } from '../../features/navigation/portalPolicy';
 
 interface ChatCapabilities {
   generationEnabled: boolean;
@@ -39,7 +40,9 @@ const HealthAssistant: React.FC = () => {
   }, [user?._id]);
 
   useEffect(() => {
-    if (user && (!activeConversation || activeConversation.caseId !== caseId)) createConversation(caseId);
+    // StrictMode may replay effects before a captured render updates.
+    const current = useChatStore.getState().activeConversation;
+    if (user && (!current || current.caseId !== caseId)) createConversation(caseId);
   }, [user, activeConversation, caseId, createConversation]);
 
   const newChat = () => { createConversation(caseId); setSidebarOpen(false); };
@@ -79,7 +82,7 @@ const HealthAssistant: React.FC = () => {
           <p className="flex items-center gap-2 text-[11px] text-teal-800"><ShieldCheck size={14} /> Private cases stay local</p>
           <p className="text-[10px] leading-4 text-slate-400">Up to 20 chats in memory. Refreshing or signing out clears them. No chat is saved to your browser storage.</p>
           <Link to="/cases" className="flex items-center gap-2 text-xs text-slate-600 hover:text-teal-700"><ArrowLeft size={13} /> Verification cases</Link>
-          <Link to={user?.role === 'patient' ? '/patient/dashboard' : '/cases'} className="block text-xs text-slate-400">Return to portal</Link>
+          <Link to={portalHome(user?.role)} className="block text-xs text-slate-400">Return to portal</Link>
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">

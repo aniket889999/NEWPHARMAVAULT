@@ -41,6 +41,8 @@ jobs:
         run: node --test tests/rag-v2/evaluation-support.test.cjs tests/rag-v2/evaluation-runner.test.cjs tests/rag-v2/published-results.test.cjs
       - name: Build the frontend with strict application and tooling checks
         run: npm run build:frontend
+      - name: Check integrated portal navigation, session restore and research provenance
+        run: npm run test:integration-ui
       - name: Strict typecheck of the standalone comparison
         run: node node_modules/typescript/bin/tsc --noEmit -p tests/reconciliation-v2/tsconfig.json
       - name: Strict typecheck of integration client, when present
