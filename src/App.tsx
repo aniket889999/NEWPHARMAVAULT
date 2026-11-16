@@ -123,6 +123,14 @@ const AppRoutes: React.FC = () => {
 
       {/* TrustRAG Verification Routes (Work Order 3B) */}
       <Route
+        path="/assistant"
+        element={
+          <RoleRoute allowedRoles={['patient', 'pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
+            <HealthAssistant />
+          </RoleRoute>
+        }
+      />
+      <Route
         path="/cases"
         element={
           <RoleRoute allowedRoles={['patient', 'pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>

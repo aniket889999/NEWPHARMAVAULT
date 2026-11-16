@@ -18,6 +18,12 @@ export const VerificationNav: React.FC = () => {
 
   const navItems = [
     {
+      to: '/assistant',
+      label: 'Evidence Chat',
+      icon: ShieldCheck,
+      active: location.pathname === '/assistant'
+    },
+    {
       to: '/cases',
       label: 'All Cases',
       icon: ListFilter,

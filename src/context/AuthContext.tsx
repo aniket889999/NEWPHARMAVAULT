@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import apiClient from '../api/apiClient';
+import { useChatStore } from '../stores/chatStore';
 
 export interface User {
   _id: string;
@@ -46,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const { data } = await apiClient.post('/users/login', { email, password, role });
+      useChatStore.getState().resetChat();
       setUser(data);
       localStorage.setItem('user', JSON.stringify(data));
       localStorage.setItem('token', data.token);
@@ -58,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const { data } = await apiClient.post('/users/register', { name, email, password, role });
+      useChatStore.getState().resetChat();
       setUser(data);
       localStorage.setItem('user', JSON.stringify(data));
       localStorage.setItem('token', data.token);
@@ -67,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    useChatStore.getState().resetChat();
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');

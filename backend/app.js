@@ -26,6 +26,7 @@ const workflowRoutes = require('./routes/workflowRoutes');
 const organizationRoutes = require('./routes/organizationRoutes');
 const branchRoutes = require('./routes/branchRoutes');
 const trustRagRoutes = require('./routes/trustRagRoutes');
+const chatRagRoutes = require('./routes/chatRagRoutes');
 
 const { protect } = require('./middleware/authMiddleware');
 const { tenantMiddleware } = require('./middleware/tenantMiddleware');
@@ -96,6 +97,7 @@ app.use('/api/organizations', organizationRoutes);
 app.use('/api/branches', branchRoutes);
 
 // PharmaVault TrustRAG v1 Routes
+app.use('/api/v1/chat', protect, tenantMiddleware, chatRagRoutes);
 app.use('/api/v1', protect, tenantMiddleware, trustRagRoutes);
 
 app.use(notFound);

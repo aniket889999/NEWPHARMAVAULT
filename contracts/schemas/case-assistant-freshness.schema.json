@@ -1,0 +1,141 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "checkedAt",
+    "evidenceRevision",
+    "results"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "2.0.0-session4"
+    },
+    "caseId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24}$"
+    },
+    "checkedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidenceRevision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "answerId",
+          "status",
+          "changedDependencyKeys",
+          "reasonCode"
+        ],
+        "properties": {
+          "answerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "enum": [
+              "FRESH",
+              "STALE",
+              "UNVERIFIABLE"
+            ]
+          },
+          "changedDependencyKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "minItems": 0,
+            "maxItems": 64,
+            "uniqueItems": true
+          },
+          "reasonCode": {
+            "enum": [
+              "UNCHANGED_DEPENDENCIES",
+              "EVIDENCE_CHANGED",
+              "DEPENDENCY_MISSING",
+              "INVALID_RECEIPT",
+              "RECEIPT_EXPIRED",
+              "CASE_PROCESSING"
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "FRESH"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "changedDependencyKeys": {
+                "type": "array",
+                  "maxItems": 0
+                },
+                "reasonCode": {
+                  "const": "UNCHANGED_DEPENDENCIES"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "STALE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "reasonCode": {
+                  "enum": [
+                    "EVIDENCE_CHANGED",
+                    "DEPENDENCY_MISSING"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "UNVERIFIABLE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "reasonCode": {
+                  "enum": [
+                    "INVALID_RECEIPT",
+                    "RECEIPT_EXPIRED",
+                    "CASE_PROCESSING"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 20
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "case-assistant-freshness.schema.json",
+  "title": "Session 4 signed-answer freshness"
+}

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { resolveCaseSourceQuery } from '../../../features/caseAssistant/sourceTarget';
 import { verificationApi } from '../api/verificationApi';
 import {
   VerificationCase,
@@ -44,6 +45,8 @@ import toast from 'react-hot-toast';
 export const CaseDetailPage: React.FC = () => {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
+  const [sourceParams] = useSearchParams();
+  const sourceQuery = sourceParams.toString();
   const { user } = useAuth();
 
   const [vCase, setVCase] = useState<VerificationCase | null>(null);
@@ -69,6 +72,7 @@ export const CaseDetailPage: React.FC = () => {
   const [fhirData, setFhirData] = useState<unknown>(null);
   const [snapshot, setSnapshot] = useState<CaseReconciliationSnapshot | null>(null);
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
+  const [sourceLinkError, setSourceLinkError] = useState<string | null>(null);
   const [groupBusy, setGroupBusy] = useState(false);
   const requestGuard = useRef(createLatestRequestGuard());
   const liveCaseId = useRef(caseId);
@@ -76,6 +80,15 @@ export const CaseDetailPage: React.FC = () => {
   const groupLock = useRef(false);
 
   const isStaff = isReviewRole(user?.role);
+  useEffect(() => {
+    if (isLoading || !caseId) return;
+    const target = resolveCaseSourceQuery(caseId, new URLSearchParams(sourceQuery), documents, results?.extractedFields || []);
+    if (target === 'INVALID') { setSourceLinkError('The cited source is not present at that field and page in the current case. No substitute source was opened.'); return; }
+    setSourceLinkError(null);
+    if (!target) return;
+    setViewerDocType(target.documentType as DocumentType); setViewerDocumentId(target.documentId);
+    setViewerSelectedFieldId(target.fieldId); setViewerPage(target.pageNumber); setActiveTab('viewer');
+  }, [caseId, sourceQuery, isLoading, documents, results]);
 
   const loadCaseData = useCallback(async () => {
     const ticket = requestGuard.current.begin();
@@ -245,6 +258,7 @@ export const CaseDetailPage: React.FC = () => {
       <VerificationNav />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {sourceLinkError && <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">{sourceLinkError}</p>}
         {/* Breadcrumb & Navigation */}
         <div className="flex items-center justify-between mb-4">
           <Link

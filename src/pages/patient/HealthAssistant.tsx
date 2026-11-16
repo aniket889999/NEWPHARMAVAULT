@@ -1,27 +1,112 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Menu, MessageSquare, PanelLeftClose, Plus, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
 import ChatInterface from '../../components/chat/ChatInterface';
 import { useChatStore } from '../../stores/chatStore';
+import { verificationApi } from '../../modules/verification/api/verificationApi';
+import { VerificationCase } from '../../modules/verification/types';
+import { useAuth } from '../../context/AuthContext';
+import apiClient from '../../api/apiClient';
+
+interface ChatCapabilities {
+  generationEnabled: boolean;
+  embeddingEnabled: boolean;
+  model: string | null;
+  healthReferencePassages: number;
+}
 
 const HealthAssistant: React.FC = () => {
-  const { activeConversation, createConversation } = useChatStore();
+  const { user } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const caseId = params.get('caseId') || undefined;
+  const { activeConversation, conversations, createConversation, setActiveConversation, deleteConversation, isLoading } = useChatStore();
+  const [cases, setCases] = useState<VerificationCase[]>([]);
+  const [capabilities, setCapabilities] = useState<ChatCapabilities | null>(null);
+  const [caseLoadError, setCaseLoadError] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!activeConversation) {
-      createConversation();
-    }
-  }, [activeConversation, createConversation]);
+    if (!user) return;
+    let cancelled = false;
+    setCases([]);
+    setCaseLoadError(false);
+    verificationApi.getCases().then(data => { if (!cancelled) setCases(data); })
+      .catch(() => { if (!cancelled) setCaseLoadError(true); });
+    apiClient.get<ChatCapabilities>('/v1/chat/status')
+      .then(({ data }) => { if (!cancelled) setCapabilities(data); })
+      .catch(() => { if (!cancelled) setCapabilities(null); });
+    return () => { cancelled = true; };
+  }, [user?._id]);
+
+  useEffect(() => {
+    if (user && (!activeConversation || activeConversation.caseId !== caseId)) createConversation(caseId);
+  }, [user, activeConversation, caseId, createConversation]);
+
+  const newChat = () => { createConversation(caseId); setSidebarOpen(false); };
+  const selectChat = (id: string) => {
+    const conversation = conversations.find(c => c.id === id);
+    if (!conversation) return;
+    setActiveConversation(id);
+    setParams(conversation.caseId ? { caseId: conversation.caseId } : {});
+    setSidebarOpen(false);
+  };
+  const changeScope = (value: string) => {
+    createConversation(value || undefined);
+    setParams(value ? { caseId: value } : {});
+  };
 
   return (
-    <div className="flex h-full flex-col bg-white">
-      <div className="p-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900">Health Assistant</h1>
-        <p className="text-gray-500 mt-1">Consult our AI medical assistant for information regarding medicines, dosages, and general health queries.</p>
-      </div>
-      <div className="flex-1 overflow-hidden">
-        <ChatInterface />
+    <div className="flex h-[100dvh] min-h-0 overflow-hidden bg-white text-slate-900">
+      {sidebarOpen && <button aria-label="Close chat sidebar" onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-40 bg-slate-900/30 lg:hidden" />}
+      <aside className={(sidebarOpen ? 'fixed inset-y-0 left-0 z-50 flex' : 'hidden') + ' w-60 shrink-0 flex-col border-r border-slate-200 bg-slate-50 lg:static lg:flex'}>
+        <div className="flex items-center justify-between px-4 pb-4 pt-6">
+          <div className="flex items-center gap-2 text-sm font-semibold"><Sparkles size={19} className="text-teal-700" /> PharmaVault</div>
+          <button onClick={() => setSidebarOpen(false)} aria-label="Hide chat sidebar" className="rounded p-1 text-slate-400 lg:hidden"><PanelLeftClose size={17} /></button>
+        </div>
+        <div className="px-3">
+          <button onClick={newChat} className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium shadow-sm hover:border-teal-300"><Plus size={16} /> New chat</button>
+        </div>
+        <p className="px-5 pb-2 pt-7 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Recent chats</p>
+        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3">
+          {conversations.map(c => <div key={c.id} className={'group flex items-center rounded-xl ' + (c.id === activeConversation?.id ? 'bg-slate-200/70' : 'hover:bg-slate-200/50')}>
+            <button onClick={() => selectChat(c.id)} className="flex min-w-0 flex-1 items-center gap-2 p-3 text-left text-xs text-slate-700">
+              <MessageSquare size={13} className="shrink-0 text-slate-400" /><span className="truncate">{c.title}</span>
+            </button>
+            <button aria-label={'Delete chat: ' + c.title} onClick={() => deleteConversation(c.id)} className="mr-1 rounded p-2 text-slate-400 opacity-0 hover:text-rose-600 focus:opacity-100 group-hover:opacity-100"><Trash2 size={12} /></button>
+          </div>)}
+        </div>
+        <div className="space-y-3 border-t border-slate-200 p-4">
+          <p className="flex items-center gap-2 text-[11px] text-teal-800"><ShieldCheck size={14} /> Private cases stay local</p>
+          <p className="text-[10px] leading-4 text-slate-400">Up to 20 chats in memory. Refreshing or signing out clears them. No chat is saved to your browser storage.</p>
+          <Link to="/cases" className="flex items-center gap-2 text-xs text-slate-600 hover:text-teal-700"><ArrowLeft size={13} /> Verification cases</Link>
+          <Link to={user?.role === 'patient' ? '/patient/dashboard' : '/cases'} className="block text-xs text-slate-400">Return to portal</Link>
+        </div>
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="shrink-0 border-b border-slate-100 px-4 py-4 md:px-7">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setSidebarOpen(true)} aria-label="Open chat sidebar" className="rounded p-1 text-slate-500 lg:hidden"><Menu size={19} /></button>
+              <div><h1 className="text-sm font-semibold text-slate-900 md:text-base">Health Assistant <span className="ml-1 font-normal text-slate-400">/ TrustRAG</span></h1>
+                <p className="mt-0.5 text-[10px] text-slate-400">{caseId ? 'Local, authorized case evidence' : capabilities?.generationEnabled ? 'Gemini generation enabled · source-backed answers' : 'Local source mode · generation is not enabled'}</p>
+              </div>
+            </div>
+            <button onClick={newChat} aria-label="Start a new chat" className="rounded-full border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"><Plus size={16} /></button>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <label htmlFor="chat-scope" className="text-[10px] uppercase tracking-wide text-slate-400">Evidence scope</label>
+            <select id="chat-scope" value={caseId || ''} disabled={isLoading} onChange={e => changeScope(e.target.value)} className="max-w-full rounded-lg border-slate-200 py-1.5 pl-2 pr-7 text-xs text-slate-600">
+              <option value="">Public medicine references + project knowledge</option>
+              {caseId && !cases.some(c => c.id === caseId) && <option value={caseId}>Selected case - server checks access</option>}
+              {cases.map(c => <option key={c.id} value={c.id}>{c.caseReference} · {c.status}</option>)}
+            </select>
+            {capabilities?.embeddingEnabled && !caseId && <span className="rounded-full bg-teal-50 px-2 py-1 text-[10px] text-teal-700">Semantic retrieval enabled</span>}
+          </div>
+          {caseLoadError && <p className="mt-2 text-xs text-amber-800">Could not load case choices. Public reference chat remains available.</p>}
+        </header>
+        <div className="min-h-0 flex-1"><ChatInterface /></div>
       </div>
     </div>
   );
 };
-
 export default HealthAssistant;

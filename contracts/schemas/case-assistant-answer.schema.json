@@ -1,0 +1,307 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "answerId",
+    "generatedAt",
+    "evidenceRevision",
+    "reply",
+    "mode",
+    "intent",
+    "medicineItemId",
+    "choices",
+    "sources",
+    "warnings",
+    "dependencyKeys",
+    "bindingToken",
+    "disclaimer"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "2.0.0-session4"
+    },
+    "caseId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24}$"
+    },
+    "answerId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidenceRevision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reply": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12000
+    },
+    "mode": {
+      "enum": [
+        "LOCAL_CASE_EVIDENCE",
+        "CLARIFY",
+        "ABSTAIN",
+        "SAFETY"
+      ]
+    },
+    "intent": {
+      "enum": [
+        "STRENGTH",
+        "QUANTITY",
+        "IDENTITY",
+        "COMPARISON",
+        "CASE_STATUS",
+        "UNSUPPORTED"
+      ]
+    },
+    "medicineItemId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^mi_[a-f0-9]{24}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "choices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "itemId",
+          "label",
+          "documentType"
+        ],
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "pattern": "^mi_[a-f0-9]{24}$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "documentType": {
+            "enum": [
+              "PRESCRIPTION",
+              "PHARMACY_INVOICE"
+            ]
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 6
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "citation",
+          "sourceId",
+          "documentId",
+          "fieldId",
+          "pageNumber",
+          "itemId",
+          "title",
+          "excerpt",
+          "fingerprint"
+        ],
+        "properties": {
+          "citation": {
+            "type": "string",
+            "pattern": "^S(?:[1-9]|1[0-2])$"
+          },
+          "sourceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "documentId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{24}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fieldId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{24}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pageNumber": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "itemId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^mi_[a-f0-9]{24}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "excerpt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "fieldId": {
+                  "type": "string"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "documentId": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{24}$"
+                },
+                "pageNumber": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "itemId": {
+                  "type": "string",
+                  "pattern": "^mi_[a-f0-9]{24}$"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 12
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      },
+      "minItems": 0,
+      "maxItems": 12
+    },
+    "dependencyKeys": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "bindingToken": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32768
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "disclaimer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 600
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "case-assistant-answer.schema.json",
+  "title": "Session 4 case-bound answer",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "LOCAL_CASE_EVIDENCE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "sources": {
+            "type": "array",
+            "minItems": 1
+          },
+          "dependencyKeys": {
+            "type": "array",
+            "minItems": 1
+          },
+          "bindingToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32768
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "sources": {
+            "type": "array",
+            "maxItems": 0
+          },
+          "dependencyKeys": {
+            "type": "array",
+            "maxItems": 0
+          },
+          "bindingToken": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

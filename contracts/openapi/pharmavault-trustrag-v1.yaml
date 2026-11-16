@@ -31,6 +31,10 @@ components:
       $ref: '../schemas/medicine-item.schema.json'
     MedicineReconciliationResult:
       $ref: '../schemas/medicine-reconciliation.schema.json'
+    CaseAssistantAnswer:
+      $ref: '../schemas/case-assistant-answer.schema.json'
+    CaseAssistantFreshness:
+      $ref: '../schemas/case-assistant-freshness.schema.json'
 
 security:
   - bearerAuth: []
@@ -591,6 +595,94 @@ paths:
       responses:
         '200':
           description: Structured verification results
+
+  /cases/{caseId}/assistant/answers:
+    post:
+      summary: Read medicine-bound local case evidence
+      operationId: answerCurrentCaseEvidence
+      description: >
+        Session 4 contract. Private local deterministic answers cite exact current fields.
+        A signed user/case-bound receipt records content dependencies, not medical
+        confidence. Does not mutate a case or approve treatment or insurance.
+        Implementation acceptance is tracked separately from contract validation.
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [message]
+              properties:
+                message: { type: string, minLength: 1, maxLength: 2000 }
+                medicineItemId:
+                  anyOf:
+                    - { type: string, pattern: '^mi_[a-f0-9]{24}$' }
+                    - { type: 'null' }
+      responses:
+        '200':
+          description: Cited local answer, clarification, abstention or safety boundary; private no-store.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CaseAssistantAnswer' }
+        '400': { description: Invalid or unsupported request fields }
+        '401': { description: Authentication required }
+        '403': { description: Role or tenant context is not permitted }
+        '404': { description: Case unavailable or cross-tenant access denied }
+        '409': { description: CASE_BUSY during concurrent evidence mutation }
+        '429': { description: Request rate limit exceeded }
+  /cases/{caseId}/assistant/freshness:
+    post:
+      summary: Check signed answer dependencies against current authorized evidence
+      operationId: checkCaseAnswerFreshness
+      description: >
+        Accepts 1-20 distinct answer IDs and bounded signed receipts.
+        Every request reauthorizes the case. Unchanged cited dependencies may be
+        FRESH despite an unrelated edit. Changed/missing dependencies are STALE;
+        invalid, expired or processing evidence is UNVERIFIABLE. Never loads a
+        foreign case from a supplied token, rewrites an old answer or alters a human decision.
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [receipts]
+              properties:
+                receipts:
+                  type: array
+                  minItems: 1
+                  maxItems: 20
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [answerId, bindingToken]
+                    properties:
+                      answerId: { type: string, format: uuid }
+                      bindingToken: { type: string, minLength: 1, maxLength: 32768 }
+      responses:
+        '200':
+          description: Exact receipt results with server check time; private no-store.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CaseAssistantFreshness' }
+        '400': { description: Invalid request or duplicate answer IDs }
+        '401': { description: Authentication required }
+        '403': { description: Role or tenant context is not permitted }
+        '404': { description: Case unavailable or cross-tenant access denied }
+        '409': { description: CASE_BUSY during concurrent evidence mutation }
+        '429': { description: Request rate limit exceeded }
 
   /cases/{caseId}/reconciliation:
     get:

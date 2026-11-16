@@ -1,16 +1,21 @@
 import React from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Home, Pill, FileText, ShoppingCart, LogOut, Package, ShieldCheck, Stethoscope, Video, Bell } from 'lucide-react';
 
 const PatientLayout: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
     navigate('/auth');
   };
+
+  if (location.pathname === '/patient/health-assistant') {
+    return <main className="h-screen min-w-0 overflow-hidden"><Outlet /></main>;
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">

@@ -35,6 +35,8 @@ jobs:
         run: npm run validate:schemas
       - name: Check real application typecheck policy
         run: node --test tests/release-v2/buildContract.test.cjs
+      - name: Check Session 4 client contract, historical answers and freshness races
+        run: node --test tests/rag-v2/consumer.test.cjs tests/rag-v2/store.test.cjs tests/rag-v2/ui.test.cjs tests/rag-v2/schema.test.cjs tests/chatClient.test.cjs
       - name: Build the frontend with strict application and tooling checks
         run: npm run build:frontend
       - name: Strict typecheck of the standalone comparison

@@ -1,3 +1,5 @@
+import type { AnswerFreshness, CaseAssistantAnswer } from '../features/caseAssistant/types';
+
 export interface Medicine {
   id: string;
   name: string;
@@ -75,12 +77,41 @@ export interface PrescribedMedicine {
   instructions: string;
 }
 
+export interface RagChatResponse {
+  reply: string;
+  mode: 'ABSTAIN' | 'SAFETY' | 'LOCAL_EXTRACTIVE' | 'LOCAL_CASE_EVIDENCE' | 'GEMINI_GROUNDED_QUOTES' | 'GEMINI_RAG' | 'CONVERSATIONAL_HELP' | 'CLARIFY';
+  caseAnswer?: CaseAssistantAnswer;
+  routing?: { intent: string; reasonCode: string; policyVersion: string };
+  retrieval: { method: 'BM25' | 'HYBRID_BM25_VECTOR' | 'CASE_ITEM_EVIDENCE'; matchedPassages: number };
+  sources: {
+    citation: string;
+    sourceId: string;
+    title: string;
+    excerpt: string;
+    kind: 'PROJECT_GUIDE' | 'ACADEMIC_CATALOGUE' | 'CASE_RECORD' | 'HEALTH_REFERENCE';
+    version: string;
+    score: number;
+    href?: string;
+    sourceUrl?: string;
+    documentId?: string;
+    pageNumber?: number;
+  }[];
+  warnings: string[];
+  disclaimer: string;
+  model?: string;
+  followupResolved?: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   relatedMedicine?: string;
+  rag?: RagChatResponse;
+  freshness?: AnswerFreshness;
+  caseMedicineItemId?: string | null;
+  deliveryStatus?: 'streaming' | 'complete' | 'stopped' | 'error';
   messageType?: 'text' | 'prescription_analysis' | 'interaction_alert' | 'comparison';
   attachments?: MessageAttachment[];
   agentTrace?: string[];
@@ -138,6 +169,8 @@ export interface Conversation {
   createdAt: Date;
   updatedAt: Date;
   type: 'general' | 'prescription' | 'comparison' | 'interaction_check';
+  caseId?: string;
+  medicineItemId?: string | null;
 }
 
 export interface User {

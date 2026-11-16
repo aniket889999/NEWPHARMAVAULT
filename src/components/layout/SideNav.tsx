@@ -14,7 +14,7 @@ const SideNav: React.FC = () => {
     <div className="w-64 bg-gray-800 text-gray-100 flex flex-col overflow-hidden">
       <div className="p-4 border-b border-gray-700">
         <button
-          onClick={createConversation}
+          onClick={() => createConversation()}
           className="w-full flex items-center justify-between bg-white bg-opacity-10 hover:bg-opacity-20 text-white rounded-lg px-4 py-3 transition-colors"
         >
           <span className="font-medium">New Chat</span>
