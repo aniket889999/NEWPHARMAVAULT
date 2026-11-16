@@ -322,12 +322,12 @@ test('TrustRAG Verification Case MVP Test Suite', async (t) => {
       if (callIdx === 1) {
         // Prescription
         return {
-          rawText: 'Crocin 500mg\n500mg\nQty: 10\n2026-08-01\nDr. Sharma',
+          rawText: 'Crocin 500mg Tablet\n500mg\nQty: 10 tablets\n2026-08-01\nDr. Sharma',
           confidence: 0.95,
           lines: [
-            { text: 'Crocin 500mg', confidence: 0.95, bbox: [0.1, 0.2, 0.4, 0.25] },
+            { text: 'Crocin 500mg Tablet', confidence: 0.95, bbox: [0.1, 0.2, 0.4, 0.25] },
             { text: '500mg', confidence: 0.95, bbox: [0.45, 0.2, 0.55, 0.25] },
-            { text: 'Qty: 10', confidence: 0.95, bbox: [0.6, 0.2, 0.7, 0.25] },
+            { text: 'Qty: 10 tablets', confidence: 0.95, bbox: [0.6, 0.2, 0.7, 0.25] },
             { text: '2026-08-01', confidence: 0.95, bbox: [0.75, 0.1, 0.9, 0.15] },
             { text: 'Dr. Sharma', confidence: 0.95, bbox: [0.1, 0.5, 0.3, 0.55] }
           ],
@@ -338,12 +338,12 @@ test('TrustRAG Verification Case MVP Test Suite', async (t) => {
       if (callIdx === 2) {
         // Invoice
         return {
-          rawText: 'Crocin 500mg\n500mg\nQty: 10\nTotal: 150.00\n2026-08-02\nCity Pharmacy',
+          rawText: 'Crocin 500mg Tablet\n500mg\nQty: 10 tablets\nTotal: 150.00\n2026-08-02\nCity Pharmacy',
           confidence: 0.95,
           lines: [
-            { text: 'Crocin 500mg', confidence: 0.95, bbox: [0.1, 0.2, 0.4, 0.25] },
+            { text: 'Crocin 500mg Tablet', confidence: 0.95, bbox: [0.1, 0.2, 0.4, 0.25] },
             { text: '500mg', confidence: 0.95, bbox: [0.45, 0.2, 0.55, 0.25] },
-            { text: 'Qty: 10', confidence: 0.95, bbox: [0.6, 0.2, 0.7, 0.25] },
+            { text: 'Qty: 10 tablets', confidence: 0.95, bbox: [0.6, 0.2, 0.7, 0.25] },
             { text: 'Total: 150.00', confidence: 0.95, bbox: [0.75, 0.1, 0.9, 0.15] },
             { text: '2026-08-02', confidence: 0.95, bbox: [0.75, 0.1, 0.9, 0.15] },
             { text: 'City Pharmacy', confidence: 0.95, bbox: [0.1, 0.5, 0.3, 0.55] }
@@ -451,7 +451,9 @@ test('TrustRAG Verification Case MVP Test Suite', async (t) => {
     assert.ok(resultsRes.body.extractedFields.length > 0, 'Should have extracted document fields');
 
     // Step 5: Test Extracted Field Correction (HITL)
-    const firstField = resultsRes.body.extractedFields[0];
+    const firstField =
+      resultsRes.body.extractedFields.find(f => f.fieldType === 'prescriber_name') ||
+      resultsRes.body.extractedFields[0];
 
     // Patient cannot correct extracted fields -> 403 Forbidden
     const patientCorrectRes = await request(app)
@@ -460,25 +462,89 @@ test('TrustRAG Verification Case MVP Test Suite', async (t) => {
       .send({ normalizedValue: 'Patient Attempted Edit' });
     assert.strictEqual(patientCorrectRes.status, 403, 'Patient cannot correct extracted field');
 
-    // Pharmacist A performs authorized field correction -> 200 OK
+    // Pharmacist A obtains current snapshotToken and performs authorized field correction -> 200 OK
+    let snapRes = await request(app)
+      .get(`/api/v1/cases/${caseId}/reconciliation`)
+      .set('Authorization', `Bearer ${tokenPharmA}`);
+    assert.strictEqual(snapRes.status, 200);
+
     const correctRes = await request(app)
       .patch(`/api/v1/cases/${caseId}/extracted-fields/${firstField._id || firstField.id}`)
       .set('Authorization', `Bearer ${tokenPharmA}`)
-      .send({ normalizedValue: 'Paracetamol Verified' });
+      .send({
+        normalizedValue: 'Dr. Sharma Verified',
+        snapshotToken: snapRes.body.snapshotToken
+      });
     assert.strictEqual(correctRes.status, 200);
-    assert.strictEqual(correctRes.body.normalizedValue, 'Paracetamol Verified');
+    assert.strictEqual(correctRes.body.normalizedValue, 'Dr. Sharma Verified');
     assert.strictEqual(correctRes.body.needsCorrection, false);
 
-    // Step 6: Pharmacist/Claims Reviewer Adjudication
+    // Confirm any remaining uncertain fields (keeping Rx and Invoice consistent)
+    const uncertainFields = resultsRes.body.extractedFields.filter(
+      f => f.needsCorrection && String(f._id || f.id) !== String(firstField._id || firstField.id)
+    );
+    for (const uField of uncertainFields) {
+      snapRes = await request(app)
+        .get(`/api/v1/cases/${caseId}/reconciliation`)
+        .set('Authorization', `Bearer ${tokenPharmA}`);
+      assert.strictEqual(snapRes.status, 200);
+      const uRes = await request(app)
+        .patch(`/api/v1/cases/${caseId}/extracted-fields/${uField._id || uField.id}`)
+        .set('Authorization', `Bearer ${tokenPharmA}`)
+        .send({
+          normalizedValue: uField.normalizedValue || uField.rawValue,
+          snapshotToken: snapRes.body.snapshotToken
+        });
+      assert.strictEqual(uRes.status, 200);
+    }
+
+    // Confirm HUMAN_CONFIRMED medicine groups on both Prescription and Pharmacy Invoice
+    for (const docType of ['PRESCRIPTION', 'PHARMACY_INVOICE']) {
+      snapRes = await request(app)
+        .get(`/api/v1/cases/${caseId}/reconciliation`)
+        .set('Authorization', `Bearer ${tokenPharmA}`);
+      assert.strictEqual(snapRes.status, 200);
+      const targetKey = docType === 'PRESCRIPTION' ? 'prescription' : 'invoice';
+      const docState = snapRes.body[targetKey];
+      const docFields = resultsRes.body.extractedFields.filter(
+        f => String(f.documentId) === String(docState.documentId) && f.candidateRowKey === 'row_1'
+      );
+      const anchor = docFields.find(f => f.fieldType === 'medicine_name');
+      assert.ok(anchor, `Expected anchor medicine_name field for ${docType}`);
+      const groupRes = await request(app)
+        .put(`/api/v1/cases/${caseId}/documents/${docState.documentId}/medicine-groups`)
+        .set('Authorization', `Bearer ${tokenPharmA}`)
+        .send({
+          snapshotToken: snapRes.body.snapshotToken,
+          observedItemCount: 1,
+          completenessAttested: true,
+          groups: [
+            {
+              anchorFieldId: String(anchor._id || anchor.id),
+              fieldIds: docFields.map(f => String(f._id || f.id))
+            }
+          ]
+        });
+      assert.strictEqual(groupRes.status, 200, JSON.stringify(groupRes.body));
+    }
+
+    // Step 6: Pharmacist/Claims Reviewer Adjudication with current snapshotToken
+    const reviewSnap = await request(app)
+      .get(`/api/v1/cases/${caseId}/reconciliation`)
+      .set('Authorization', `Bearer ${tokenClaimsA}`);
+    assert.strictEqual(reviewSnap.status, 200);
+    assert.strictEqual(reviewSnap.body.reviewEligibility.canVerify, true, JSON.stringify(reviewSnap.body.reviewEligibility));
+
     const reviewRes = await request(app)
       .post(`/api/v1/cases/${caseId}/reviews`)
       .set('Authorization', `Bearer ${tokenClaimsA}`)
       .send({
         decision: 'APPROVE',
         reasonCode: 'CONSISTENCY_VERIFIED_BY_REVIEWER',
-        notes: 'Cross-document quantity and medicine alignment reviewed and confirmed.'
+        notes: 'Cross-document quantity and medicine alignment reviewed and confirmed.',
+        snapshotToken: reviewSnap.body.snapshotToken
       });
-    assert.strictEqual(reviewRes.status, 201);
+    assert.strictEqual(reviewRes.status, 201, JSON.stringify(reviewRes.body));
     assert.strictEqual(reviewRes.body.decision, 'APPROVE');
 
     // Verify Case is now VERIFIED
@@ -555,12 +621,10 @@ test('TrustRAG Verification Case MVP Test Suite', async (t) => {
       if (callIdx === 1) {
         // Prescription (Quantity: 5)
         return {
-          rawText: 'Crocin 500mg\n500mg\nQty: 5\n2026-08-01\nDr. Sharma',
+          rawText: '1. Crocin 500mg tablet Qty: 5 tablets\n2026-08-01',
           confidence: 0.95,
           lines: [
-            { text: 'Crocin 500mg', confidence: 0.95, bbox: [0.1, 0.1, 0.4, 0.2] },
-            { text: '500mg', confidence: 0.95, bbox: [0.7, 0.1, 0.8, 0.2] },
-            { text: 'Qty: 5', confidence: 0.95, bbox: [0.5, 0.1, 0.6, 0.2] },
+            { text: '1. Crocin 500mg tablet Qty: 5 tablets', confidence: 0.95, bbox: [0.1, 0.1, 0.9, 0.2] },
             { text: '2026-08-01', confidence: 0.95, bbox: [0.1, 0.3, 0.3, 0.4] }
           ],
           words: [],
@@ -569,12 +633,10 @@ test('TrustRAG Verification Case MVP Test Suite', async (t) => {
       }
       // Invoice (Quantity: 20)
       return {
-        rawText: 'Crocin 500mg\n500mg\nQty: 20\nTotal: 300.00\n2026-08-02\nCity Pharmacy',
+        rawText: '1. Crocin 500mg tablet Qty: 20 tablets\nTotal: 300.00\n2026-08-02',
         confidence: 0.95,
         lines: [
-          { text: 'Crocin 500mg', confidence: 0.95, bbox: [0.1, 0.1, 0.4, 0.2] },
-          { text: '500mg', confidence: 0.95, bbox: [0.7, 0.1, 0.8, 0.2] },
-          { text: 'Qty: 20', confidence: 0.95, bbox: [0.5, 0.1, 0.6, 0.2] },
+          { text: '1. Crocin 500mg tablet Qty: 20 tablets', confidence: 0.95, bbox: [0.1, 0.1, 0.9, 0.2] },
           { text: 'Total: 300.00', confidence: 0.95, bbox: [0.1, 0.3, 0.3, 0.4] },
           { text: '2026-08-02', confidence: 0.95, bbox: [0.4, 0.3, 0.6, 0.4] }
         ],

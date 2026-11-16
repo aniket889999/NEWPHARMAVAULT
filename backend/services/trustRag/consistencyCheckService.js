@@ -10,6 +10,19 @@ const { buildProposedGroupsFromPersistedFields } = require('./localMedicineRowEx
  * using the Session 1 medicine-item contract and Session 2 medicine reconciliation service.
  */
 class ConsistencyCheckService {
+  // Project the frozen Session 2 result; absent/unknown dimensions never mean PASS.
+  _comparisonStatus(comparison, dimensions) {
+    const rows = Array.isArray(comparison?.rows) ? comparison.rows : [];
+    if (!rows.length) return 'INCONCLUSIVE';
+    if (dimensions.includes('identity') && rows.some(row =>
+      (row.reasonCodes || []).some(code => ['MISSING_INVOICE_ITEM', 'EXTRA_INVOICE_ITEM'].includes(code)))) return 'FAIL';
+    if (rows.some(row => dimensions.some(dimension => row.checks?.[dimension] === 'MISMATCH'))) return 'FAIL';
+    if (!rows.every(row => row.prescriptionItemId && row.invoiceItemId)) return 'INCONCLUSIVE';
+    return rows.every(row => dimensions.every(dimension =>
+      row.checks?.[dimension] === 'CONSISTENT' ||
+      (dimension === 'release' && row.checks?.[dimension] === 'NOT_APPLICABLE'))) ? 'PASS' : 'INCONCLUSIVE';
+  }
+
   _buildDocEnvelope(doc, docFields) {
     if (!doc) return null;
     const storedGroups =
@@ -105,31 +118,7 @@ class ConsistencyCheckService {
     // 1. Medicine Name Consistency Check (Item-level reconciliation across Rx and Invoice)
     if (rxMedFields.length > 0 && invMedFields.length > 0 && comparison) {
       const rows = Array.isArray(comparison.rows) ? comparison.rows : [];
-      const hasBrandGenericConflict = rows.some((r) =>
-        (r.issueCodes || []).includes('BRAND_GENERIC_CONFLICT')
-      );
-      const hasMissingOrExtra = rows.some(
-        (r) =>
-          r.rowStatus === 'MISSING_INVOICE_ITEM' || r.rowStatus === 'EXTRA_INVOICE_ITEM'
-      );
-      const hasIdentityUncertainty = rows.some((r) =>
-        (r.issueCodes || []).some((c) =>
-          [
-            'AMBIGUOUS_MEDICINE_IDENTITY',
-            'UNKNOWN_MEDICINE_IDENTITY',
-            'LOW_CONFIDENCE_EVIDENCE',
-            'DOCUMENT_REVIEW_REQUIRED'
-          ].includes(c)
-        )
-      );
-      const allPairedAndResolved =
-        rows.length > 0 &&
-        rows.every(
-          (r) =>
-            r.prescriptionItemId !== null &&
-            r.invoiceItemId !== null &&
-            r.identity?.status === 'MATCH'
-        );
+      const identityStatus = this._comparisonStatus(comparison, ['identity']);
 
       const rxSummary = rxMedFields.map((f) => f.normalizedValue || f.rawValue).join(', ');
       const invSummary = invMedFields.map((f) => f.normalizedValue || f.rawValue).join(', ');
@@ -140,20 +129,21 @@ class ConsistencyCheckService {
       let evidenceText = '';
       let reviewRequired = true;
 
-      if (hasBrandGenericConflict || hasMissingOrExtra) {
+      if (identityStatus === 'FAIL') {
         checkStatus = 'FAIL';
         checkSeverity = 'HIGH';
         reviewRequired = true;
         checkMessage = `Medicine item mismatch between Prescription (${rxSummary}) and Pharmacy Invoice (${invSummary}).`;
         evidenceText = `Item-level medicine reconciliation detected a discrepancy between Prescription (${rxSummary}) and Pharmacy Invoice (${invSummary}): ${rows
-          .map((r) => `${r.rowStatus} [${(r.issueCodes || []).join(', ')}]`)
+          .map((r) => `${r.status} [${(r.reasonCodes || []).join(', ')}]`)
           .join('; ')}.`;
-      } else if (allPairedAndResolved && !hasIdentityUncertainty) {
+      } else if (identityStatus === 'PASS') {
         checkStatus = 'PASS';
         checkSeverity = 'INFO';
         reviewRequired = false;
-        checkMessage = `Medicine items verified consistent across Prescription (${rxSummary}) and Pharmacy Invoice (${invSummary}).`;
-        evidenceText = `Item-level medicine reconciliation aligned ${rows.length} medicine item(s) between Prescription (${rxSummary}) and Pharmacy Invoice (${invSummary}).`;
+        const generics = [...new Set(rows.map(row => row.genericName).filter(Boolean))].join(', ');
+        checkMessage = `Medicine identities align with the academic generic record (${generics}): Prescription (${rxSummary}), Invoice (${invSummary}).`;
+        evidenceText = `OCR document evidence: Prescription (${rxSummary}), Invoice (${invSummary}). Curated local medicine catalogue: ${generics}. Item-level reconciliation aligned ${rows.length} medicine item(s); this academic identity reference is not live regulatory verification.`;
       } else {
         checkStatus = 'INCONCLUSIVE';
         checkSeverity = 'MEDIUM';
@@ -199,16 +189,8 @@ class ConsistencyCheckService {
       resolutions['PHARMACY_INVOICE']?.canonical?.strength;
 
     if ((rxStrengthFields.length > 0 && invStrengthFields.length > 0) || (rxStrengthFallback && invStrengthFallback)) {
-      const rows = Array.isArray(comparison?.rows) ? comparison.rows : [];
-      const hasStrengthMismatchInRows = rows.some((r) =>
-        (r.issueCodes || []).includes('STRENGTH_MISMATCH')
-      );
-      const normRxStr = String(rxStrengthFallback || '').toLowerCase().replace(/\s+/g, '');
-      const normInvStr = String(invStrengthFallback || '').toLowerCase().replace(/\s+/g, '');
-      const strengthMatch =
-        rows.length > 0 && rows.some((r) => r.prescriptionItemId && r.invoiceItemId)
-          ? !hasStrengthMismatchInRows
-          : normRxStr === normInvStr;
+      const strengthStatus = this._comparisonStatus(comparison, ['strength']);
+      const strengthMatch = strengthStatus === 'PASS';
 
       const rxStrLabel =
         rxStrengthFields.map((f) => f.normalizedValue || f.rawValue).join(', ') ||
@@ -224,18 +206,22 @@ class ConsistencyCheckService {
         claimSupported: `Dosage Strength Alignment: Rx (${rxStrLabel}) vs Invoice (${invStrLabel})`,
         evidenceText: strengthMatch
           ? `OCR document evidence: Prescribed strength (${rxStrLabel}) matches invoiced strength (${invStrLabel}).`
-          : `Strength discrepancy: Prescribed (${rxStrLabel}) vs Invoiced (${invStrLabel}).`,
+          : strengthStatus === 'FAIL'
+            ? `Strength discrepancy: Prescribed (${rxStrLabel}) vs Invoiced (${invStrLabel}).`
+            : `Strength comparison is inconclusive for the current item evidence: Prescription (${rxStrLabel}), Invoice (${invStrLabel}).`,
         trustTier: 4
       });
 
       const check = new ConsistencyCheck({
         caseId,
         checkType: 'DOSAGE_STRENGTH_CONSISTENCY',
-        status: strengthMatch ? 'PASS' : 'FAIL',
-        severity: strengthMatch ? 'INFO' : 'HIGH',
+        status: strengthStatus,
+        severity: strengthMatch ? 'INFO' : strengthStatus === 'FAIL' ? 'HIGH' : 'MEDIUM',
         message: strengthMatch
           ? 'Dosage and strength aligned across prescription and invoice.'
-          : `Dosage strength mismatch: Prescribed ${rxStrLabel} vs Invoiced ${invStrLabel}.`,
+          : strengthStatus === 'FAIL'
+            ? `Dosage strength mismatch: Prescribed ${rxStrLabel} vs Invoiced ${invStrLabel}.`
+            : 'Strength evidence is insufficient for a safe item-level comparison.',
         evidenceItemIds: [evidence._id],
         rulesetVersion: '2.0',
         reviewRequired: !strengthMatch
@@ -258,18 +244,8 @@ class ConsistencyCheckService {
       resolutions['PHARMACY_INVOICE']?.canonical?.dosageForm;
 
     if ((rxFormFields.length > 0 && invFormFields.length > 0) || (rxFormFallback && invFormFallback)) {
-      const rows = Array.isArray(comparison?.rows) ? comparison.rows : [];
-      const hasFormOrReleaseMismatch = rows.some((r) =>
-        (r.issueCodes || []).some((c) =>
-          ['DOSAGE_FORM_MISMATCH', 'RELEASE_TYPE_MISMATCH', 'RELEASE_TYPE_MISSING'].includes(c)
-        )
-      );
-      const normRxForm = String(rxFormFallback || '').toLowerCase().trim();
-      const normInvForm = String(invFormFallback || '').toLowerCase().trim();
-      const formMatch =
-        rows.length > 0 && rows.some((r) => r.prescriptionItemId && r.invoiceItemId)
-          ? !hasFormOrReleaseMismatch
-          : normRxForm === normInvForm;
+      const formStatus = this._comparisonStatus(comparison, ['form', 'release']);
+      const formMatch = formStatus === 'PASS';
 
       const rxFormLabel =
         rxFormFields.map((f) => f.normalizedValue || f.rawValue).join(', ') || rxFormFallback;
@@ -283,18 +259,18 @@ class ConsistencyCheckService {
         claimSupported: `Dosage Form Alignment: Rx (${rxFormLabel}) vs Invoice (${invFormLabel})`,
         evidenceText: formMatch
           ? `Dosage form (${rxFormLabel}) matches invoice dosage form (${invFormLabel}).`
-          : `Dosage form or release discrepancy: Prescribed (${rxFormLabel}) vs Invoiced (${invFormLabel}). Requires clinical review.`,
+          : `Dosage form or release comparison is ${formStatus === 'FAIL' ? 'inconsistent' : 'inconclusive'}: Prescription (${rxFormLabel}), Invoice (${invFormLabel}). Requires human review.`,
         trustTier: 4
       });
 
       const check = new ConsistencyCheck({
         caseId,
         checkType: 'DOSAGE_FORM_CONSISTENCY',
-        status: formMatch ? 'PASS' : 'INCONCLUSIVE',
-        severity: formMatch ? 'INFO' : 'MEDIUM',
+        status: formStatus,
+        severity: formMatch ? 'INFO' : formStatus === 'FAIL' ? 'HIGH' : 'MEDIUM',
         message: formMatch
           ? 'Dosage form aligned across prescription and invoice.'
-          : `Dosage form discrepancy: Prescribed ${rxFormLabel} vs Invoiced ${invFormLabel}. Requires clinical review.`,
+          : `Dosage form/release evidence is ${formStatus === 'FAIL' ? 'inconsistent' : 'inconclusive'}. Requires human review.`,
         evidenceItemIds: [evidence._id],
         rulesetVersion: '2.0',
         reviewRequired: !formMatch
@@ -302,30 +278,15 @@ class ConsistencyCheckService {
       checks.push(await check.save());
     }
 
-    // 4. Quantity Consistency Check (Item-level reconciliation with fallback for unitless legacy rows)
+    // 4. Quantity comparison uses explicit Session 2 units/pack arithmetic; never infer from unitless numbers.
     const rxQtyFields = rxEntry ? rxEntry.fields.filter((f) => f.fieldType === 'quantity') : [];
     const invQtyFields = invEntry ? invEntry.fields.filter((f) => f.fieldType === 'quantity') : [];
     const rxQty = parseFloat(getVal('PRESCRIPTION', 'quantity'));
     const invQty = parseFloat(getVal('PHARMACY_INVOICE', 'quantity'));
 
     if ((rxQtyFields.length > 0 && invQtyFields.length > 0) || (!Number.isNaN(rxQty) && !Number.isNaN(invQty))) {
-      const rows = Array.isArray(comparison?.rows) ? comparison.rows : [];
-      const hasQtyExceedsInRows = rows.some(
-        (r) =>
-          (r.issueCodes || []).includes('QUANTITY_EXCEEDS_PRESCRIBED') ||
-          r.quantityComparison?.status === 'INVOICE_EXCEEDS_PRESCRIPTION' ||
-          (typeof r.quantityComparison?.prescriptionQuantity?.rawQuantity === 'number' &&
-            typeof r.quantityComparison?.invoiceQuantity?.rawQuantity === 'number' &&
-            !r.quantityComparison?.prescriptionQuantity?.quantityUnit &&
-            !r.quantityComparison?.invoiceQuantity?.quantityUnit &&
-            r.quantityComparison.invoiceQuantity.rawQuantity >
-              r.quantityComparison.prescriptionQuantity.rawQuantity)
-      );
-
-      const qtyMatch =
-        rows.length > 0 && rows.some((r) => r.prescriptionItemId && r.invoiceItemId)
-          ? !hasQtyExceedsInRows
-          : invQty <= rxQty;
+      const quantityStatus = this._comparisonStatus(comparison, ['quantity']);
+      const qtyMatch = quantityStatus === 'PASS';
 
       const rxQtyLabel =
         rxQtyFields.map((f) => f.normalizedValue || f.rawValue).join(', ') || String(rxQty);
@@ -338,19 +299,23 @@ class ConsistencyCheckService {
         documentId: rxEntry?.docId,
         claimSupported: `Quantity Consistency: Prescribed (${rxQtyLabel}) vs Invoiced (${invQtyLabel})`,
         evidenceText: qtyMatch
-          ? `Dispensed quantity (${invQtyLabel}) is within prescribed limit (${rxQtyLabel}).`
-          : `Excessive dispensing: Prescribed (${rxQtyLabel}) but Invoiced (${invQtyLabel}).`,
+          ? `The explicitly normalized item quantities agree: Prescription (${rxQtyLabel}), Invoice (${invQtyLabel}).`
+          : quantityStatus === 'FAIL'
+            ? `Documented quantity discrepancy: Prescription (${rxQtyLabel}), Invoice (${invQtyLabel}).`
+            : `Quantity comparison requires explicit compatible units and complete item evidence: Prescription (${rxQtyLabel}), Invoice (${invQtyLabel}).`,
         trustTier: 4
       });
 
       const check = new ConsistencyCheck({
         caseId,
         checkType: 'QUANTITY_CONSISTENCY',
-        status: qtyMatch ? 'PASS' : 'FAIL',
-        severity: qtyMatch ? 'INFO' : 'HIGH',
+        status: quantityStatus,
+        severity: qtyMatch ? 'INFO' : quantityStatus === 'FAIL' ? 'HIGH' : 'MEDIUM',
         message: qtyMatch
-          ? `Quantity is valid (${invQtyLabel} dispensed <= ${rxQtyLabel} prescribed).`
-          : `Quantity mismatch: ${invQtyLabel} invoiced exceeds ${rxQtyLabel} prescribed.`,
+          ? 'Documented item quantities agree after explicit unit/pack normalization.'
+          : quantityStatus === 'FAIL'
+            ? `Quantity mismatch: Prescription (${rxQtyLabel}) vs Invoice (${invQtyLabel}).`
+            : 'Quantity evidence is incomplete or units cannot be compared; no numeric limit was inferred.',
         evidenceItemIds: [evidence._id],
         rulesetVersion: '2.0',
         reviewRequired: !qtyMatch
@@ -393,15 +358,14 @@ class ConsistencyCheckService {
       checks.push(await check.save());
     }
 
-    // 6. Document Triangle Completeness Check
+    // 6. Required medicine pair; preserve the legacy checkType only for API compatibility.
     const presentTypes = Object.keys(docTypeMap);
-    const hasTriangle =
+    const hasRequiredMedicinePair =
       presentTypes.includes('PRESCRIPTION') &&
-      presentTypes.includes('PHARMACY_INVOICE') &&
-      presentTypes.includes('CLAIM_FORM');
+      presentTypes.includes('PHARMACY_INVOICE');
 
-    if (!hasTriangle) {
-      const missing = ['PRESCRIPTION', 'PHARMACY_INVOICE', 'CLAIM_FORM'].filter(
+    if (!hasRequiredMedicinePair) {
+      const missing = ['PRESCRIPTION', 'PHARMACY_INVOICE'].filter(
         (t) => !presentTypes.includes(t)
       );
       const check = new ConsistencyCheck({
@@ -409,7 +373,7 @@ class ConsistencyCheckService {
         checkType: 'DOCUMENT_TRIANGLE_COMPLETENESS',
         status: 'INCONCLUSIVE',
         severity: 'MEDIUM',
-        message: `Incomplete document set: Missing ${missing.join(', ')}.`,
+        message: `Missing required medicine document(s): ${missing.join(', ')}. Claim form is optional.`,
         evidenceItemIds: [],
         rulesetVersion: '2.0',
         reviewRequired: true

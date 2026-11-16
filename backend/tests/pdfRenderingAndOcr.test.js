@@ -1082,10 +1082,18 @@ test('Work Order 5B / U3: Bounded PDF Processing and Trustworthy Evidence Closur
     const page2Field = fields.find(f => f.pageNumber === 2);
     assert.ok(page2Field);
 
+    const reconBeforePage2 = await request(app)
+      .get(`/api/v1/cases/${retryCase._id}/reconciliation`)
+      .set('Authorization', `Bearer ${tokenA}`);
+    assert.strictEqual(reconBeforePage2.status, 200);
+
     const correctRes = await request(app)
       .patch(`/api/v1/cases/${retryCase._id}/extracted-fields/${page2Field._id}`)
       .set('Authorization', `Bearer ${tokenA}`)
-      .send({ normalizedValue: '500 mg' });
+      .send({
+        normalizedValue: '500 mg',
+        snapshotToken: reconBeforePage2.body.snapshotToken
+      });
 
     assert.strictEqual(correctRes.status, 200);
 
@@ -1099,10 +1107,19 @@ test('Work Order 5B / U3: Bounded PDF Processing and Trustworthy Evidence Closur
     // Also correct page 1 field if marked needsCorrection so all fields on doc are resolved
     const page1Field = fields.find(f => f.pageNumber === 1);
     if (page1Field && page1Field.needsCorrection) {
-      await request(app)
+      const reconBeforePage1 = await request(app)
+        .get(`/api/v1/cases/${retryCase._id}/reconciliation`)
+        .set('Authorization', `Bearer ${tokenA}`);
+      assert.strictEqual(reconBeforePage1.status, 200);
+
+      const page1CorrectRes = await request(app)
         .patch(`/api/v1/cases/${retryCase._id}/extracted-fields/${page1Field._id}`)
         .set('Authorization', `Bearer ${tokenA}`)
-        .send({ normalizedValue: '500 mg' });
+        .send({
+          normalizedValue: '500 mg',
+          snapshotToken: reconBeforePage1.body.snapshotToken
+        });
+      assert.strictEqual(page1CorrectRes.status, 200);
     }
 
     // 2nd run: reprocessing after legitimate correction

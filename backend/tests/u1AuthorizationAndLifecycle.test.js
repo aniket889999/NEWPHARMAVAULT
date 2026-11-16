@@ -345,11 +345,20 @@ test('U1: Authorization, Lifecycle Enforcement, and Safe Database Isolation Suit
     assert.strictEqual(patientCorrect.status, 403);
     assert.match(patientCorrect.body.message, /healthcare staff/i);
 
-    // 5b. Pharmacist in Org A corrects field -> 200 OK
+    // 5b. Pharmacist in Org A obtains current snapshotToken and corrects field -> 200 OK
+    const reconRes = await request(app)
+      .get(`/api/v1/cases/${hitlCase._id}/reconciliation`)
+      .set('Authorization', `Bearer ${pharmacistToken}`);
+    assert.strictEqual(reconRes.status, 200);
+    assert.ok(reconRes.body.snapshotToken, 'Reconciliation snapshot must provide snapshotToken');
+
     const pharmCorrect = await request(app)
       .patch(`/api/v1/cases/${hitlCase._id}/extracted-fields/${field._id}`)
       .set('Authorization', `Bearer ${pharmacistToken}`)
-      .send({ normalizedValue: 'Paracetamol 500mg' });
+      .send({
+        normalizedValue: 'Paracetamol 500mg',
+        snapshotToken: reconRes.body.snapshotToken
+      });
     assert.strictEqual(pharmCorrect.status, 200);
     assert.strictEqual(pharmCorrect.body.needsCorrection, false);
     assert.strictEqual(pharmCorrect.body.normalizedValue, 'Paracetamol 500mg');

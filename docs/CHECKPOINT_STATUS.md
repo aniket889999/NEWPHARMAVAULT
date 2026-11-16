@@ -1,29 +1,28 @@
-# Published checkpoint status — integration review update, 13 November 2026
-
+# Published checkpoint status — 16 November 2026
 This repository contains reproducible academic engineering checkpoints, not a clinically validated product.
 
-| Checkpoint | Publication | Accepted scope |
+| Checkpoint | Publication | Current accepted scope |
 |---|---|---|
-| Session 1: Foundation | `7cdce5c` on main | 125/125 offline builder, independent adapter and dataset-integrity checks; frozen eight-slot medicine-item contract |
-| Session 2: Matching and quantities | `aef0e64` on main | 43/43 builder + 56/56 independent backend + 39/39 consumer checks; Foundation regression preserved; 11 schemas valid |
-| Session 3: Case integration / human review | PARTIAL / NOT ACCEPTED on `wip/session-3-integration-review` | Supplied suites pass, but four independent HTTP contract checks fail; see the independent review. Earlier client-only snapshot remains on `wip/session-3-client`. |
-| Sessions 4–5 | Not started | Item-bound RAG/freshness and held-out evaluation/demo |
+| Session 1: Foundation | 7cdce5c on main | Frozen eight-slot adapter; 125 offline builder/independent/data-integrity checks |
+| Session 2: Matching and quantities | aef0e64 on main | Frozen offline matching/quantity engine and comparison consumer |
+| Session 3: Case integration / human review | Accepted prototype scope on wip/session-3-integration-review | Four original HTTP regressions fixed; real synthetic browser walkthrough completed; strict full frontend build repaired; full backend 258/258 and new projection regressions 12/12 pass. See sprint-six/SESSION_3_CLOSURE.md. |
+| Session 4: Item-bound RAG / answer freshness | PARTIAL, client checkpoint 8d07c19 on the review branch | Client, wire schemas and source/freshness/history guards pass; backend implementation and live integration remain pending. |
+| Session 5: Research evaluation / demo | Protocol prepared; no held-out result | See rag-v2/EVALUATION_PROTOCOL.md. No novelty/clinical accuracy percentage is claimed. |
 
-## Reproduce the accepted checks
+Main still contains the accepted earlier checkpoints; WIP publication does not automatically merge feature work. Earlier reports preserve their then-current failures and no-commit statements as historical evidence. Use this status and the linked current reports instead of stale first-pass decisions.
 
+## Reproduce bounded engineering evidence
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
 node scripts/checkpoint-checks.cjs --report-dir=reports/checkpoints
 npm run validate:schemas
-node node_modules/typescript/bin/tsc --noEmit -p tests/reconciliation-v2/tsconfig.json
+npm run validate:contract
+npm run build:frontend
+node --test tests/rag-v2/consumer.test.cjs tests/rag-v2/store.test.cjs tests/rag-v2/ui.test.cjs tests/rag-v2/schema.test.cjs tests/chatClient.test.cjs
 ```
 
-The GitHub workflow **Offline checkpoint checks** runs these bounded checks on pushes/PRs and uploads measured group counts and frozen-source integrity. Report-parser tests prevent missing, failed, cancelled, skipped or zero-test runs from being advertised as a complete pass. Generated reports are ignored by Git and attached to the run, not manually edited into a score.
+Real backend runs also need backend dependencies, loopback MongoDB and a locally provisioned English OCR file. See sprint-six/SESSION_3_CLOSURE.md for the explicit real-OCR opt-in and guarded disposable targets.
 
-The separate **Session 3 independent contract review** workflow runs actual HTTP regressions with a disposable MongoDB service. Its current four failures are intentionally retained as unresolved acceptance evidence, not skipped or relabelled successful. Read [the independent review](integration-v2/SESSION_3_INDEPENDENT_REVIEW.md) before interpreting any green offline badge.
+The offline GitHub job checks fixed contracts/fingerprints, client acceptance, schemas and the real strict frontend build. The separate integration job uses disposable MongoDB for protected contract, privacy, public-chat and projection regressions. These are bounded CI scopes, not a claim that every local OCR/device/deployment experiment ran remotely. Generated reports are ignored and uploaded as artifacts, not edited into invented scores.
 
-The README badge describes only this offline job. A green badge does not establish a successful full-app build, real document OCR, clinical accuracy, live integration, research novelty percentage or a paper acceptance score. Wider application strict-type/lint debt and legacy mock evaluation dashboards are not waived by these checks. No held-out product score has been produced.
-
-Original implementation reports are preserved as historical evidence; some describe the earlier active-source location and then-current no-commit state. This publication record and Git history describe what was subsequently published. The original project's Git history, local environment and patient/document storage were not copied.
-
-Follow [checkpoint publication policy](CHECKPOINT_COMMIT_POLICY.md). Complete and inspect real work before publishing the next accepted checkpoint.
+No held-out product score, clinical validation, production deployment, device acceptance, certified FHIR/NHCX integration or paper-acceptance probability has been established. Legacy illustrative dashboards do not become measured evaluation merely because tests pass. Follow CHECKPOINT_COMMIT_POLICY.md: publish genuine inspected checkpoints, preserve history and never create empty/backdated activity commits.

@@ -50,7 +50,7 @@ test('U5 real local golden API workflow (opt-in)', {
   process.env.TRUSTRAG_TESSDATA_PATH = path.join(root, 'tessdata');
   fs.mkdirSync(process.env.TRUSTRAG_TESSDATA_PATH, { mode: 0o700 });
 
-  const sourceTessdata = path.resolve(__dirname, '../tessdata');
+  const sourceTessdata = process.env.U5_LOCAL_TESSDATA_PATH || path.resolve(__dirname, '../tessdata');
   const languageFile = ['eng.traineddata', 'eng.traineddata.gz'].find(name => fs.existsSync(path.join(sourceTessdata, name)));
   assert.ok(languageFile, 'Provision local English OCR data; this test never downloads it.');
   fs.copyFileSync(path.join(sourceTessdata, languageFile), path.join(process.env.TRUSTRAG_TESSDATA_PATH, languageFile));
@@ -123,7 +123,10 @@ test('U5 real local golden API workflow (opt-in)', {
     const key = `${type}:${strength}`;
     if (!fixtureCache.has(key)) {
       const date = type === 'PRESCRIPTION' ? '2026-10-10' : type === 'PHARMACY_INVOICE' ? '2026-10-11' : '2026-10-12';
-      const pdf = syntheticPdf(['SYNTHETIC DEMO - NOT FOR CLINICAL USE', type.replaceAll('_', ' '), `Paracetamol ${strength} mg Tablet`, 'Quantity: 10', `Date: ${date}`, 'Total: 100.00', 'Claimed: 100.00']);
+      const lines = ['SYNTHETIC DEMO - NOT FOR CLINICAL USE', type.replaceAll('_', ' ')];
+      if (type !== 'CLAIM_FORM') lines.push(`1. Paracetamol ${strength} mg tablet Qty: 10 tablets`);
+      lines.push(`Date: ${date}`, 'Total: 100.00', 'Claimed: 100.00');
+      const pdf = syntheticPdf(lines);
       fixtureCache.set(key, { pdf, png: await provider.renderPage(pdf, 1) });
     }
     return fixtureCache.get(key);
@@ -174,7 +177,12 @@ test('U5 real local golden API workflow (opt-in)', {
     let results = await processAndRead(clean.caseID);
     for (const doc of clean.documents) {
       const strength = results.extractedFields.find(field => String(field.documentId) === doc.id && field.fieldType === 'dosage_strength');
-      assert.equal(strength?.normalizedValue, '500mg');
+      if (doc.type === 'CLAIM_FORM') {
+        assert.equal(strength, undefined, 'Claims are supporting financial documents, not medicine-row evidence.');
+        assert.ok(!results.extractedFields.some(field => String(field.documentId) === doc.id && field.fieldType === 'medicine_name'));
+      } else {
+        assert.equal(String(strength?.normalizedValue).replace(/\s/g, ''), '500mg');
+      }
       const content = await api('get', `/cases/${clean.caseID}/documents/${doc.id}/content`);
       assert.equal(content.status, 200);
       assert.deepEqual(content.body, doc.bytes);
@@ -184,17 +192,38 @@ test('U5 real local golden API workflow (opt-in)', {
     const toConfirm = results.extractedFields.filter(field => field.needsCorrection);
     if (!toConfirm.some(field => idOf(field) === idOf(quantity))) toConfirm.push(quantity);
     for (const field of toConfirm) {
-      const correction = await api('patch', `/cases/${clean.caseID}/extracted-fields/${idOf(field)}`).send({ normalizedValue: field.normalizedValue });
+      const snapRes = await api('get', `/cases/${clean.caseID}/reconciliation`);
+      assert.equal(snapRes.status, 200);
+      const correction = await api('patch', `/cases/${clean.caseID}/extracted-fields/${idOf(field)}`).send({
+        normalizedValue: field.normalizedValue,
+        snapshotToken: snapRes.body.snapshotToken
+      });
       assert.equal(correction.status, 200);
       assert.equal(correction.body.rawValue, field.rawValue, 'Human confirmation must retain original OCR text.');
       assert.equal(String(correction.body.correctedBy), String(staff._id));
     }
     if ((await api('get', `/cases/${clean.caseID}`)).body.status === 'READY_FOR_PROCESSING') results = await processAndRead(clean.caseID);
     assert.equal(results.consistencyChecks.find(check => check.checkType === 'DOSAGE_STRENGTH_CONSISTENCY')?.status, 'PASS');
+    for (const doc of clean.documents.filter(d => d.type === 'PRESCRIPTION' || d.type === 'PHARMACY_INVOICE')) {
+      const snapRes = await api('get', `/cases/${clean.caseID}/reconciliation`);
+      assert.equal(snapRes.status, 200);
+      const docFields = results.extractedFields.filter(f => String(f.documentId) === doc.id && f.candidateRowKey);
+      const anchor = docFields.find(f => f.fieldType === 'medicine_name');
+      assert.ok(anchor, `Expected anchor medicine_name field for ${doc.type}`);
+      const groupRes = await api('put', `/cases/${clean.caseID}/documents/${doc.id}/medicine-groups`).send({
+        snapshotToken: snapRes.body.snapshotToken,
+        observedItemCount: 1,
+        completenessAttested: true,
+        groups: [{ anchorFieldId: idOf(anchor), fieldIds: docFields.map(idOf) }]
+      });
+      assert.equal(groupRes.status, 200);
+    }
     const queue = await api('get', '/review-queue');
     assert.equal(queue.status, 200);
     assert.ok(queue.body.some(item => idOf(item) === clean.caseID));
-    const review = await api('post', `/cases/${clean.caseID}/reviews`).send({ action: 'VERIFY', reasonCode: 'CROSS_DOCUMENT_CONSISTENT', notes: 'Synthetic single-medicine sources inspected and confirmed.', evidenceItemIds: results.evidenceItems.slice(0, 2).map(idOf) });
+    const verifySnap = await api('get', `/cases/${clean.caseID}/reconciliation`);
+    assert.equal(verifySnap.status, 200);
+    const review = await api('post', `/cases/${clean.caseID}/reviews`).send({ action: 'VERIFY', reasonCode: 'CROSS_DOCUMENT_CONSISTENT', notes: 'Synthetic single-medicine sources inspected and confirmed.', evidenceItemIds: results.evidenceItems.slice(0, 2).map(idOf), snapshotToken: verifySnap.body.snapshotToken });
     assert.equal(review.status, 201);
     assert.equal(review.body.newCaseStatus, 'VERIFIED');
     const audit = await api('get', `/cases/${clean.caseID}/audit-trail`);
@@ -218,7 +247,9 @@ test('U5 real local golden API workflow (opt-in)', {
     const evidenceIDs = new Set((await EvidenceItem.find({ caseId: mismatch.caseID })).map(item => String(item._id)));
     for (const item of storedSignals) for (const id of item.evidenceItemIds) assert.ok(evidenceIDs.has(String(id)), 'Signal must not cite an ExtractedField or another case.');
     assert.equal((await api('post', `/cases/${mismatch.caseID}/reviews`, patientToken).send({ action: 'VERIFY', reasonCode: 'X' })).status, 403);
-    const escalation = await api('post', `/cases/${mismatch.caseID}/reviews`).send({ action: 'ESCALATE', reasonCode: 'SUSPECTED_ALTERATION', notes: 'Synthetic strength discrepancy requires clarification; this is not proof of fraud.' });
+    const escalateSnap = await api('get', `/cases/${mismatch.caseID}/reconciliation`);
+    assert.equal(escalateSnap.status, 200);
+    const escalation = await api('post', `/cases/${mismatch.caseID}/reviews`).send({ action: 'ESCALATE', reasonCode: 'SUSPECTED_ALTERATION', notes: 'Synthetic strength discrepancy requires clarification; this is not proof of fraud.', snapshotToken: escalateSnap.body.snapshotToken });
     assert.equal(escalation.status, 201);
     assert.equal(escalation.body.newCaseStatus, 'NEEDS_REVIEW');
   });

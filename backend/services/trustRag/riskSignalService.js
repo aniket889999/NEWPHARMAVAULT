@@ -266,7 +266,7 @@ class RiskSignalService {
     const hasUnresolvedMed =
       Object.values(resolutions).some((r) => r && !r.resolved) ||
       (reconciliationSnapshot?.comparison?.rows || []).some((r) =>
-        (r.issueCodes || []).includes('UNKNOWN_MEDICINE_IDENTITY')
+        (r.reasonCodes || []).some(code => ['UNKNOWN_MEDICINE', 'IDENTITY_ATTRIBUTE_CONFLICT'].includes(code))
       );
     if (medNameInconclusive || hasUnresolvedMed) {
       let evIds = [];
@@ -300,7 +300,7 @@ class RiskSignalService {
 
     // 9. DOSAGE_FORM_DISCREPANCY
     const formDiscrepancy = checks.find(
-      (c) => c.checkType === 'DOSAGE_FORM_CONSISTENCY' && c.status === 'INCONCLUSIVE'
+      (c) => c.checkType === 'DOSAGE_FORM_CONSISTENCY' && ['FAIL', 'INCONCLUSIVE'].includes(c.status)
     );
     if (formDiscrepancy) {
       const validEvidenceIds = await this._filterSameCaseEvidence(
@@ -324,7 +324,7 @@ class RiskSignalService {
     const hasAmbiguous =
       Object.values(resolutions).some((r) => r && r.ambiguous === true) ||
       (reconciliationSnapshot?.comparison?.rows || []).some((r) =>
-        (r.issueCodes || []).includes('AMBIGUOUS_MEDICINE_IDENTITY')
+        (r.reasonCodes || []).some(code => ['AMBIGUOUS_MEDICINE', 'AMBIGUOUS_MATCH'].includes(code))
       );
     if (hasAmbiguous) {
       const medEv = await EvidenceItem.find({
@@ -347,16 +347,19 @@ class RiskSignalService {
       }
     }
 
-    // 11. INSUFFICIENT_EVIDENCE (Missing documents or incomplete triangle)
+    // 11. Required medicine pair; a claim is optional supporting evidence.
     const hasUnresolved = Object.values(resolutions).some((r) => r && !r.resolved);
-    const incompleteTriangle = documents.length < 3;
-    if (documents.length < 2 || hasUnresolved || incompleteTriangle) {
+    const requiredDocumentTypes = new Set(documents.map(doc => doc.type));
+    const missingMedicinePair = !requiredDocumentTypes.has('PRESCRIPTION') || !requiredDocumentTypes.has('PHARMACY_INVOICE');
+    const incompleteComparison = reconciliationSnapshot?.comparison?.hasInsufficientEvidence === true ||
+      checks.some(check => check.status === 'INCONCLUSIVE');
+    if (missingMedicinePair || hasUnresolved || incompleteComparison) {
       const reason =
-        documents.length < 2
-          ? 'Fewer than 2 verification documents available; cannot substantiate cross-document evidence.'
-          : incompleteTriangle
-          ? `Case contains only ${documents.length} of 3 required documents (Prescription, Invoice, Claim).`
-          : 'Failed to verify medicine against allow-listed canonical medical evidence.';
+        missingMedicinePair
+          ? 'A prescription and pharmacy invoice are required for medicine comparison; the claim form is optional.'
+          : hasUnresolved
+          ? 'Medicine identity could not be resolved against the supported academic reference.'
+          : 'Some current item comparisons are inconclusive; inspect the stated evidence limitations.';
 
       const insEvidence = new EvidenceItem({
         caseId,
@@ -385,7 +388,7 @@ class RiskSignalService {
       const signal = new RiskSignal({
         caseId,
         signalType: 'INSUFFICIENT_EVIDENCE',
-        severity: documents.length < 2 ? 'HIGH' : 'LOW',
+        severity: missingMedicinePair ? 'HIGH' : 'MEDIUM',
         description: reason,
         evidenceItemIds: [savedInsEv._id],
         detectedBy: 'EVIDENCE_RETRIEVAL_GUARD',

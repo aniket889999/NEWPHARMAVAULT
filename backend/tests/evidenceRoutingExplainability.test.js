@@ -31,6 +31,7 @@ const llmExplainabilityService = require('../services/trustRag/llmExplainability
 const localOcrService = require('../services/trustRag/localOcrService');
 const MockOcrProvider = require('../services/trustRag/mockOcrProvider');
 const { seedCanonicalCatalogue } = require('../seeders/catalogueSeeder');
+const { assertTestDatabase } = require('../utils/testDatabaseGuard');
 
 const validPdfBase64 = 'data:application/pdf;base64,' + Buffer.from('%PDF-1.4 minimal test pdf %%EOF').toString('base64');
 const validPngBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
@@ -46,7 +47,9 @@ test('TrustRAG Evidence Routing & Explainability Test Suite (WO 3A.2)', async (t
   let patientToken, reviewerToken;
 
   t.before(async () => {
+    assertTestDatabase(process.env.MONGO_URI);
     dbConnection = await mongoose.connect(process.env.MONGO_URI);
+    assertTestDatabase(dbConnection);
     await Promise.all([
       User.deleteMany({}),
       Organization.deleteMany({}),
@@ -94,6 +97,7 @@ test('TrustRAG Evidence Routing & Explainability Test Suite (WO 3A.2)', async (t
 
   t.after(async () => {
     if (dbConnection) {
+      assertTestDatabase(dbConnection);
       await mongoose.connection.close();
     }
   });
@@ -354,7 +358,7 @@ test('TrustRAG Evidence Routing & Explainability Test Suite (WO 3A.2)', async (t
 
   // 6. Human-in-the-Loop Terminology: Public Action Labels Mapping
   await t.test('6. Reviewer action endpoint accepts public action labels (VERIFY, RETURN_FOR_CORRECTION, ESCALATE) with proper audit', async () => {
-    // 6a. VERIFY action
+    // 6a. VERIFY action (requires valid consistent Rx+Invoice pair, complete coverage, and HUMAN_CONFIRMED grouping)
     const caseVerify = await VerificationCase.create({
       organizationId: testOrg._id,
       createdBy: patientUser._id,
@@ -363,13 +367,206 @@ test('TrustRAG Evidence Routing & Explainability Test Suite (WO 3A.2)', async (t
       schemaVersion: '1.0'
     });
 
+    const rxDoc = await Document.create({
+      caseId: caseVerify._id,
+      type: 'PRESCRIPTION',
+      originalFilename: 'verify_rx.png',
+      mimeType: 'image/png',
+      sizeBytes: 128,
+      sha256: 'a'.repeat(64),
+      objectStorageKey: `cases/${caseVerify._id}/verify_rx.png`,
+      uploadedBy: patientUser._id,
+      processingStatus: 'PROCESSED',
+      pageCount: 1,
+      processedPageCount: 1,
+      omittedPageCount: 0,
+      pageCoverage: { total: 1, processed: 1, omitted: 0, status: 'COMPLETE' }
+    });
+    const invDoc = await Document.create({
+      caseId: caseVerify._id,
+      type: 'PHARMACY_INVOICE',
+      originalFilename: 'verify_inv.png',
+      mimeType: 'image/png',
+      sizeBytes: 128,
+      sha256: 'b'.repeat(64),
+      objectStorageKey: `cases/${caseVerify._id}/verify_inv.png`,
+      uploadedBy: patientUser._id,
+      processingStatus: 'PROCESSED',
+      pageCount: 1,
+      processedPageCount: 1,
+      omittedPageCount: 0,
+      pageCoverage: { total: 1, processed: 1, omitted: 0, status: 'COMPLETE' }
+    });
+    caseVerify.documentIds = [rxDoc._id, invDoc._id];
+    await caseVerify.save();
+
+    const rxMed = await ExtractedField.create({
+      caseId: caseVerify._id,
+      documentId: rxDoc._id,
+      fieldName: 'medicine_name',
+      fieldType: 'medicine_name',
+      rawValue: 'Paracetamol',
+      normalizedValue: 'Paracetamol',
+      extractionConfidence: 0.95,
+      needsCorrection: false,
+      pageNumber: 1,
+      candidateRowKey: 'row_1'
+    });
+    const rxStrength = await ExtractedField.create({
+      caseId: caseVerify._id,
+      documentId: rxDoc._id,
+      fieldName: 'dosage_strength',
+      fieldType: 'dosage_strength',
+      rawValue: '500mg',
+      normalizedValue: '500mg',
+      extractionConfidence: 0.95,
+      needsCorrection: false,
+      pageNumber: 1,
+      candidateRowKey: 'row_1'
+    });
+    const rxForm = await ExtractedField.create({
+      caseId: caseVerify._id,
+      documentId: rxDoc._id,
+      fieldName: 'dosage_form',
+      fieldType: 'dosage_form',
+      rawValue: 'tablet',
+      normalizedValue: 'tablet',
+      extractionConfidence: 0.95,
+      needsCorrection: false,
+      pageNumber: 1,
+      candidateRowKey: 'row_1'
+    });
+    const rxQty = await ExtractedField.create({
+      caseId: caseVerify._id,
+      documentId: rxDoc._id,
+      fieldName: 'quantity',
+      fieldType: 'quantity',
+      rawValue: '10',
+      normalizedValue: '10',
+      extractionConfidence: 0.95,
+      needsCorrection: false,
+      pageNumber: 1,
+      candidateRowKey: 'row_1'
+    });
+    const rxUnit = await ExtractedField.create({
+      caseId: caseVerify._id,
+      documentId: rxDoc._id,
+      fieldName: 'quantity_unit',
+      fieldType: 'quantity_unit',
+      rawValue: 'tablets',
+      normalizedValue: 'tablets',
+      extractionConfidence: 0.95,
+      needsCorrection: false,
+      pageNumber: 1,
+      candidateRowKey: 'row_1'
+    });
+    const invMed = await ExtractedField.create({
+      caseId: caseVerify._id,
+      documentId: invDoc._id,
+      fieldName: 'medicine_name',
+      fieldType: 'medicine_name',
+      rawValue: 'Paracetamol',
+      normalizedValue: 'Paracetamol',
+      extractionConfidence: 0.95,
+      needsCorrection: false,
+      pageNumber: 1,
+      candidateRowKey: 'row_1'
+    });
+    const invStrength = await ExtractedField.create({
+      caseId: caseVerify._id,
+      documentId: invDoc._id,
+      fieldName: 'dosage_strength',
+      fieldType: 'dosage_strength',
+      rawValue: '500mg',
+      normalizedValue: '500mg',
+      extractionConfidence: 0.95,
+      needsCorrection: false,
+      pageNumber: 1,
+      candidateRowKey: 'row_1'
+    });
+    const invForm = await ExtractedField.create({
+      caseId: caseVerify._id,
+      documentId: invDoc._id,
+      fieldName: 'dosage_form',
+      fieldType: 'dosage_form',
+      rawValue: 'tablet',
+      normalizedValue: 'tablet',
+      extractionConfidence: 0.95,
+      needsCorrection: false,
+      pageNumber: 1,
+      candidateRowKey: 'row_1'
+    });
+    const invQty = await ExtractedField.create({
+      caseId: caseVerify._id,
+      documentId: invDoc._id,
+      fieldName: 'quantity',
+      fieldType: 'quantity',
+      rawValue: '10',
+      normalizedValue: '10',
+      extractionConfidence: 0.95,
+      needsCorrection: false,
+      pageNumber: 1,
+      candidateRowKey: 'row_1'
+    });
+    const invUnit = await ExtractedField.create({
+      caseId: caseVerify._id,
+      documentId: invDoc._id,
+      fieldName: 'quantity_unit',
+      fieldType: 'quantity_unit',
+      rawValue: 'tablets',
+      normalizedValue: 'tablets',
+      extractionConfidence: 0.95,
+      needsCorrection: false,
+      pageNumber: 1,
+      candidateRowKey: 'row_1'
+    });
+
+    let snapVerify = await request(app)
+      .get(`/api/v1/cases/${caseVerify._id}/reconciliation`)
+      .set('Authorization', `Bearer ${reviewerToken}`);
+    assert.strictEqual(snapVerify.status, 200);
+
+    const groupRxRes = await request(app)
+      .put(`/api/v1/cases/${caseVerify._id}/documents/${rxDoc._id}/medicine-groups`)
+      .set('Authorization', `Bearer ${reviewerToken}`)
+      .send({
+        snapshotToken: snapVerify.body.snapshotToken,
+        observedItemCount: 1,
+        completenessAttested: true,
+        groups: [{ anchorFieldId: String(rxMed._id), fieldIds: [String(rxMed._id), String(rxStrength._id), String(rxForm._id), String(rxQty._id), String(rxUnit._id)] }]
+      });
+    assert.strictEqual(groupRxRes.status, 200, JSON.stringify(groupRxRes.body));
+
+    snapVerify = await request(app)
+      .get(`/api/v1/cases/${caseVerify._id}/reconciliation`)
+      .set('Authorization', `Bearer ${reviewerToken}`);
+    assert.strictEqual(snapVerify.status, 200);
+
+    const groupInvRes = await request(app)
+      .put(`/api/v1/cases/${caseVerify._id}/documents/${invDoc._id}/medicine-groups`)
+      .set('Authorization', `Bearer ${reviewerToken}`)
+      .send({
+        snapshotToken: snapVerify.body.snapshotToken,
+        observedItemCount: 1,
+        completenessAttested: true,
+        groups: [{ anchorFieldId: String(invMed._id), fieldIds: [String(invMed._id), String(invStrength._id), String(invForm._id), String(invQty._id), String(invUnit._id)] }]
+      });
+    assert.strictEqual(groupInvRes.status, 200);
+
+    snapVerify = await request(app)
+      .get(`/api/v1/cases/${caseVerify._id}/reconciliation`)
+      .set('Authorization', `Bearer ${reviewerToken}`);
+    assert.strictEqual(snapVerify.status, 200);
+    assert.strictEqual(snapVerify.body.reviewEligibility.canVerify, true, JSON.stringify(snapVerify.body.reviewEligibility));
+
     const verifyRes = await request(app)
       .post(`/api/v1/cases/${caseVerify._id}/reviews`)
       .set('Authorization', `Bearer ${reviewerToken}`)
       .send({
         action: 'VERIFY',
         reasonCode: 'CROSS_DOCUMENT_EVIDENCE_SATISFIED',
-        notes: 'Clinical alignment confirmed against IP monograph.'
+        notes: 'Clinical alignment confirmed against IP monograph.',
+        snapshotToken: snapVerify.body.snapshotToken
       });
 
     assert.strictEqual(verifyRes.status, 201);
@@ -390,13 +587,19 @@ test('TrustRAG Evidence Routing & Explainability Test Suite (WO 3A.2)', async (t
       schemaVersion: '1.0'
     });
 
+    const snapReturn = await request(app)
+      .get(`/api/v1/cases/${caseReturn._id}/reconciliation`)
+      .set('Authorization', `Bearer ${reviewerToken}`);
+    assert.strictEqual(snapReturn.status, 200);
+
     const returnRes = await request(app)
       .post(`/api/v1/cases/${caseReturn._id}/reviews`)
       .set('Authorization', `Bearer ${reviewerToken}`)
       .send({
         action: 'RETURN_FOR_CORRECTION',
         reasonCode: 'ILLEGIBLE_DOSAGE_STRENGTH',
-        notes: 'User must clarify whether 500mg or 650mg.'
+        notes: 'User must clarify whether 500mg or 650mg.',
+        snapshotToken: snapReturn.body.snapshotToken
       });
 
     assert.strictEqual(returnRes.status, 201);
@@ -417,13 +620,19 @@ test('TrustRAG Evidence Routing & Explainability Test Suite (WO 3A.2)', async (t
       schemaVersion: '1.0'
     });
 
+    const snapEscalate = await request(app)
+      .get(`/api/v1/cases/${caseEscalate._id}/reconciliation`)
+      .set('Authorization', `Bearer ${reviewerToken}`);
+    assert.strictEqual(snapEscalate.status, 200);
+
     const escalateRes = await request(app)
       .post(`/api/v1/cases/${caseEscalate._id}/reviews`)
       .set('Authorization', `Bearer ${reviewerToken}`)
       .send({
         action: 'ESCALATE',
         reasonCode: 'POTENTIAL_OFF_LABEL_USE',
-        notes: 'Escalated to senior medical director for review.'
+        notes: 'Escalated to senior medical director for review.',
+        snapshotToken: snapEscalate.body.snapshotToken
       });
 
     assert.strictEqual(escalateRes.status, 201);
@@ -452,7 +661,7 @@ test('TrustRAG Evidence Routing & Explainability Test Suite (WO 3A.2)', async (t
         // Prescription
         return {
           rawText: 'Crocin 500mg\n500mg\nQty: 10\n2026-08-01\nDr. Sharma',
-          confidence: 0.95,
+          extractionConfidence: 0.95,
           lines: [
             { text: 'Crocin 500mg', confidence: 0.95, bbox: [0.1, 0.1, 0.4, 0.2] },
             { text: '500mg', confidence: 0.95, bbox: [0.7, 0.1, 0.8, 0.2] },
@@ -466,7 +675,7 @@ test('TrustRAG Evidence Routing & Explainability Test Suite (WO 3A.2)', async (t
       // Invoice
       return {
         rawText: 'Crocin 500mg\n500mg\nQty: 10\nTotal: 150.00\n2026-08-02\nCity Pharmacy',
-        confidence: 0.95,
+        extractionConfidence: 0.95,
         lines: [
           { text: 'Crocin 500mg', confidence: 0.95, bbox: [0.1, 0.1, 0.4, 0.2] },
           { text: '500mg', confidence: 0.95, bbox: [0.7, 0.1, 0.8, 0.2] },

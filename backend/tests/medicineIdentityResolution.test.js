@@ -1,11 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const http = require('http');
 const https = require('https');
-
-dotenv.config();
 
 const CanonicalMedicine = require('../models/canonicalMedicineModel');
 const ConsistencyCheck = require('../models/consistencyCheckModel');
@@ -29,6 +26,28 @@ const {
   ACADEMIC_CATALOGUE_VERSION,
   ACADEMIC_SOURCE_NOTE
 } = require('../seeders/catalogueSeeder');
+
+// Complete authored source fixtures for the current adapter, not production inference.
+// These are identity-service tests, not OCR or prescription-dose accuracy measurements.
+async function runCurrentContractChecks(input) {
+  for (const doc of input.documents) {
+    Object.assign(doc, { caseId: String(input.caseId), pageCount: 1, processedPageCount: 1, omittedPageCount: 0,
+      pageCoverage: { total: 1, processed: 1, omitted: 0, status: 'COMPLETE' }, processingStatus: 'PROCESSED' });
+    if (!['PRESCRIPTION', 'PHARMACY_INVOICE'].includes(doc.type)) continue;
+    const source = input.resolutions[doc.type]?.canonical;
+    const form = source?.dosageForm || 'tablet';
+    const defaults = { dosage_strength: source?.strength, dosage_form: form, quantity: '10',
+      quantity_unit: /syrup|suspension|liquid/i.test(form) ? 'mL' : /capsule/i.test(form) ? 'capsule' : 'tablet' };
+    for (const [fieldType, value] of Object.entries(defaults)) {
+      if (value && !input.fields.some(f => String(f.documentId) === String(doc._id) && f.fieldType === fieldType)) {
+        input.fields.push({ _id: new mongoose.Types.ObjectId(), documentId: doc._id, fieldType, rawValue: String(value) });
+      }
+    }
+  }
+  for (const field of input.fields) Object.assign(field, { caseId: String(input.caseId),
+    normalizedValue: field.normalizedValue ?? field.rawValue, pageNumber: 1, extractionConfidence: 0.95, needsCorrection: false });
+  return consistencyCheckService.runChecks(input);
+}
 
 test('Work Order 5A: Explainable Medicine Identity Resolution Test Suite', async (t) => {
   let dbConnection;
@@ -121,7 +140,7 @@ test('Work Order 5A: Explainable Medicine Identity Resolution Test Suite', async
       PHARMACY_INVOICE: invRes
     };
 
-    const checks = await consistencyCheckService.runChecks({
+    const checks = await runCurrentContractChecks({
       caseId,
       documents,
       fields,
@@ -170,7 +189,7 @@ test('Work Order 5A: Explainable Medicine Identity Resolution Test Suite', async
       PHARMACY_INVOICE: invRes
     };
 
-    const checks = await consistencyCheckService.runChecks({
+    const checks = await runCurrentContractChecks({
       caseId,
       documents,
       fields,
@@ -207,7 +226,7 @@ test('Work Order 5A: Explainable Medicine Identity Resolution Test Suite', async
   });
 
   // 4. Same generic with different dosage form requires review
-  await t.test('4. Same generic with different dosage form produces INCONCLUSIVE check requiring review', async () => {
+  await t.test('4. Explicitly different dosage forms produce FAIL and require human review', async () => {
     const rxRes = await identityResolutionService.resolveMedicine('Crocin 500mg'); // Tablet
     const invRes = await identityResolutionService.resolveMedicine('Calpol Suspension'); // Syrup
 
@@ -238,7 +257,7 @@ test('Work Order 5A: Explainable Medicine Identity Resolution Test Suite', async
       PHARMACY_INVOICE: invRes
     };
 
-    const checks = await consistencyCheckService.runChecks({
+    const checks = await runCurrentContractChecks({
       caseId,
       documents,
       fields,
@@ -247,7 +266,7 @@ test('Work Order 5A: Explainable Medicine Identity Resolution Test Suite', async
 
     const formCheck = checks.find(c => c.checkType === 'DOSAGE_FORM_CONSISTENCY');
     assert.ok(formCheck, 'DOSAGE_FORM_CONSISTENCY check must exist');
-    assert.strictEqual(formCheck.status, 'INCONCLUSIVE', 'Differing dosage form must be INCONCLUSIVE');
+    assert.strictEqual(formCheck.status, 'FAIL', 'Confirmed form difference follows frozen Session 2 MISMATCH; missing form evidence remains INCONCLUSIVE.');
     assert.strictEqual(formCheck.reviewRequired, true, 'Differing dosage form must require review');
 
     const signals = await riskSignalService.evaluateRiskSignals({
@@ -301,7 +320,7 @@ test('Work Order 5A: Explainable Medicine Identity Resolution Test Suite', async
       PHARMACY_INVOICE: await identityResolutionService.resolveMedicine('Crocin 500mg')
     };
 
-    const checks = await consistencyCheckService.runChecks({
+    const checks = await runCurrentContractChecks({
       caseId,
       documents,
       fields,
@@ -360,7 +379,7 @@ test('Work Order 5A: Explainable Medicine Identity Resolution Test Suite', async
       PHARMACY_INVOICE: invRes
     };
 
-    const checks = await consistencyCheckService.runChecks({
+    const checks = await runCurrentContractChecks({
       caseId,
       documents,
       fields,

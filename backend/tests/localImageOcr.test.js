@@ -25,6 +25,7 @@ const documentExtractorService = require('../services/trustRag/documentExtractor
 const localOcrService = require('../services/trustRag/localOcrService');
 const MockOcrProvider = require('../services/trustRag/mockOcrProvider');
 const TesseractOcrProvider = require('../services/trustRag/tesseractOcrProvider');
+const { assertTestDatabase } = require('../utils/testDatabaseGuard');
 
 // Minimal valid PNG buffer
 const validPngBuffer = Buffer.from(
@@ -38,9 +39,11 @@ test('Work Order 4A: Local Image OCR for TrustRAG Test Suite', async (t) => {
   let defaultProvider;
 
   t.before(async () => {
+    assertTestDatabase(process.env.MONGO_URI);
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(process.env.MONGO_URI);
     }
+    assertTestDatabase(mongoose.connection);
 
     const orgId = new mongoose.Types.ObjectId();
     user = await User.findOne({ email: 'ocr_test@pharmavault.org' });
@@ -73,6 +76,7 @@ test('Work Order 4A: Local Image OCR for TrustRAG Test Suite', async (t) => {
     localOcrService.setProvider(defaultProvider);
 
     if (testCase) {
+      assertTestDatabase(mongoose.connection);
       await Promise.all([
         VerificationCase.deleteOne({ _id: testCase._id }),
         Document.deleteMany({ caseId: testCase._id }),
@@ -127,7 +131,8 @@ test('Work Order 4A: Local Image OCR for TrustRAG Test Suite', async (t) => {
     const medField = fields.find(f => f.fieldType === 'medicine_name');
     assert.ok(medField, 'Medicine name field must be extracted');
     assert.strictEqual(medField.extractionMethod, 'LOCAL_TESSERACT_IMAGE_OCR');
-    assert.strictEqual(medField.normalizedValue, 'Paracetamol');
+    assert.strictEqual(medField.normalizedValue, 'Crocin', 'OCR retains the documented brand; identity resolution is a separate step.');
+    assert.match(medField.rawValue, /Crocin/i);
     assert.strictEqual(medField.extractionConfidence, 0.95);
     assert.deepStrictEqual(medField.boundingBox, [0.1, 0.2, 0.4, 0.25]);
 

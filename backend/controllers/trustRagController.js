@@ -818,7 +818,7 @@ const getResults = asyncHandler(async (req, res) => {
   const currentRev = typeof vCase.evidenceRevision === 'number' ? vCase.evidenceRevision : 0;
   const findingsMatchRevision =
     vCase.metadata?.legacyFindingsStale !== true &&
-    vCase.metadata?.legacyFindingsRevision === currentRev;
+    vCase.metadata?.processedEvidenceRevision === currentRev;
 
   // Retrieve cached explanation only if it matches the current evidenceRevision; otherwise generate fresh grounded summary
   let explanation = findingsMatchRevision ? vCase.metadata?.explanation : null;
