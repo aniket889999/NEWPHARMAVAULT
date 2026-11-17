@@ -54,6 +54,8 @@ jobs:
         run: npm run test:chat
       - name: Check contextual chat, approved web privacy and feedback without live providers
         run: node --test tests/contextual-chat/contextual.test.cjs tests/contextual-chat/http.test.cjs
+      - name: Check precise retrieval, independent source review and GPT-Claude comparison gates without paid calls
+        run: node --test tests/contextual-chat/precision.test.cjs tests/contextual-chat/curation.test.cjs tests/contextual-chat/provider-comparison.test.cjs
       - name: Check V2-01 bounded public diagnostic and real protected readiness routes
         run: npm run test:readiness && npm run test:readiness:http
       - name: Check legacy projections and real protected result-revision handling
