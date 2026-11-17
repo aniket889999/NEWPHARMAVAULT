@@ -41,7 +41,7 @@ function createReadinessMonitor({ environment = () => process.env, now = Date.no
     const success = result?.mode === 'GEMINI_RAG' && result.model === value.model && typeof result.reply === 'string' && result.reply.trim()
       && Array.isArray(result.sources) && result.sources.length > 0;
     const reasonCode = success ? 'LIVE_RESPONSE_VALIDATED'
-      : result?.mode === 'LOCAL_EXTRACTIVE' && FAILURE_REASONS.has(result.fallbackReason) ? result.fallbackReason : null;
+      : ['LOCAL_EXTRACTIVE', 'PRECISE_LOCAL_EVIDENCE', 'PRECISE_WEB_EVIDENCE'].includes(result?.mode) && FAILURE_REASONS.has(result.fallbackReason) ? result.fallbackReason : null;
     if (!reasonCode) return false;
     const checkedAt = now();
     observation = { checkedAt, expiresAt: checkedAt + ttlMs, reasonCode,

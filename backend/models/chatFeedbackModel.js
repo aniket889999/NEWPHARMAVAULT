@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const schema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  organizationId: { type: mongoose.Schema.Types.ObjectId, index: true },
   receiptHash: { type: String, required: true }, answerHash: { type: String, required: true },
   sourceIds: [{ type: String }], sourceVersions: [{ type: String }], topicIds: [{ type: String }],
   rating: { type: String, enum: ['HELPFUL', 'NOT_HELPFUL'], required: true },

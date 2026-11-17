@@ -1,0 +1,11 @@
+const router = require('express').Router();
+const asyncHandler = require('../middleware/asyncHandler');
+const { aiLimiter } = require('../middleware/rateLimiter');
+const service = require('../services/knowledgeCurationService');
+router.use((req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); service.reviewer(req.user); next(); });
+router.get('/references', (_req, res) => res.json(service.choices()));
+router.get('/feedback', asyncHandler(async (req, res) => res.json(await service.listFeedback(req.user))));
+router.get('/candidates', asyncHandler(async (req, res) => res.json(await service.listCandidates(req.user))));
+router.post('/candidates', aiLimiter, asyncHandler(async (req, res) => res.status(201).json(await service.createCandidate(req.user, req.body))));
+router.post('/candidates/:id/review', aiLimiter, asyncHandler(async (req, res) => res.json(await service.reviewCandidate(req.user, req.params.id, req.body))));
+module.exports = router;

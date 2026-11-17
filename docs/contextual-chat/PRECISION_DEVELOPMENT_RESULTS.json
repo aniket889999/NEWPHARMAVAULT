@@ -1,0 +1,272 @@
+{
+  "schemaVersion": "precision-development-evaluation-v1",
+  "dataset": {
+    "synthetic": true,
+    "reviewStatus": "DEVELOPER_AUTHORED_NOT_INDEPENDENT_GOLD",
+    "split": "Development challenge: new wording, known source families; not an unseen clinical test set",
+    "scenarios": 16
+  },
+  "corpusHash": "0d8fc4735d4ac16ba831f22e9da12c992f0680b70f29a4a2221d707f536c360e",
+  "candidateSha256": {
+    "backend/data/chatReferenceExtensions.js": "3e2aeedca6884dd7084c32b10d71cf7dc33bec280d2ea86aac8b8045ec0a3ea7",
+    "backend/data/chatTopicRegistry.js": "32a5b13ceb1df1ed192ee9a9f5b3804f3eee426b6f7a661fd68070b794e603d1",
+    "backend/data/precisionRanker.v1.json": "0b432029559b64e7cae134c3462f710b431e49aaf7d73513e0bec93c39401227",
+    "backend/services/chatReferenceRegistry.js": "6979eb5a99d4f5299ec15fb9d7dc46b85ba5fbfc0069454ee9535afce613119b",
+    "backend/services/chatContextService.js": "b95c23db71a324c223aa44e925db1b9320c5631f1845fa47216190f6a0ebd09d",
+    "backend/services/contextualChatService.js": "8e5a26234f8cb849234b8e76b7fce49c75e9ea692d68202e592a4272782c26e7",
+    "backend/services/preciseAnswerService.js": "a3a10c7b3182c543fb48b74e57e3c7c9ab463faa46c8925a26b635014d31af14",
+    "backend/services/precisionRankingService.js": "497b8051d1cf1a6529f9e138a55a8986f96dec4a8aeed55a623798c9544732a7",
+    "backend/services/publicAnswerSynthesisService.js": "2205ddd55cb975c9231635d114e21970eb135cb861ff59e8daa70772ee186503",
+    "backend/services/pharmacyChatPolicy.js": "1a8004c5776131e13a2eedd359a81494393b7ee63f7910ea0ea052bf6a7507c9",
+    "backend/services/approvedHealthSearchService.js": "81b19960e0859d4527a78662aaf721137a54b214bf718e0d23487725c04828b7"
+  },
+  "metric": "Expected top-source selection, not clinical answer accuracy",
+  "totals": {
+    "bareBM25": {
+      "correct": 11,
+      "total": 16
+    },
+    "ruleScopedBM25": {
+      "correct": 16,
+      "total": 16
+    },
+    "trainedContext": {
+      "correct": 16,
+      "total": 16
+    }
+  },
+  "ruleRegressions": [],
+  "canClaimSuperiority": false,
+  "externalComparators": {
+    "GPT": "NOT_RUN",
+    "Claude": "NOT_RUN"
+  },
+  "limitation": "Small developer-authored challenge with known source families and visible labels. A gain over bare BM25 can reflect context/focus engineering; compare the strong rule baseline. No independent gold-standard or clinical/general-model superiority claim.",
+  "rows": [
+    {
+      "id": "definition-resistance",
+      "expectedSourceKeys": [
+        "reference-antibiotic-resistance-definition"
+      ],
+      "bareBM25": "reference-antibiotic-resistance-prevention",
+      "ruleScopedBM25": "reference-antibiotic-resistance-definition",
+      "trainedContext": "reference-antibiotic-resistance-definition",
+      "correct": {
+        "bareBM25": false,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "prevent-resistance",
+      "expectedSourceKeys": [
+        "reference-antibiotic-resistance-prevention"
+      ],
+      "bareBM25": "reference-antibiotic-resistance-prevention",
+      "ruleScopedBM25": "reference-antibiotic-resistance-prevention",
+      "trainedContext": "reference-antibiotic-resistance-prevention",
+      "correct": {
+        "bareBM25": true,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "review-definition",
+      "expectedSourceKeys": [
+        "human-review"
+      ],
+      "bareBM25": "human-review",
+      "ruleScopedBM25": "human-review",
+      "trainedContext": "human-review",
+      "correct": {
+        "bareBM25": true,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "ocr-purpose",
+      "expectedSourceKeys": [
+        "ocr"
+      ],
+      "bareBM25": "strength-mismatch",
+      "ruleScopedBM25": "ocr",
+      "trainedContext": "ocr",
+      "correct": {
+        "bareBM25": false,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "strength-meaning",
+      "expectedSourceKeys": [
+        "strength-mismatch"
+      ],
+      "bareBM25": "strength-mismatch",
+      "ruleScopedBM25": "strength-mismatch",
+      "trainedContext": "strength-mismatch",
+      "correct": {
+        "bareBM25": true,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "freshness-meaning",
+      "expectedSourceKeys": [
+        "project-answer-freshness-v2"
+      ],
+      "bareBM25": "project-answer-freshness-v2",
+      "ruleScopedBM25": "project-answer-freshness-v2",
+      "trainedContext": "project-answer-freshness-v2",
+      "correct": {
+        "bareBM25": true,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "metformin-effects",
+      "expectedSourceKeys": [
+        "nhs-metformin-effects"
+      ],
+      "bareBM25": "nhs-metformin-effects",
+      "ruleScopedBM25": "nhs-metformin-effects",
+      "trainedContext": "nhs-metformin-effects",
+      "correct": {
+        "bareBM25": true,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "paracetamol-effects",
+      "expectedSourceKeys": [
+        "nhs-paracetamol-effects"
+      ],
+      "bareBM25": "nhs-paracetamol-effects",
+      "ruleScopedBM25": "nhs-paracetamol-effects",
+      "trainedContext": "nhs-paracetamol-effects",
+      "correct": {
+        "bareBM25": true,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "metformin-overview",
+      "expectedSourceKeys": [
+        "nhs-metformin-overview"
+      ],
+      "bareBM25": "nhs-metformin-overview",
+      "ruleScopedBM25": "nhs-metformin-overview",
+      "trainedContext": "nhs-metformin-overview",
+      "correct": {
+        "bareBM25": true,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "paracetamol-overview",
+      "expectedSourceKeys": [
+        "nhs-paracetamol-overview"
+      ],
+      "bareBM25": "nhs-paracetamol-overview",
+      "ruleScopedBM25": "nhs-paracetamol-overview",
+      "trainedContext": "nhs-paracetamol-overview",
+      "correct": {
+        "bareBM25": true,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "storage",
+      "expectedSourceKeys": [
+        "reference-medicine-storage"
+      ],
+      "bareBM25": "reference-medicine-storage",
+      "ruleScopedBM25": "reference-medicine-storage",
+      "trainedContext": "reference-medicine-storage",
+      "correct": {
+        "bareBM25": true,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "safety",
+      "expectedSourceKeys": [
+        "reference-medicine-safety",
+        "reference-medicine-risks"
+      ],
+      "bareBM25": "reference-medicine-safety",
+      "ruleScopedBM25": "reference-medicine-safety",
+      "trainedContext": "reference-medicine-safety",
+      "correct": {
+        "bareBM25": true,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "followup-effects",
+      "expectedSourceKeys": [
+        "nhs-metformin-effects"
+      ],
+      "bareBM25": null,
+      "ruleScopedBM25": "nhs-metformin-effects",
+      "trainedContext": "nhs-metformin-effects",
+      "correct": {
+        "bareBM25": false,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "followup-shorter",
+      "expectedSourceKeys": [
+        "nhs-paracetamol-effects"
+      ],
+      "bareBM25": null,
+      "ruleScopedBM25": "nhs-paracetamol-effects",
+      "trainedContext": "nhs-paracetamol-effects",
+      "correct": {
+        "bareBM25": false,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "topic-switch",
+      "expectedSourceKeys": [
+        "nhs-metformin-effects"
+      ],
+      "bareBM25": "nhs-metformin-effects",
+      "ruleScopedBM25": "nhs-metformin-effects",
+      "trainedContext": "nhs-metformin-effects",
+      "correct": {
+        "bareBM25": true,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    },
+    {
+      "id": "review-followup",
+      "expectedSourceKeys": [
+        "human-review"
+      ],
+      "bareBM25": null,
+      "ruleScopedBM25": "human-review",
+      "trainedContext": "human-review",
+      "correct": {
+        "bareBM25": false,
+        "ruleScopedBM25": true,
+        "trainedContext": true
+      }
+    }
+  ]
+}

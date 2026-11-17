@@ -1,0 +1,27 @@
+// Original short educational summaries. Source checks are engineering checks,
+// not pharmacist endorsement, prescribing guidance or Indian regulatory status.
+const checked = '2026-11-17';
+module.exports = [
+  { key: 'reference-antibiotic-resistance-definition', title: 'Antibiotic resistance: definition', topics: ['antibiotic-resistance'], focuses: ['DEFINITION', 'OVERVIEW'],
+    sourceUrl: 'https://medlineplus.gov/antibioticresistance.html', jurisdiction: 'US', kind: 'HEALTH_REFERENCE',
+    text: 'Antibiotic resistance means bacteria change so an antibiotic no longer controls them effectively. It is the bacteria, not the person’s body, that become resistant. This is general education; it does not identify an infection or select treatment.' },
+  { key: 'reference-antibiotic-resistance-prevention', title: 'Antibiotic resistance: prevention and scope', topics: ['antibiotic-resistance'], focuses: ['PREVENTION', 'EXPLAIN'],
+    sourceUrl: 'https://medlineplus.gov/antibioticresistance.html', jurisdiction: 'US', kind: 'HEALTH_REFERENCE',
+    text: 'Unnecessary or incorrect antibiotic use contributes to resistance. Antibiotics do not treat viral colds. A qualified clinician decides whether an antibiotic is appropriate. This is general stewardship information, not a prescription, dose or treatment-duration recommendation.' },
+  { key: 'reference-medicine-safety', title: 'Medicine safety: records and questions', topics: ['medicine-safety', 'medication-errors'], focuses: ['OVERVIEW', 'PREVENTION', 'EXPLAIN'],
+    sourceUrl: 'https://www.cdc.gov/medication-safety/about/', jurisdiction: 'US', kind: 'HEALTH_REFERENCE',
+    text: 'Medicine safety includes maintaining an up-to-date list of medicines and supplements, checking recorded label instructions and asking a pharmacist or doctor when instructions are unclear. A document-checking assistant can highlight uncertainty but cannot choose a treatment.' },
+  { key: 'reference-medicine-storage', title: 'Medicine storage: keeping products away from children', topics: ['medicine-storage'], focuses: ['OVERVIEW', 'PREVENTION', 'EXPLAIN'],
+    sourceUrl: 'https://www.cdc.gov/medication-safety/about/', jurisdiction: 'US', kind: 'HEALTH_REFERENCE',
+    text: 'General storage safety includes closing the safety cap and keeping medicines where young children cannot see or reach them. Product-specific storage requirements must be checked on the product label or with a pharmacist. This source does not establish a storage temperature for an individual product.' },
+  { key: 'reference-generics', title: 'Generic medicines: identity and limits', topics: ['generic-medicines'], focuses: ['OVERVIEW', 'DEFINITION', 'IDENTITY'],
+    sourceUrl: 'https://www.fda.gov/drugs/generic-drugs/generic-drug-facts', jurisdiction: 'US', kind: 'HEALTH_REFERENCE',
+    text: 'US FDA generic-drug requirements include matching the reference product’s active ingredient, strength, dosage form and route of administration. This describes a US approval framework. A shared ingredient or a similar brand name alone does not establish that two products can be substituted, or that an Indian product has regulatory approval.' },
+  { key: 'reference-medicine-risks', title: 'Medicines: risks and individual suitability', topics: ['medicine-safety'], focuses: ['SIDE_EFFECTS', 'OVERVIEW'],
+    sourceUrl: 'https://medlineplus.gov/medicines.html', jurisdiction: 'US', kind: 'HEALTH_REFERENCE',
+    text: 'Medicines can cause unwanted side effects and interact with other medicines, food or alcohol. General reference information cannot establish suitability for an individual. A qualified professional should assess personal circumstances and treatment decisions.' },
+  { key: 'project-answer-freshness-v2', title: 'Answer freshness and correction impact', topics: ['workflow-freshness'], focuses: ['DEFINITION', 'OVERVIEW', 'EXPLAIN'], kind: 'PROJECT_GUIDE',
+    text: 'A previous case answer remains historical text after a correction. Its signed evidence dependencies can be checked against the current case. A changed cited dependency can make that answer stale; an unrelated edit need not. Freshness is evidence-version consistency, not proof of clinical correctness.' },
+  { key: 'project-routing-current-v2', title: 'Current controlled RAG and web routing', topics: ['workflow-trustrag'], focuses: ['DEFINITION', 'OVERVIEW', 'EXPLAIN'], kind: 'PROJECT_GUIDE',
+    supersedes: ['rag'], text: 'The current assistant resolves bounded conversation context, checks local references and can use an approved public-topic web lookup when enabled and local coverage is missing. Private case questions stay local and cannot fall through to external search. Optional public model generation is separately enabled. Web lookup, model training and medical validation are different capabilities.' }
+].map(value => Object.freeze({ ...value, version: 'reference-extension-v1; source checked ' + checked, checkedAt: checked, reviewStatus: 'SOURCE_CHECKED_NOT_CLINICALLY_VALIDATED', licensingNote: value.kind === 'PROJECT_GUIDE' ? 'First-party project documentation' : 'Short original summary of cited government information; no logos, endorsement or third-party monographs' }));

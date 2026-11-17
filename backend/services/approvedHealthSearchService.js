@@ -1,7 +1,12 @@
 const crypto = require('node:crypto');
 const registry = require('../data/chatTopicRegistry');
-const { rankPassages } = require('./chatRagService');
+const { rankPassages, tokens } = require('./chatRagService');
 const TOPICS = new Map(registry.map(value => [value.id, value]));
+const accepted = new Map();
+function isApprovedWebPassage(value) {
+  const original = accepted.get(value?.id);
+  return Boolean(original && value.private === false && !value.documentId && ['excerpt', 'sourceUrl', 'title', 'version'].every(key => value[key] === original[key]));
+}
 function sourceChunks(source) {
   const groups = []; let current = '';
   for (const sentence of source.text.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) || []) {
@@ -34,7 +39,15 @@ function parseResults(xml, topic, fetchedAt) {
     result.push(...sourceChunks({ key: 'medlineplus-' + crypto.createHash('sha256').update(sourceUrl + text).digest('hex').slice(0, 20), title: 'MedlinePlus: ' + title,
       text: text.slice(0, 5000), sourceUrl, kind: 'OFFICIAL_WEB', private: false, version: 'Retrieved ' + fetchedAt, fetchedAt }));
   }
-  return rankPassages(topic.webTerm, result.filter(passage => !/\b\d+(?:\.\d+)?\s*(?:mg|mcg|ml|tablets?|capsules?)\b|\b(?:take|give)\s+\d|\bevery\s+\d+\s+hours?\b/i.test(passage.excerpt)), 3);
+  const eligible = result.filter(passage => !/\b\d+(?:\.\d+)?\s*(?:mg|mcg|ml|tablets?|capsules?)\b|\b(?:take|give)\s+\d|\bevery\s+\d+\s+hours?\b/i.test(passage.excerpt));
+  let ranked = rankPassages(topic.webTerm, eligible, 3);
+  const queryTokens = tokens(topic.webTerm);
+  // BM25 IDF is very small for a one-record response. An exact one-word
+  // registered topic still provides a traceable lexical match, not confidence.
+  if (!ranked.length && queryTokens.length === 1) ranked = eligible.filter(value => tokens(value.title + ' ' + value.excerpt).includes(queryTokens[0])).slice(0, 3).map(value => ({ ...value, score: 0 }));
+  for (const value of ranked) accepted.set(value.id, { excerpt: value.excerpt, sourceUrl: value.sourceUrl, title: value.title, version: value.version });
+  while (accepted.size > 256) accepted.delete(accepted.keys().next().value);
+  return ranked;
 }
 async function boundedXml(response) {
   if (!response.ok || !/xml/i.test(response.headers.get('content-type') || '')) throw new Error('Official search unavailable.');
@@ -68,4 +81,4 @@ function createApprovedHealthSearch({ fetcher = (...args) => fetch(...args), now
   };
 }
 const searchApprovedHealth = createApprovedHealthSearch();
-module.exports = { createApprovedHealthSearch, searchApprovedHealth, parseResults, plain };
+module.exports = { createApprovedHealthSearch, searchApprovedHealth, parseResults, plain, isApprovedWebPassage };

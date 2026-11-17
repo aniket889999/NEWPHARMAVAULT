@@ -10,7 +10,7 @@ function officialLink(url?: string) {
   if (!url) return undefined;
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'https:' && ['www.nhs.uk', 'medlineplus.gov'].includes(parsed.hostname) && !parsed.port && !parsed.username && !parsed.password ? parsed.href : undefined;
+    return parsed.protocol === 'https:' && ['www.nhs.uk', 'medlineplus.gov', 'www.cdc.gov', 'www.fda.gov'].includes(parsed.hostname) && !parsed.port && !parsed.username && !parsed.password ? parsed.href : undefined;
   } catch { return undefined; }
 }
 
@@ -38,12 +38,13 @@ const ChatMessage: React.FC<{ message: Message; onCheckEvidence?: () => void; on
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-slate-900">PharmaVault</span>
           {!streaming && rag && <span className="rounded-full bg-slate-50 px-2 py-0.5 text-[10px] text-slate-500">
-            {rag.mode === 'GEMINI_RAG' ? 'Generated with retrieved evidence' : rag.mode === 'LOCAL_CASE_EVIDENCE' ? 'Local case evidence · no external LLM' : rag.mode === 'OFFICIAL_WEB_EXTRACTIVE' ? 'Official web source notes · no LLM synthesis' : rag.mode === 'LOCAL_EXTRACTIVE' ? 'Local source notes · no LLM' : rag.mode === 'SAFETY' ? 'Safety guidance' : rag.mode === 'CLARIFY' ? 'One quick clarification' : rag.mode === 'ABSTAIN' ? 'Evidence boundary' : 'Assistant'}
+            {rag.mode === 'GEMINI_RAG' ? 'Generated with retrieved evidence' : rag.mode === 'LOCAL_CASE_EVIDENCE' ? 'Local case evidence · no external LLM' : rag.mode === 'PRECISE_LOCAL_EVIDENCE' ? 'Focused local evidence · no LLM synthesis' : rag.mode === 'PRECISE_WEB_EVIDENCE' ? 'Focused official web evidence · no LLM synthesis' : rag.mode === 'OFFICIAL_WEB_EXTRACTIVE' ? 'Official web source notes · no LLM synthesis' : rag.mode === 'LOCAL_EXTRACTIVE' ? 'Local source notes · no LLM' : rag.mode === 'SAFETY' ? 'Safety guidance' : rag.mode === 'CLARIFY' ? 'One quick clarification' : rag.mode === 'ABSTAIN' ? 'Evidence boundary' : 'Assistant'}
           </span>}
           {streaming && <span className="text-[10px] text-teal-700">Preparing a cited answer...</span>}
         </div>
         {!streaming && rag?.context && <div className="mb-3 text-[11px] text-slate-500"><p>Context: {rag.context.topics.map(topic => topic.label).join(', ') || 'Current question'}{rag.context.followupResolved ? ' · carried from your earlier question' : ''}</p>{!!rag.agentTrace?.length && <details className="mt-1"><summary className="cursor-pointer">Evidence route · tool actions, not model reasoning</summary><ul className="mt-1 space-y-1">{rag.agentTrace.map((step, index) => <li key={index}>{step.tool.replace(/_/g, ' ')} → {step.status.replace(/_/g, ' ')}</li>)}</ul></details>}</div>}
         {caseAnswer?.bindingToken && <EvidenceFreshness value={message.freshness} generatedAt={caseAnswer.generatedAt} onCheck={onCheckEvidence} onAskAgain={onAskAgain} busy={busy} />}
+        {!streaming && rag?.answerQuality && <p className="mb-2 text-[10px] text-slate-400">Focus: {rag.answerQuality.focus.replace(/_/g, ' ').toLowerCase()} · {rag.answerQuality.words} words · {rag.answerQuality.sourceCount} cited source(s){rag.context?.knowledgeRevision ? ' · reviewed retrieval policy v' + rag.context.knowledgeRevision : ''} · Not a clinical accuracy score</p>}
         <div className={'prose prose-sm max-w-none break-words leading-7 text-slate-800 prose-headings:font-semibold prose-a:text-teal-700 ' + (message.freshness?.status === 'STALE' ? 'border-l-2 border-amber-300 pl-3' : '')}>
           {message.content ? <ReactMarkdown skipHtml components={caseAnswer ? { a: ({ children }) => <span>{children}</span> } : undefined}>{message.content}</ReactMarkdown> : <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-teal-600" />}
         </div>
@@ -62,11 +63,11 @@ const ChatMessage: React.FC<{ message: Message; onCheckEvidence?: () => void; on
                 <p className="text-xs font-semibold text-slate-800">[{source.citation}] {source.title}</p>
                 <p className="mt-1 text-xs leading-6 text-slate-600">{source.excerpt}</p>
                 <p className="mt-2 text-[10px] text-slate-400">{source.version}{source.pageNumber ? ' · Page ' + source.pageNumber : ''}</p>
-                {officialLink(source.sourceUrl) && <a href={officialLink(source.sourceUrl)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-teal-700 underline">{source.kind === 'OFFICIAL_WEB' ? 'Read original MedlinePlus reference' : 'Read original NHS reference'} <ExternalLink size={11} /></a>}
+                {officialLink(source.sourceUrl) && <a href={officialLink(source.sourceUrl)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-teal-700 underline">Read original reference <ExternalLink size={11} /></a>}
                 {source.href && /^\/cases\/[a-f0-9]{24}$/i.test(source.href) && <a href={source.href} className="mt-2 inline-block text-xs text-teal-700 underline">Open protected case</a>}
               </div>)}
             </div>}
-            <p className="mt-2 text-[10px] text-slate-400">{rag.retrieval.method === 'CASE_ITEM_EVIDENCE' ? 'Case- and medicine-bound local evidence' : rag.retrieval.method === 'APPROVED_WEB_BM25' ? 'Approved official-source search + keyword ranking' : rag.retrieval.method === 'HYBRID_BM25_VECTOR' ? 'Hybrid keyword + semantic retrieval' : 'Keyword retrieval'} · Citations are traceability, not a guarantee of correctness.</p>
+            <p className="mt-2 text-[10px] text-slate-400">{rag.retrieval.method === 'CASE_ITEM_EVIDENCE' ? 'Case- and medicine-bound local evidence' : rag.retrieval.method === 'CONTEXT_RERANKED_BM25' ? 'BM25 + locally trained context reranker' : rag.retrieval.method === 'APPROVED_WEB_BM25' ? 'Approved official-source search + keyword ranking' : rag.retrieval.method === 'HYBRID_BM25_VECTOR' ? 'Hybrid keyword + semantic retrieval' : 'Keyword retrieval'} · Citations are traceability, not a guarantee of correctness.</p>
           </div>
         )}
         {message.content && !streaming && <button onClick={() => void copy()} aria-label="Copy answer" className="mt-3 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">{copied ? <Check size={14} /> : <Copy size={14} />}</button>}

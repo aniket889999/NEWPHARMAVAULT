@@ -19,9 +19,9 @@ test('contextual chat actual protected HTTP and review-only feedback', async t =
   for (let i = 0; i < 2; i++) { const org = await Org.create({ name: 'Synthetic contextual chat ' + run + i, owner: new mongoose.Types.ObjectId() }); orgs.push(org._id); const user = await User.create({ name: 'Synthetic contextual user', email: run + i + '@example.invalid', password: crypto.randomUUID(), role: 'patient', organizationId: org._id }); ids.push(user._id); }
   const token = index => 'Bearer ' + jwt.sign({ id: String(ids[index]) }, process.env.JWT_SECRET, { expiresIn: '5m' });
   global.fetch = async (url, options) => {
-    calls++; assert.equal(new URL(url).origin, 'https://wsearch.nlm.nih.gov'); assert.equal(new URL(url).searchParams.get('term'), 'medicine storage'); assert.equal(options.redirect, 'error');
+    calls++; assert.equal(new URL(url).origin, 'https://wsearch.nlm.nih.gov'); assert.equal(new URL(url).searchParams.get('term'), 'ibuprofen'); assert.equal(options.redirect, 'error');
     assert.doesNotMatch(String(url), /SYNTHETIC_PRIVATE_NAME|example.invalid|patient|650000/);
-    return new Response('<nlmSearchResult><list><document url="https://medlineplus.gov/medicinesafety.html"><content name="title">Medicine storage</content><content name="FullSummary">Medicine storage is a part of medicine safety. Ask a pharmacist about the storage information on the medicine label. This summary is a synthetic test fixture, not a clinical reference.</content></document></list></nlmSearchResult>', { headers: { 'content-type': 'application/xml' } });
+    return new Response('<nlmSearchResult><list><document url="https://medlineplus.gov/medicines.html"><content name="title">Ibuprofen synthetic fixture</content><content name="FullSummary">Ibuprofen is the topic of this synthetic reference. The fixture can demonstrate source matching, not medical facts. This is not clinical advice.</content></document></list></nlmSearchResult>', { headers: { 'content-type': 'application/xml' } });
   };
   await t.test('unauthenticated chat/feedback blocked; protected status makes no tool request', async () => {
     assert.equal((await request(app).post('/api/v1/chat').send({ message: 'medicine storage' })).status, 401);
@@ -29,11 +29,11 @@ test('contextual chat actual protected HTTP and review-only feedback', async t =
     const status = await request(app).get('/api/v1/chat/status').set('Authorization', token(0)); assert.equal(status.status, 200); assert.equal(status.body.contextualChat.webEnabled, true); assert.equal(status.body.providerReadiness.liveProviderVerified, false); assert.equal(calls, 0);
   });
   await t.test('approved web fallback is real HTTP routing with mocked official API, not a model claim', async () => {
-    const result = await request(app).post('/api/v1/chat').set('Authorization', token(0)).send({ message: 'Explain medicine storage. SYNTHETIC_PRIVATE_NAME patient@example.invalid' });
-    assert.equal(result.status, 200); assert.equal(result.body.mode, 'OFFICIAL_WEB_EXTRACTIVE'); assert.equal(result.body.context.topics[0].id, 'medicine-storage'); assert.ok(result.body.feedbackReceipt); receipt = result.body.feedbackReceipt; assert.equal(calls, 1); assert.match(result.headers['cache-control'], /private, no-store/);
+    const result = await request(app).post('/api/v1/chat').set('Authorization', token(0)).send({ message: 'Explain Ibuprofen. SYNTHETIC_PRIVATE_NAME patient@example.invalid' });
+    assert.equal(result.status, 200); assert.equal(result.body.mode, 'PRECISE_WEB_EVIDENCE'); assert.equal(result.body.context.topics[0].id, 'ibuprofen'); assert.ok(result.body.feedbackReceipt); receipt = result.body.feedbackReceipt; assert.equal(calls, 1); assert.match(result.headers['cache-control'], /private, no-store/);
   });
   await t.test('contextual follow-up is returned through SSE with the correct source scope', async () => {
-    const result = await request(app).post('/api/v1/chat/stream').set('Authorization', token(0)).send({ message: 'Explain it more simply', history: [{ role: 'user', text: 'Explain medicine storage' }] });
+    const result = await request(app).post('/api/v1/chat/stream').set('Authorization', token(0)).send({ message: 'Explain it more simply', history: [{ role: 'user', text: 'Explain Ibuprofen' }] });
     assert.equal(result.status, 200); assert.match(result.text, /event: done/); assert.match(result.text, /"followupResolved":true/); assert.match(result.text, /"style":"CONCISE"/); assert.match(result.text, /APPROVED_WEB_BM25/); assert.equal(calls, 1, 'cached official result avoids another request');
   });
   await t.test('feedback is protected, owner-bound, persisted as metadata and never auto-applied', async () => {

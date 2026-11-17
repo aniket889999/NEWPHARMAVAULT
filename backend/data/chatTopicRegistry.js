@@ -19,5 +19,8 @@ module.exports = Object.freeze([
   { id: 'antibiotics', label: 'Antibiotics', aliases: ['antibiotics', 'antibiotic'], webTerm: 'antibiotics', concept: true },
   { id: 'workflow-human-review', label: 'Human-in-the-loop validation', aliases: ['human-in-the-loop validation', 'human in the loop', 'human review', 'hitl'], concept: true, localOnly: true },
   { id: 'workflow-ocr', label: 'Document OCR', aliases: ['ocr', 'document extraction'], concept: true, localOnly: true },
-  { id: 'workflow-trustrag', label: 'TrustRAG evidence routing', aliases: ['trustrag', 'evidence routing'], concept: true, localOnly: true }
+  { id: 'workflow-trustrag', label: 'TrustRAG evidence routing', aliases: ['trustrag', 'evidence routing'], concept: true, localOnly: true },
+  { id: 'workflow-freshness', label: 'Answer freshness', aliases: ['answer freshness', 'evidence freshness', 'stale answer', 'stale answers'], concept: true, localOnly: true },
+  { id: 'workflow-consistency', label: 'Document consistency', aliases: ['strength mismatch', 'strength discrepancy', 'risk signals', 'risk signal', 'document consistency'], concept: true, localOnly: true },
+  { id: 'workflow-identity', label: 'Medicine identity resolution', aliases: ['identity resolution', 'identity matching'], concept: true, localOnly: true }
 ].map(value => Object.freeze({ ...value, aliases: Object.freeze(value.aliases) })));

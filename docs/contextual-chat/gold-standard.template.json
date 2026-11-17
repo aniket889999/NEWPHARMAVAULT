@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "external-reference-standard-v1",
+  "synthetic": true,
+  "status": "DRAFT_NOT_REVIEWED_NOT_SCORED",
+  "candidateFreezeSha256": null,
+  "independentAuthor": null,
+  "reviewers": [],
+  "sourceVersions": [],
+  "taskFamilies": ["direct", "followup", "topic-switch", "ambiguous", "missing-evidence", "stale-evidence", "contradiction", "private-isolation", "clinical-referral", "web-failure"],
+  "cases": [],
+  "caseSchemaGuide": {
+    "id": "unique family-disjoint identifier",
+    "question": "synthetic public or controlled document question",
+    "history": "bounded synthetic dialogue only",
+    "evidence": "versioned source IDs or controlled document facts",
+    "requiredClaims": "independently verified expected claims",
+    "forbiddenClaims": "unsafe, unsupported or wrong-entity claims",
+    "expectedAction": "ANSWER / CLARIFY / ABSTAIN / SAFETY",
+    "reviewStatus": "clinical content requires a qualified reviewer"
+  },
+  "warning": "Do not call developer-authored routing tests a medical gold standard. Freeze the candidate before independent test authoring; do not train or tune on these labels."
+}

@@ -11,6 +11,7 @@ import { portalHome } from '../../features/navigation/portalPolicy';
 import { ChatReadinessNotice } from '../../features/chatReadiness/ChatReadinessNotice';
 import { parseChatCapabilities } from '../../features/chatReadiness/presentation';
 import type { ChatCapabilities } from '../../features/chatReadiness/presentation';
+import { KnowledgeReviewPanel } from '../../features/chatReadiness/KnowledgeReviewPanel';
 
 const HealthAssistant: React.FC = () => {
   const { user } = useAuth();
@@ -114,6 +115,7 @@ const HealthAssistant: React.FC = () => {
             <button onClick={newChat} aria-label="Start a new chat" className="rounded-full border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"><Plus size={16} /></button>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
+            {!caseId && <KnowledgeReviewPanel />}
             <label htmlFor="chat-scope" className="text-[10px] uppercase tracking-wide text-slate-400">Evidence scope</label>
             <select id="chat-scope" value={caseId || ''} disabled={isLoading} onChange={e => changeScope(e.target.value)} className="max-w-full rounded-lg border-slate-200 py-1.5 pl-2 pr-7 text-xs text-slate-600">
               <option value="">Public medicine references + project knowledge</option>

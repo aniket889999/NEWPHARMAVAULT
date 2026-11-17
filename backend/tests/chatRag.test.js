@@ -203,7 +203,10 @@ test('real MongoDB and HTTP chat authorization, live field retrieval and stale-f
       assert.equal((await api(null, { message: 'human review' })).status, 401);
       const publicAnswer = await api(0, { message: 'human review' });
       assert.equal(publicAnswer.status, 200);
-      assert.equal(publicAnswer.body.mode, 'LOCAL_EXTRACTIVE');
+      assert.equal(publicAnswer.body.mode, 'PRECISE_LOCAL_EVIDENCE');
+      assert.equal(publicAnswer.body.retrieval.method, 'CONTEXT_RERANKED_BM25');
+      assert.match(publicAnswer.body.reply, /\[S1\]/);
+      assert.equal(publicAnswer.body.model, undefined);
       assert.equal((await request(app).post('/api/chat').send({ message: 'hello' })).status, 404);
     } finally { process.env.NODE_ENV = old; }
   });

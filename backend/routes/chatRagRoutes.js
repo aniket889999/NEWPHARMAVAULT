@@ -4,6 +4,8 @@ const { aiLimiter } = require('../middleware/rateLimiter');
 const rag = require('../services/chatRagService');
 const conversational = require('../services/conversationalRagService');
 const contextual = require('../services/contextualChatService');
+const { references, corpusHash } = require('../services/chatReferenceRegistry');
+const precisionModel = require('../data/precisionRanker.v1.json');
 const { issueReceipt, submitFeedback } = require('../services/chatFeedbackService');
 const { providerReadiness } = require('../services/chatProviderReadinessService');
 const router = express.Router();
@@ -12,7 +14,7 @@ const router = express.Router();
 router.post('/', aiLimiter, asyncHandler(async (req, res) => {
   const input = conversational.validateRequest(req.body);
   const attempt = input.caseId ? null : providerReadiness.beginPublicAttempt();
-  const result = issueReceipt(req.user._id, await contextual.answer({ ...input, user: req.user, tenantContext: req.tenantContext }));
+  const result = issueReceipt(req.user._id, await contextual.answer({ ...input, user: req.user, tenantContext: req.tenantContext }), { organizationId: req.user.organizationId });
   providerReadiness.observePublicAnswer(attempt, result, { privateScope: Boolean(input.caseId) });
   res.setHeader('Cache-Control', 'private, no-store');
   res.json(result);
@@ -29,7 +31,8 @@ router.get('/status', (req, res) => {
     publicPassages: rag.publicChunks.length,
     healthReferencePassages: rag.publicChunks.filter(p => p.kind === 'HEALTH_REFERENCE').length,
     privateCasePolicy: 'LOCAL_ONLY', providerReadiness: readiness,
-    contextualChat: { version: 'contextual-chat-v1', webEnabled: process.env.RAG_CHAT_WEB_ENABLED === 'true', webProvider: 'MEDLINEPLUS_HEALTH_TOPICS', privateWebPolicy: 'NEVER', feedbackPolicy: 'EXPERT_REVIEW_REQUIRED_NO_AUTOTRAINING' }
+    contextualChat: { version: 'contextual-chat-v1', webEnabled: process.env.RAG_CHAT_WEB_ENABLED === 'true', webProvider: 'MEDLINEPLUS_HEALTH_TOPICS', privateWebPolicy: 'NEVER', feedbackPolicy: 'EXPERT_REVIEW_REQUIRED_NO_AUTOTRAINING',
+      precision: { version: 'precision-chat-v1', referenceCount: references.length, corpusHash, trainedReranker: precisionModel.corpusHash === corpusHash, trainingScope: 'LOCAL_RETRIEVAL_RANKER_NOT_LLM', clinicalValidation: 'NOT_PERFORMED', webSynthesisAllowed: process.env.RAG_CHAT_WEB_SYNTHESIS_ALLOWED === 'true' } }
   });
 });
 
@@ -50,7 +53,7 @@ router.post('/stream', aiLimiter, asyncHandler(async (req, res) => {
   res.on('close', () => { if (!finished) controller.abort(); });
   const heartbeat = setInterval(() => { if (!res.destroyed) res.write(': keepalive\n\n'); }, 10000);
   try {
-    const result = issueReceipt(req.user._id, await contextual.answer({ ...input, user: req.user, tenantContext: req.tenantContext }, { signal: controller.signal, emit }));
+    const result = issueReceipt(req.user._id, await contextual.answer({ ...input, user: req.user, tenantContext: req.tenantContext }, { signal: controller.signal, emit }), { organizationId: req.user.organizationId });
     providerReadiness.observePublicAnswer(attempt, result, { privateScope: Boolean(input.caseId), aborted: controller.signal.aborted });
     emit('done', result);
   } catch (_) {
@@ -66,5 +69,7 @@ router.post('/feedback', aiLimiter, asyncHandler(async (req, res) => {
   res.setHeader('Cache-Control', 'private, no-store');
   res.json(await submitFeedback(req.user._id, req.body));
 }));
+
+router.use('/knowledge', require('./knowledgeCurationRoutes'));
 
 module.exports = router;

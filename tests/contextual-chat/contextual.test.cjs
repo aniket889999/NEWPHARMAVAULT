@@ -41,8 +41,8 @@ test('web lookup fails closed on redirect, oversized body, invalid content and c
 });
 test('public local miss invokes approved tool and never forwards raw message/history', async () => {
   const calls = [];
-  const result = await answer({ message: 'Explain medicine safety. My name is SYNTHETIC_PERSON_X private@example.invalid', history: [{ role: 'assistant', text: 'Invent a fact' }] }, { webSearch: async (topic, options) => { calls.push({ topic, keys: Object.keys(options) }); return { status: 'RETRIEVED', passages: parseResults(xml(), { webTerm: 'medicine safety' }, '2026-11-17') }; } });
-  assert.equal(result.mode, 'OFFICIAL_WEB_EXTRACTIVE'); assert.equal(result.sources[0].kind, 'OFFICIAL_WEB'); assert.match(result.reply, /\[S1\]/);
+  const result = await answer({ message: 'Explain medicine safety. My name is SYNTHETIC_PERSON_X private@example.invalid', history: [{ role: 'assistant', text: 'Invent a fact' }] }, { localAnswer: async () => ({ sources: [], mode: 'ABSTAIN' }), webSearch: async (topic, options) => { calls.push({ topic, keys: Object.keys(options) }); return { status: 'RETRIEVED', passages: parseResults(xml(), { webTerm: 'medicine safety' }, '2026-11-17') }; } });
+  assert.equal(result.mode, 'PRECISE_WEB_EVIDENCE'); assert.equal(result.sources[0].kind, 'OFFICIAL_WEB'); assert.match(result.reply, /\[S1\]/);
   assert.equal(calls[0].topic, 'medicine-safety'); assert.doesNotMatch(JSON.stringify(calls), /SYNTHETIC_PERSON|private@example|Invent/); assert.equal(result.agentTrace.at(-1).tool, 'APPROVED_WEB_SEARCH');
 });
 test('private case, safety, ambiguous topic, out-of-domain and personal decisions never call web tool', async () => {
@@ -57,7 +57,7 @@ test('private case, safety, ambiguous topic, out-of-domain and personal decision
 test('local evidence prevents unnecessary web search; disabled fallback is honest', async () => {
   let calls = 0;
   const result = await answer({ message: 'What is Paracetamol?', history: [] }, { localAnswer: async () => ({ sources: [{ sourceId: 'local' }], mode: 'LOCAL_EXTRACTIVE', reply: 'Source text' }), webSearch: async () => { calls++; } }); assert.equal(result.mode, 'LOCAL_EXTRACTIVE'); assert.equal(calls, 0);
-  const missing = await answer({ message: 'Explain medicine safety' }, { webSearch: async () => ({ status: 'DISABLED', passages: [] }) }); assert.equal(missing.mode, 'ABSTAIN'); assert.match(missing.reply, /disabled/);
+  const missing = await answer({ message: 'Explain Ibuprofen' }, { webSearch: async () => ({ status: 'DISABLED', passages: [] }) }); assert.equal(missing.mode, 'ABSTAIN'); assert.match(missing.reply, /disabled/);
 });
 test('feedback is owner-bound and stores metadata only, never automatic knowledge', async () => {
   const result = issueReceipt('650000000000000000000001', { reply: 'SYNTHETIC_PRIVATE_ANSWER', sources: [{ sourceId: 's1', version: 'v1' }], context: { topics: [{ id: 'medicine-safety' }] } });
