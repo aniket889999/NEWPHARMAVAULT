@@ -20,6 +20,7 @@ const HealthAssistant: React.FC = () => {
   const { activeConversation, conversations, createConversation, setActiveConversation, deleteConversation, isLoading } = useChatStore();
   const [cases, setCases] = useState<VerificationCase[]>([]);
   const [capabilities, setCapabilities] = useState<ChatCapabilities | null>(null);
+  const [officialWebEnabled, setOfficialWebEnabled] = useState<boolean | null>(null);
   const [caseLoadError, setCaseLoadError] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -40,8 +41,12 @@ const HealthAssistant: React.FC = () => {
     const check = () => {
       const request = ++sequence;
       void apiClient.get<unknown>('/v1/chat/status', { signal: controller.signal })
-        .then(({ data }) => { if (!cancelled && request === sequence) setCapabilities(parseChatCapabilities(data)); })
-        .catch(() => { if (!cancelled && request === sequence) setCapabilities(null); });
+        .then(({ data }) => { if (!cancelled && request === sequence) {
+          setCapabilities(parseChatCapabilities(data));
+          const extra = data as { contextualChat?: { version?: string; webEnabled?: boolean } };
+          setOfficialWebEnabled(extra?.contextualChat?.version === 'contextual-chat-v1' && typeof extra.contextualChat.webEnabled === 'boolean' ? extra.contextualChat.webEnabled : null);
+        } })
+        .catch(() => { if (!cancelled && request === sequence) { setCapabilities(null); setOfficialWebEnabled(null); } });
     };
     const checkVisible = () => { if (document.visibilityState === 'visible') check(); };
     check();
@@ -71,7 +76,7 @@ const HealthAssistant: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[100dvh] min-h-0 overflow-hidden bg-white text-slate-900">
+    <div className="flex h-[calc(100dvh-var(--pharmavault-demo-toolbar-height,0px))] min-h-0 overflow-hidden bg-white text-slate-900">
       {sidebarOpen && <button aria-label="Close chat sidebar" onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-40 bg-slate-900/30 lg:hidden" />}
       <aside className={(sidebarOpen ? 'fixed inset-y-0 left-0 z-50 flex' : 'hidden') + ' w-60 shrink-0 flex-col border-r border-slate-200 bg-slate-50 lg:static lg:flex'}>
         <div className="flex items-center justify-between px-4 pb-4 pt-6">
@@ -115,6 +120,7 @@ const HealthAssistant: React.FC = () => {
               {caseId && !cases.some(c => c.id === caseId) && <option value={caseId}>Selected case - server checks access</option>}
               {cases.map(c => <option key={c.id} value={c.id}>{c.caseReference} · {c.status}</option>)}
             </select>
+            {!caseId && officialWebEnabled !== null && <span className="text-[10px] text-slate-500">Official-source fallback: {officialWebEnabled ? 'enabled for approved public topics' : 'disabled'} · Feedback requires review, not automatic training</span>}
             {capabilities?.embeddingEnabled && !caseId && <span className="rounded-full bg-teal-50 px-2 py-1 text-[10px] text-teal-700">Semantic retrieval configured · checked per answer</span>}
           </div>
           {caseLoadError && <p className="mt-2 text-xs text-amber-800">Could not load case choices. Public reference chat remains available.</p>}

@@ -14,7 +14,7 @@ const PatientLayout: React.FC = () => {
   };
 
   if (location.pathname === '/patient/health-assistant') {
-    return <main className="h-screen min-w-0 overflow-hidden"><Outlet /></main>;
+    return <main className="h-[calc(100dvh-var(--pharmavault-demo-toolbar-height,0px))] min-w-0 overflow-hidden"><Outlet /></main>;
   }
 
   return (

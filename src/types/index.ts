@@ -79,16 +79,16 @@ export interface PrescribedMedicine {
 
 export interface RagChatResponse {
   reply: string;
-  mode: 'ABSTAIN' | 'SAFETY' | 'LOCAL_EXTRACTIVE' | 'LOCAL_CASE_EVIDENCE' | 'GEMINI_GROUNDED_QUOTES' | 'GEMINI_RAG' | 'CONVERSATIONAL_HELP' | 'CLARIFY';
+  mode: 'ABSTAIN' | 'SAFETY' | 'LOCAL_EXTRACTIVE' | 'LOCAL_CASE_EVIDENCE' | 'GEMINI_GROUNDED_QUOTES' | 'GEMINI_RAG' | 'CONVERSATIONAL_HELP' | 'CLARIFY' | 'OFFICIAL_WEB_EXTRACTIVE';
   caseAnswer?: CaseAssistantAnswer;
   routing?: { intent: string; reasonCode: string; policyVersion: string };
-  retrieval: { method: 'BM25' | 'HYBRID_BM25_VECTOR' | 'CASE_ITEM_EVIDENCE'; matchedPassages: number };
+  retrieval: { method: 'BM25' | 'HYBRID_BM25_VECTOR' | 'CASE_ITEM_EVIDENCE' | 'APPROVED_WEB_BM25'; matchedPassages: number };
   sources: {
     citation: string;
     sourceId: string;
     title: string;
     excerpt: string;
-    kind: 'PROJECT_GUIDE' | 'ACADEMIC_CATALOGUE' | 'CASE_RECORD' | 'HEALTH_REFERENCE';
+    kind: 'PROJECT_GUIDE' | 'ACADEMIC_CATALOGUE' | 'CASE_RECORD' | 'HEALTH_REFERENCE' | 'OFFICIAL_WEB';
     version: string;
     score: number;
     href?: string;
@@ -100,6 +100,9 @@ export interface RagChatResponse {
   disclaimer: string;
   model?: string;
   followupResolved?: boolean;
+  feedbackReceipt?: string;
+  context?: { version: string; topics: { id: string; label: string }[]; intent: string; style: string; followupResolved: boolean };
+  agentTrace?: { tool: string; status: string }[];
 }
 
 export interface ChatMessage {

@@ -85,6 +85,21 @@ paths:
                     const: LOCAL_ONLY
                   providerReadiness:
                     $ref: '#/components/schemas/ChatProviderReadiness'
+                  contextualChat:
+                    type: object
+                    additionalProperties: false
+                    required: [version, webEnabled, webProvider, privateWebPolicy, feedbackPolicy]
+                    properties:
+                      version:
+                        const: contextual-chat-v1
+                      webEnabled:
+                        type: boolean
+                      webProvider:
+                        const: MEDLINEPLUS_HEALTH_TOPICS
+                      privateWebPolicy:
+                        const: NEVER
+                      feedbackPolicy:
+                        const: EXPERT_REVIEW_REQUIRED_NO_AUTOTRAINING
         '401':
           description: Missing or invalid authentication
         '403':
@@ -145,14 +160,14 @@ paths:
                     type: string
                   mode:
                     type: string
-                    enum: [LOCAL_EXTRACTIVE, GEMINI_GROUNDED_QUOTES, GEMINI_RAG, CONVERSATIONAL_HELP, CLARIFY, ABSTAIN, SAFETY]
+                    enum: [LOCAL_EXTRACTIVE, GEMINI_GROUNDED_QUOTES, GEMINI_RAG, CONVERSATIONAL_HELP, CLARIFY, ABSTAIN, SAFETY, OFFICIAL_WEB_EXTRACTIVE]
                   retrieval:
                     type: object
                     required: [method, matchedPassages]
                     properties:
                       method:
                         type: string
-                        enum: [BM25, HYBRID_BM25_VECTOR]
+                        enum: [BM25, HYBRID_BM25_VECTOR, APPROVED_WEB_BM25]
                       matchedPassages:
                         type: integer
                         minimum: 0
@@ -173,7 +188,7 @@ paths:
                           type: string
                         kind:
                           type: string
-                          enum: [PROJECT_GUIDE, ACADEMIC_CATALOGUE, CASE_RECORD, HEALTH_REFERENCE]
+                          enum: [PROJECT_GUIDE, ACADEMIC_CATALOGUE, CASE_RECORD, HEALTH_REFERENCE, OFFICIAL_WEB]
                         version:
                           type: string
                         score:
@@ -200,6 +215,25 @@ paths:
                     type: string
                   followupResolved:
                     type: boolean
+                  feedbackReceipt:
+                    type: string
+                    format: uuid
+                    description: Opaque, owner-bound public-answer feedback receipt, expiring after one hour. Not a training approval.
+                  context:
+                    type: object
+                    description: Bounded topic and intent projection; history is not treated as factual evidence.
+                  agentTrace:
+                    type: array
+                    maxItems: 5
+                    description: Tool/action outcomes, never hidden model reasoning.
+                    items:
+                      type: object
+                      required: [tool, status]
+                      properties:
+                        tool:
+                          type: string
+                        status:
+                          type: string
                   routing:
                     type: object
                     required: [intent, reasonCode, policyVersion]
@@ -250,6 +284,48 @@ paths:
           description: Case absent or inaccessible.
         '429':
           description: Chat rate limit exceeded.
+  /chat/feedback:
+    post:
+      summary: Rate an owned public answer for later expert review
+      operationId: submitChatFeedback
+      description: Stores bounded metadata only with 30-day retention. No raw chat or correction text is accepted. Feedback never updates knowledge or trains a model automatically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [receipt, rating]
+              properties:
+                receipt:
+                  type: string
+                  format: uuid
+                rating:
+                  enum: [HELPFUL, NOT_HELPFUL]
+      responses:
+        '200':
+          description: Queued for expert review; no learning applied.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accepted, status, learningApplied]
+                properties:
+                  accepted:
+                    const: true
+                  status:
+                    const: PENDING_EXPERT_REVIEW
+                  learningApplied:
+                    const: false
+        '400':
+          description: Invalid or unsupported feedback fields.
+        '401':
+          description: Authentication required.
+        '404':
+          description: Receipt unavailable, expired or owned by another user.
+        '429':
+          description: Rate limit exceeded.
   /cases:
     post:
       summary: Create a new Verification Case
