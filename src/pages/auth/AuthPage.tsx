@@ -9,7 +9,7 @@ const AuthPage: React.FC = () => {
   const navigate = useNavigate();
   const role = searchParams.get('role') || 'patient';
   
-  const { login, signup } = useAuth();
+  const { login, signup, isLoading } = useAuth();
   
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -88,6 +88,8 @@ const AuthPage: React.FC = () => {
             <input 
               type="password" 
               required 
+                minLength={isLogin ? undefined : 15}
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
@@ -95,20 +97,21 @@ const AuthPage: React.FC = () => {
           </div>
           <button 
             type="submit" 
+            disabled={isLoading}
             className={`w-full py-2 px-4 text-white font-bold rounded-lg transition-colors ${btnColor}`}
           >
             {isLogin ? 'Sign In' : 'Sign Up'}
           </button>
         </form>
 
-        {role === 'patient' && <div className="mt-4 pt-4 border-t border-gray-100">
+        {import.meta.env.DEV && role === 'patient' && <div className="mt-4 pt-4 border-t border-gray-100">
           <p className="text-xs text-center text-gray-400 mb-3 uppercase tracking-wider font-bold">Hackathon Demo Access</p>
           <button 
             type="button"
             onClick={() => {
               setIsLogin(false);
               setEmail(isReviewer ? 'reviewer@test.com' : isPharmacy ? 'pharmacy@test.com' : 'patient@test.com');
-              setPassword('password123');
+              setPassword('synthetic-demo-password-only');
               setName(isReviewer ? 'Demo Claims Reviewer' : isPharmacy ? 'Demo Pharmacy Hub' : 'Demo Patient');
               toast('Demo credentials auto-filled. Please click Sign Up if this is your first time, or toggle to Sign In.', { icon: '✨' });
             }}

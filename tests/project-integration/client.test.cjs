@@ -81,17 +81,17 @@ test('medicine clarification reuses its own preceding question and explicitly se
   assert.match(source, /sendMessage\(question, \{ medicineItemId: itemId \}\)/);
   assert.match(source, /query: 'Compare prescription and invoice dosage strength for the selected medicine'/);
 });
-test('failed login stays with the form, while private 401 clears the session', async t => {
+test('failed login stays with the form, while private 401 clears the cookie-session UI', async t => {
   const previous = { storage: global.localStorage, window: global.window, alert: global.alert };
   t.after(() => { for (const [name, value] of Object.entries({ localStorage: previous.storage, window: previous.window, alert: previous.alert })) { if (value === undefined) delete global[name]; else global[name] = value; } });
   const removed = []; global.localStorage = { getItem: () => 'synthetic', removeItem: key => removed.push(key) };
-  global.window = { location: { href: '/login' } }; let alerts = 0; global.alert = () => alerts++;
+  const events = []; global.window = { location: { href: '/login' }, dispatchEvent: event => events.push(event.type) }; let alerts = 0; global.alert = () => alerts++;
   const { default: api } = loadClient('src/api/apiClient.ts');
   const request = api.interceptors.request.handlers[0].fulfilled({ headers: {} });
-  assert.equal(request.headers.Authorization, 'Bearer synthetic');
+  assert.equal(request.headers.Authorization, undefined); assert.equal(request.headers['X-PharmaVault-Client'], 'web'); assert.equal(api.defaults.withCredentials, true);
   const reject = api.interceptors.response.handlers[0].rejected;
   await assert.rejects(reject({ response: { status: 401 }, config: { url: '/users/login' } }));
   assert.deepEqual(removed, []); assert.equal(alerts, 0); assert.equal(global.window.location.href, '/login');
   await assert.rejects(reject({ response: { status: 401 }, config: { url: '/v1/cases' } }));
-  assert.deepEqual(removed, ['token', 'user', 'pharmavault_user']); assert.equal(alerts, 1); assert.equal(global.window.location.href, '/auth');
+  assert.deepEqual(removed, ['token', 'user', 'pharmavault_user']); assert.equal(alerts, 0); assert.equal(global.window.location.href, '/login'); assert.deepEqual(events, ['pharmavault:session-expired']);
 });

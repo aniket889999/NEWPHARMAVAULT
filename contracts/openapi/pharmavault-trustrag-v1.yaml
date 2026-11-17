@@ -4,7 +4,11 @@ info:
   version: 1.0.0
   description: >
     The core API contract for the TrustRAG Verification Engine.
-    All endpoints require JWT Bearer authentication.
+    Endpoints require native-client JWT Bearer authentication or a protected
+    browser session cookie. Browser mutations additionally require an exact
+    allowed Origin and X-PharmaVault-Client header with value web. Browser
+    sessions last 15 minutes; native tokens last at most one hour. Logout at
+    POST /api/users/logout revokes all earlier sessions for that account.
     Tenant isolation is enforced on all endpoints where applicable.
 
 servers:
@@ -17,6 +21,11 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: __Host-pv_session
+      description: Production HTTPS-only HttpOnly SameSite=Strict host cookie; development uses pv_session. No browser token is returned in JSON.
 
   schemas:
     ChatProviderReadiness:
@@ -40,6 +49,7 @@ components:
 
 security:
   - bearerAuth: []
+  - cookieAuth: []
 
 paths:
   /chat/status:
@@ -509,6 +519,7 @@ paths:
       operationId: createCase
       security:
         - bearerAuth: [ "patient", "pharmacist", "org_admin" ]
+        - cookieAuth: []
       requestBody:
         required: true
         content:
@@ -554,6 +565,7 @@ paths:
       operationId: listCases
       security:
         - bearerAuth: [ "patient", "pharmacist", "claims_reviewer", "org_admin", "super_admin", "research_evaluator" ]
+        - cookieAuth: []
       responses:
         '200':
           description: A list of cases
@@ -589,6 +601,7 @@ paths:
       operationId: updateCase
       security:
         - bearerAuth: [ "pharmacist", "claims_reviewer", "org_admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -710,6 +723,7 @@ paths:
       operationId: getDocumentContent
       security:
         - bearerAuth: [ "patient", "pharmacist", "claims_reviewer", "org_admin", "super_admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -772,6 +786,7 @@ paths:
       operationId: getDocumentPagePreview
       security:
         - bearerAuth: [ "patient", "pharmacist", "claims_reviewer", "org_admin", "super_admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -1016,6 +1031,7 @@ paths:
       operationId: getCaseReconciliation
       security:
         - bearerAuth: [ "patient", "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin", "admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -1133,6 +1149,7 @@ paths:
       operationId: confirmMedicineGroups
       security:
         - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -1232,6 +1249,7 @@ paths:
       operationId: correctField
       security:
         - bearerAuth: [ "pharmacist", "claims_reviewer", "org_admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -1277,6 +1295,7 @@ paths:
       operationId: getReviewQueue
       security:
         - bearerAuth: [ "claims_reviewer", "pharmacist", "org_admin" ]
+        - cookieAuth: []
       responses:
         '200':
           description: Cases waiting for human review
@@ -1299,6 +1318,7 @@ paths:
       operationId: submitReview
       security:
         - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin", "admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path

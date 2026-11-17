@@ -181,7 +181,7 @@ test('U1: Authorization, Lifecycle Enforcement, and Safe Database Isolation Suit
       .send({
         name: 'Self Registered Patient',
         email: 'self.patient@example.com',
-        password: 'password123',
+        password: 'synthetic-registration-password',
         role: 'patient'
       });
     assert.strictEqual(regPatient.status, 201);
@@ -229,7 +229,7 @@ test('U1: Authorization, Lifecycle Enforcement, and Safe Database Isolation Suit
       .send({
         name: 'Provisioned Pharmacist 2',
         email: 'prov.pharm2@example.com',
-        password: 'password123',
+        password: 'synthetic-staff-provision-password',
         role: 'pharmacist'
       });
     assert.strictEqual(adminProv.status, 201);

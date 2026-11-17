@@ -1,4 +1,8 @@
 node_modules
+.npmrc
+**/*.pem
+**/*.key
+**/*.p12
 npm-debug.log*
 .env
 .env.*
@@ -6,6 +10,11 @@ npm-debug.log*
 storage
 data/*
 !data/academicMedicineCatalogue.js
+!data/chatKnowledge.js
+!data/healthChatKnowledge.js
+!data/chatTopicRegistry.js
+!data/chatReferenceExtensions.js
+!data/precisionRanker.v1.json
 eng.traineddata
 **/*.traineddata
 **/*.traineddata.gz

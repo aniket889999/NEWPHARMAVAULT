@@ -2,6 +2,7 @@ import apiClient from './apiClient';
 import { RagChatResponse } from '../types';
 import { caseAssistantApi } from '../features/caseAssistant/api';
 import { toChatResponse } from '../features/caseAssistant/toChatResponse';
+import { notifySessionExpired } from '../features/navigation/sessionProfile';
 
 export type ChatStreamEvent =
   | { event: 'status'; data: { stage: string; message: string } }
@@ -31,12 +32,12 @@ export async function streamChat(
     return;
   }
   const base = String(apiClient.defaults.baseURL || '/api').replace(/\/$/, '');
-  const token = localStorage.getItem('token');
   const response = await fetch(`${base}/v1/chat/stream`, {
-    method: 'POST', signal,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    method: 'POST', signal, credentials: 'include',
+    headers: { 'Content-Type': 'application/json', 'X-PharmaVault-Client': 'web' },
     body: JSON.stringify(payload),
   });
+  if (response.status === 401) notifySessionExpired();
   if (!response.ok || !response.body) throw new Error(response.status === 401 ? 'Please sign in again.' : 'Evidence chat is unavailable or this case is not accessible.');
   const reader = response.body.getReader();
   const decoder = new TextDecoder();

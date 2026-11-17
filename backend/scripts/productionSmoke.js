@@ -26,6 +26,12 @@ async function main() {
   const catalogue = require('../data/academicMedicineCatalogue').ACADEMIC_MEDICINE_CATALOGUE;
   assert.ok(Array.isArray(catalogue) && catalogue.length >= 15);
   require('../services/trustRag/identityResolutionService');
+  const { references } = require('../services/chatReferenceRegistry');
+  const { answer } = require('../services/contextualChatService');
+  const response = await answer({ message: 'Can Metformin affect vitamin B12?' }, { webSearch: async () => { throw new Error('Unexpected web lookup.'); } });
+  assert.equal(response.mode, 'PRECISE_LOCAL_EVIDENCE');
+  assert.match(response.reply, /Vitamin B12/);
+  assert.ok(references.length > 0 && response.sources.length > 0);
   assert.equal(process.env.TRUSTRAG_LLM_ENABLED, 'false');
   assert.equal(process.env.TRUSTRAG_LLM_EXPORT_ALLOWED, 'false');
   assert.ok(fs.existsSync(getDocumentStorageRoot()));
@@ -46,6 +52,7 @@ async function main() {
     assert.equal(health.headers.get('cache-control'), 'no-store, max-age=0');
     assert.equal((await fetch(`${url}/api/v1/cases`)).status, 401);
     assert.equal((await fetch(`${url}/api/chat/vision-ocr`, { method: 'POST' })).status, 404);
+    assert.equal((await fetch(`${url}/api/mentor-demo/bootstrap`)).status, 404);
     const injection = await fetch(`${url}/api/users/login`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: { $ne: null } })
@@ -60,7 +67,7 @@ async function main() {
     assert.equal(png.readUInt32BE(0), 0x89504e47);
     console.log(JSON.stringify({
       smoke: 'PASS', runtime: process.version, catalogueRecords: catalogue.length,
-      httpBoundary: 'PASS', realPdfRenderer: 'PASS', databaseConnected: false,
+      httpBoundary: 'PASS', localRagRuntime: 'PASS', realPdfRenderer: 'PASS', databaseConnected: false,
       externalLlmCalled: false, ocrAccuracyMeasured: false
     }));
   } finally {
