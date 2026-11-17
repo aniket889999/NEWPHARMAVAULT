@@ -13,6 +13,8 @@ const AuditEvent = require('../models/auditEventModel');
 const storageService = require('../services/trustRag/storageService');
 const pdfRenderingService = require('../services/trustRag/pdfRenderingService');
 const auditLoggerService = require('../services/trustRag/auditLoggerService');
+const { buildCaseBundle } = require('../services/fhir/fhirBundleBuilder');
+const { validateBundle } = require('../services/fhir/fhirR4Validator');
 const trustRagOrchestrator = require('../services/trustRag/trustRagOrchestrator');
 const llmExplainabilityService = require('../services/trustRag/llmExplainabilityService');
 const {
@@ -179,14 +181,15 @@ const createCase = asyncHandler(async (req, res) => {
     // Patients are tenant-neutral submitters
     if (req.body.organizationId) {
       const specifiedOrg = await Organization.findById(req.body.organizationId);
-      if (specifiedOrg) {
+      if (specifiedOrg && specifiedOrg.kind !== 'payer') {
         orgId = specifiedOrg._id;
       }
     }
     if (!orgId) {
-      let activeOrg = await Organization.findOne({ status: 'active' });
+      // Payer (insurer) tenants never own verification cases.
+      let activeOrg = await Organization.findOne({ status: 'active', kind: { $ne: 'payer' } });
       if (!activeOrg) {
-        activeOrg = await Organization.findOne({});
+        activeOrg = await Organization.findOne({ kind: { $ne: 'payer' } });
       }
       if (activeOrg) {
         orgId = activeOrg._id;
@@ -1187,35 +1190,14 @@ const getFhirBundle = asyncHandler(async (req, res) => {
     ConsistencyCheck.find({ caseId: vCase._id })
   ]);
 
-  const fhirBundle = {
-    resourceType: 'Bundle',
-    type: 'collection',
-    id: `bundle-${vCase._id}`,
-    timestamp: new Date().toISOString(),
-    entry: [
-      {
-        fullUrl: `urn:uuid:${vCase._id}`,
-        resource: {
-          resourceType: 'Task',
-          id: String(vCase._id),
-          identifier: [{ system: 'https://pharmavault.example/cases', value: vCase.caseReference }],
-          status: vCase.status.toLowerCase(),
-          intent: 'order',
-          description: 'TrustRAG Multi-Document Verification Case'
-        }
-      },
-      ...docs.map(d => ({
-        fullUrl: `urn:uuid:${d._id}`,
-        resource: {
-          resourceType: 'DocumentReference',
-          id: String(d._id),
-          status: 'current',
-          description: `${d.type} upload`
-        }
-      }))
-    ]
-  };
-
+  const pharmacyOrg = await Organization.findById(vCase.organizationId).select('name').lean();
+  const fhirBundle = buildCaseBundle({
+    verificationCase: { ...vCase.toObject(), id: String(vCase._id) },
+    documents: docs.map((d) => ({ id: String(d._id), type: d.type, mimeType: d.mimeType, sha256: d.sha256 })),
+    pharmacyOrg: pharmacyOrg && { id: String(pharmacyOrg._id), name: pharmacyOrg.name }
+  });
+  const validation = validateBundle(fhirBundle);
+  res.setHeader('X-PharmaVault-FHIR-Validation', validation.valid ? 'structural-pass' : 'structural-fail');
   res.status(200).json(fhirBundle);
 });
 

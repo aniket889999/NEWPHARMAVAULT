@@ -4,6 +4,7 @@ const generateToken = require('../utils/generateToken');
 const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
 const { isWebClient, verifyBrowserMutation, setBrowserSession, clearBrowserSession } = require('../config/browserSession');
+const { generateSecret, verifyTotp, otpauthUri, encryptSecret, decryptSecret } = require('../utils/totp');
 const dummyPasswordHash = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 10);
 
 function credentials(body, { registration = false } = {}) {
@@ -17,7 +18,7 @@ function credentials(body, { registration = false } = {}) {
   return { email: body.email.trim().toLowerCase(), password: body.password, role: body.role, ...(registration ? { name: body.name.trim() } : {}) };
 }
 function profile(user) {
-  return { _id: user._id, name: user.name, email: user.email, role: user.role,
+  return { _id: user._id, name: user.name, email: user.email, role: user.role, mfaEnabled: Boolean(user.mfa?.enabled),
     ...(user.organizationId ? { organizationId: user.organizationId } : {}), ...(user.branchId ? { branchId: user.branchId } : {}) };
 }
 function sendSession(req, res, user, status = 200) {
@@ -32,9 +33,24 @@ function sendSession(req, res, user, status = 200) {
 const authUser = asyncHandler(async (req, res) => {
   if (isWebClient(req)) verifyBrowserMutation(req);
   const { email, password, role } = credentials(req.body);
-  const user = await User.findOne({ email }).select('+sessionVersion');
+  const user = await User.findOne({ email }).select('+sessionVersion +mfa.secretEnc +mfa.lastUsedCounter');
   const matches = await bcrypt.compare(password, user?.password || dummyPasswordHash);
   if (user && matches && user.role === role) {
+    if (user.mfa?.enabled) {
+      const otp = typeof req.body.otp === 'string' ? req.body.otp.trim() : '';
+      if (!otp) {
+        return res.status(401).json({ message: 'Enter the 6-digit code from your authenticator app.', mfaRequired: true });
+      }
+      const counter = verifyTotp(decryptSecret(user.mfa.secretEnc), otp, { lastUsedCounter: user.mfa.lastUsedCounter ?? -1 });
+      // Atomic update blocks the same code being replayed in parallel requests.
+      const accepted = counter !== null && await User.updateOne(
+        { _id: user._id, 'mfa.lastUsedCounter': { $lt: counter } },
+        { $set: { 'mfa.lastUsedCounter': counter } }
+      ).then((r) => r.modifiedCount === 1);
+      if (!accepted) {
+        return res.status(401).json({ message: 'The authenticator code is invalid or already used.', mfaRequired: true });
+      }
+    }
     sendSession(req, res, user);
   } else {
     res.status(401);
@@ -83,7 +99,7 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/users/provision-staff
 // @access  Private (org_admin, super_admin)
 const provisionStaff = asyncHandler(async (req, res) => {
-  if (!req.user || !['org_admin', 'super_admin'].includes(req.user.role)) {
+  if (!req.user || !['org_admin', 'super_admin', 'payer_admin'].includes(req.user.role)) {
     res.status(403);
     throw new Error('Access denied: Staff provisioning requires an authorized organization administrator.');
   }
@@ -95,7 +111,12 @@ const provisionStaff = asyncHandler(async (req, res) => {
     throw new Error('Name, email, and password are required for staff provisioning.');
   }
 
-  const allowedStaffRoles = ['pharmacist', 'pharmacy', 'claims_reviewer', 'org_admin', 'branch_manager'];
+  // Payer admins can only add insurer staff; pharmacy org admins cannot create insurer staff.
+  const allowedStaffRoles = req.user.role === 'payer_admin'
+    ? ['payer_reviewer', 'payer_admin']
+    : req.user.role === 'org_admin'
+      ? ['pharmacist', 'pharmacy', 'claims_reviewer', 'org_admin', 'branch_manager']
+      : ['pharmacist', 'pharmacy', 'claims_reviewer', 'org_admin', 'branch_manager', 'payer_reviewer', 'payer_admin'];
   if (!role || !allowedStaffRoles.includes(role)) {
     res.status(400);
     throw new Error(`Invalid staff role. Allowed staff roles: ${allowedStaffRoles.join(', ')}`);
@@ -103,7 +124,7 @@ const provisionStaff = asyncHandler(async (req, res) => {
   credentials(req.body, { registration: true });
 
   // Determine explicit target organization
-  let targetOrgId = req.user.role === 'org_admin'
+  let targetOrgId = ['org_admin', 'payer_admin'].includes(req.user.role)
     ? (req.user.organizationId || req.tenantContext?.organizationId)
     : organizationId;
 
@@ -116,6 +137,11 @@ const provisionStaff = asyncHandler(async (req, res) => {
   if (!orgExists) {
     res.status(404);
     throw new Error('Specified organization does not exist.');
+  }
+  const payerRole = ['payer_reviewer', 'payer_admin'].includes(role);
+  if (payerRole !== (orgExists.kind === 'payer')) {
+    res.status(400);
+    throw new Error('Insurer roles belong only to payer organizations, and pharmacy roles only to pharmacy organizations.');
   }
   if (branchId) {
     const Branch = require('../models/branchModel');
@@ -172,4 +198,62 @@ const logoutUser = asyncHandler(async (req, res) => {
   res.status(204).end();
 });
 
-module.exports = { authUser, registerUser, provisionStaff, getUserProfile, logoutUser };
+
+// @desc    Start TOTP MFA enrolment (returns secret once; stored encrypted as pending)
+// @route   POST /api/users/mfa/setup
+const setupMfa = asyncHandler(async (req, res) => {
+  if (isWebClient(req)) verifyBrowserMutation(req);
+  const user = await User.findById(req.user._id);
+  if (user.mfa?.enabled) {
+    res.status(409);
+    throw new Error('MFA is already enabled. Disable it first to enrol a new device.');
+  }
+  const secret = generateSecret();
+  await User.updateOne({ _id: user._id }, { $set: { 'mfa.pendingSecretEnc': encryptSecret(secret) } });
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.status(200).json({ secret, otpauthUri: otpauthUri({ secret, accountName: user.email }) });
+});
+
+// @desc    Confirm enrolment with a valid code
+// @route   POST /api/users/mfa/enable
+const enableMfa = asyncHandler(async (req, res) => {
+  if (isWebClient(req)) verifyBrowserMutation(req);
+  const user = await User.findById(req.user._id).select('+mfa.pendingSecretEnc');
+  if (!user.mfa?.pendingSecretEnc) {
+    res.status(400);
+    throw new Error('Start MFA setup first.');
+  }
+  const secret = decryptSecret(user.mfa.pendingSecretEnc);
+  const counter = verifyTotp(secret, String(req.body?.code || '').trim());
+  if (counter === null) {
+    res.status(400);
+    throw new Error('The code did not match. Check the time on your phone and try again.');
+  }
+  await User.updateOne({ _id: user._id }, {
+    $set: { 'mfa.enabled': true, 'mfa.secretEnc': user.mfa.pendingSecretEnc, 'mfa.pendingSecretEnc': null, 'mfa.lastUsedCounter': counter, 'mfa.enabledAt': new Date() },
+    // Enabling MFA revokes other sessions.
+    $inc: { sessionVersion: 1 }
+  });
+  const fresh = await User.findById(user._id).select('+sessionVersion');
+  sendSession(req, res, fresh);
+});
+
+// @desc    Disable MFA (requires a current code)
+// @route   POST /api/users/mfa/disable
+const disableMfa = asyncHandler(async (req, res) => {
+  if (isWebClient(req)) verifyBrowserMutation(req);
+  const user = await User.findById(req.user._id).select('+mfa.secretEnc +mfa.lastUsedCounter');
+  if (!user.mfa?.enabled) {
+    res.status(400);
+    throw new Error('MFA is not enabled.');
+  }
+  const counter = verifyTotp(decryptSecret(user.mfa.secretEnc), String(req.body?.code || '').trim(), { lastUsedCounter: user.mfa.lastUsedCounter ?? -1 });
+  if (counter === null) {
+    res.status(400);
+    throw new Error('The code did not match.');
+  }
+  await User.updateOne({ _id: user._id }, { $set: { 'mfa.enabled': false, 'mfa.secretEnc': null, 'mfa.pendingSecretEnc': null, 'mfa.enabledAt': null, 'mfa.lastUsedCounter': -1 } });
+  res.status(200).json({ mfaEnabled: false });
+});
+
+module.exports = { authUser, registerUser, provisionStaff, getUserProfile, logoutUser, setupMfa, enableMfa, disableMfa };

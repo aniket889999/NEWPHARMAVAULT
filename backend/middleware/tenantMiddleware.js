@@ -17,7 +17,7 @@ const tenantMiddleware = asyncHandler(async (req, res, next) => {
 
   // STEP 14: Backward Compatibility - Only Pharmacy/Staff MUST have a tenant
   // Patients remain tenant-neutral by default for global record portability.
-  const isStaff = ['pharmacy', 'org_admin', 'branch_manager', 'pharmacist', 'admin', 'claims_reviewer'].includes(role);
+  const isStaff = ['pharmacy', 'org_admin', 'branch_manager', 'pharmacist', 'admin', 'claims_reviewer', 'payer_reviewer', 'payer_admin'].includes(role);
 
   // U1 Lifecycle & Authorization: Staff with missing tenant context receive a denial, not a demo fallback
   if (isStaff && !organizationId && role !== 'super_admin') {

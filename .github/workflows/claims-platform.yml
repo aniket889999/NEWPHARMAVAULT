@@ -1,0 +1,50 @@
+name: Claims module and platform checks
+
+on:
+  push:
+    branches: [main, 'version-**', 'feature/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claims-platform-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  claims-platform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+      - name: Install locked dependencies
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm ci --prefix backend --ignore-scripts --no-audit --no-fund
+      - name: Claims state machine, TOTP, FHIR validator, locks and shared rate limits (no database)
+        run: node --test backend/tests/claimsPlatformPure.test.js backend/tests/platformLocksPure.test.js backend/tests/testDatabaseGuard.test.js
+      - name: Claims HTTP workflow, consent, tenant isolation and MFA login (real MongoDB)
+        run: NODE_ENV=test node --test backend/tests/claimsWorkflowIntegration.test.js
+      - name: Strict frontend build (portals, claims and insurer pages)
+        run: npm run build:frontend

@@ -14,7 +14,8 @@ const DISPOSABLE_TEST_DATABASES = new Set([
   'pharmavault_trustrag_ocr_test',
   'pharmavault_trustrag_evidence_test',
   'pharmavault_smoke_test',
-  'pharmavault_integration_v2_test'
+  'pharmavault_integration_v2_test',
+  'pharmavault_claims_test'
 ]);
 
 // Explicitly protected databases

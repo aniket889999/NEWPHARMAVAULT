@@ -116,6 +116,31 @@ const seedPharmacyHub = async () => {
     }
     console.log('Linked demo staff accounts to the demo organization.');
 
+    // Insurer (payer) tenant for the claims module. Fictional company, synthetic data only.
+    let payerOrg = await Organization.findOne({ name: 'Demo Health Insurance Co. (synthetic)' });
+    if (!payerOrg) {
+      payerOrg = await Organization.create({
+        name: 'Demo Health Insurance Co. (synthetic)',
+        owner: pharmacyUser._id,
+        kind: 'payer',
+        plan: 'Enterprise',
+        status: 'active',
+        contactEmail: 'claims@insurer.example.org'
+      });
+    }
+    for (const account of [
+      { email: 'insurer@test.com', name: 'Demo Insurer Claims Reviewer', role: 'payer_reviewer' },
+      { email: 'insureradmin@test.com', name: 'Demo Insurer Admin', role: 'payer_admin' }
+    ]) {
+      let payerUser = await User.findOne({ email: account.email });
+      if (!payerUser) payerUser = new User({ ...account, password: 'password123' });
+      payerUser.role = account.role;
+      payerUser.organizationId = payerOrg._id;
+      payerUser.branchId = undefined;
+      await payerUser.save();
+    }
+    console.log('Created demo insurer organization and insurer accounts.');
+
     // 3. Clear and Seed Medicines for Pharmacy Hub
     await Medicine.deleteMany({});
     
