@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { portalHome } from '../../features/navigation/portalPolicy';
 
 interface RoleRouteProps {
   children: React.ReactNode;
@@ -22,15 +23,7 @@ const RoleRoute: React.FC<RoleRouteProps> = ({ children, allowedRole, allowedRol
   const effectiveRoles = allowedRoles || (allowedRole ? [allowedRole] : []);
 
   if (effectiveRoles.length > 0 && !effectiveRoles.includes(user.role)) {
-    // Redirect to proper destination based on role
-    if (user.role === 'patient') {
-      return <Navigate to="/patient/dashboard" replace />;
-    }
-    if (user.role === 'claims_reviewer' || user.role === 'pharmacist') {
-      return <Navigate to="/review-queue" replace />;
-    }
-    // Legacy pharmacy and other staff roles
-    return <Navigate to="/pharmacy/dashboard" replace />;
+    return <Navigate to={portalHome(user.role)} replace />;
   }
 
   return <>{children}</>;

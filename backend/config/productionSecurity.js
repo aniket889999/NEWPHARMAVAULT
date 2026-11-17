@@ -58,7 +58,7 @@ function createCorsOptions() {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-PharmaVault-Client'],
     maxAge: 600
   };
 }
@@ -90,6 +90,7 @@ function getTrustProxySetting() {
 }
 
 const LEGACY_EXTERNAL_AI_PATHS = [
+  '/api/mentor-demo',
   '/api/chat', '/api/agents', '/api/graphrag', '/api/language',
   '/api/prescriptions/analyze', '/api/intelligence',
   '/api/explainability', '/api/workflows'

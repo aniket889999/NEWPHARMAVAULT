@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../../api/apiClient';
 import { 
   ShieldCheck, 
   XCircle, 
@@ -118,60 +118,36 @@ const AuthenticityChecker: React.FC = () => {
     }
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-      const userStr = localStorage.getItem('user');
-      const token = userStr ? JSON.parse(userStr).token : localStorage.getItem('token') || '';
+      // Cookie session is sent by apiClient (withCredentials). No token in localStorage.
+      const { data } = await apiClient.post('/blockchain/verify', {
+        batch: batchId,
+        manufacturer: mfgName
+      });
 
-      const headers = { Authorization: `Bearer ${token}` };
-
-      // 1. Try blockchain verification
-      const { data } = await axios.post(`${API_URL}/pharmacy/verify-batch`, {
-        batchNumber: batchId,
-        scannedLocation: 'Bangalore, India'
-      }, { headers });
-
-      // 2. Fetch CDSCO status
+      // Regulatory lookup is a local demonstration registry, not a live CDSCO connection.
       try {
-        const cdscoRes = await axios.get(`${API_URL}/regulatory/cdsco-check?batchNumber=${batchId}`);
-        setCdscoData(cdscoRes.data);
-      } catch (e) {
-        setCdscoData({ status: 'Approved', licenseNumber: 'DL-2024-KA-8899' });
+        const medicineName = data?.data?.name;
+        if (medicineName) {
+          const cdscoRes = await apiClient.get(`/regulatory/cdsco/${encodeURIComponent(medicineName)}`);
+          setCdscoData(cdscoRes.data);
+        }
+      } catch {
+        setCdscoData(null);
       }
 
       setScanResult(data);
-    } catch (err) {
-      // Clean fallback for demo
-      setTimeout(() => {
-        setScanResult({
-          status: 'verified',
-          title: 'Mathematically Verified Authentic',
-          message: 'Medicine packaging and manufacturer credentials verified against the immutable ledger.',
-          score: 98,
-          data: {
-            batchNumber: batchId,
-            medicine: batchId === 'B-DLO-650' ? 'Dolo 650mg' : batchId === 'B-AZE-500' ? 'Azithromycin 500mg' : 'Pantoprazole 40mg',
-            manufacturer: mfgName,
-            verificationHash: '7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069',
-            ledgerTimestamp: new Date().toLocaleString()
-          },
-          riskAnalysis: {
-            riskLevel: 'Low',
-            suspicionScore: 4,
-            reasons: [
-              'Valid SHA-256 manufacturer signature',
-              'Official CDSCO formulary license confirmed',
-              'Authorized dispensary custody chain verified'
-            ]
-          },
-          timeline: [
-            { stage: 'Manufacturing', detail: `${mfgName} Production Unit`, date: new Date(Date.now() - 86400000 * 30).toISOString() },
-            { stage: 'Quality & CDSCO Lab', detail: 'Passed Chemical Assay', date: new Date(Date.now() - 86400000 * 25).toISOString() },
-            { stage: 'Central Dispensary', detail: 'Verified at PharmaVault Hub', date: new Date().toISOString() }
-          ]
-        });
-        setCdscoData({ status: 'Approved', licenseNumber: 'DL-2024-KA-8899' });
-        setIsProcessing(false);
-      }, 400);
+    } catch {
+      // Never show a "verified" result when the backend could not be reached.
+      setScanResult({
+        status: 'unavailable',
+        title: 'Verification Unavailable',
+        message: 'The verification service could not be reached. No authenticity result has been established for this batch.',
+        score: 0,
+        data: { batchNumber: batchId, manufacturer: mfgName },
+        riskAnalysis: { riskLevel: 'Unknown', suspicionScore: 0, reasons: ['Backend request failed; try again when the server is running.'] },
+        timeline: []
+      });
+      setCdscoData(null);
     } finally {
       setIsProcessing(false);
     }

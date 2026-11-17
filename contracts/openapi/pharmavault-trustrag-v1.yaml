@@ -4,7 +4,11 @@ info:
   version: 1.0.0
   description: >
     The core API contract for the TrustRAG Verification Engine.
-    All endpoints require JWT Bearer authentication.
+    Endpoints require native-client JWT Bearer authentication or a protected
+    browser session cookie. Browser mutations additionally require an exact
+    allowed Origin and X-PharmaVault-Client header with value web. Browser
+    sessions last 15 minutes; native tokens last at most one hour. Logout at
+    POST /api/users/logout revokes all earlier sessions for that account.
     Tenant isolation is enforced on all endpoints where applicable.
 
 servers:
@@ -17,8 +21,15 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: __Host-pv_session
+      description: Production HTTPS-only HttpOnly SameSite=Strict host cookie; development uses pv_session. No browser token is returned in JSON.
 
   schemas:
+    ChatProviderReadiness:
+      $ref: '../schemas/chat-provider-readiness.schema.json'
     VerificationCase:
       $ref: '../schemas/verification-case.schema.json'
     Document:
@@ -38,8 +49,93 @@ components:
 
 security:
   - bearerAuth: []
+  - cookieAuth: []
 
 paths:
+  /chat/status:
+    get:
+      summary: Read public chat configuration and recent provider observation
+      operationId: getChatCapabilities
+      description: >
+        Protected metadata read with no upstream model request. Enabled flags
+        describe configuration, not live availability. A recent observation
+        concerns public generation format/citation checks only and expires after
+        five minutes. Private case evidence remains local. No credential values,
+        queries, replies, private case identifiers or upstream errors are exposed.
+      responses:
+        '200':
+          description: Current configuration and bounded in-memory public observation
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: 'private, no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [generationEnabled, embeddingEnabled, model, publicPassages, healthReferencePassages, privateCasePolicy, providerReadiness]
+                properties:
+                  generationEnabled:
+                    type: boolean
+                    description: Configuration eligibility only, not proven provider availability.
+                  embeddingEnabled:
+                    type: boolean
+                    description: Configuration only; actual retrieval method is reported per answer.
+                  model:
+                    type: [string, 'null']
+                  publicPassages:
+                    type: integer
+                    minimum: 0
+                  healthReferencePassages:
+                    type: integer
+                    minimum: 0
+                  privateCasePolicy:
+                    const: LOCAL_ONLY
+                  providerReadiness:
+                    $ref: '#/components/schemas/ChatProviderReadiness'
+                  contextualChat:
+                    type: object
+                    additionalProperties: false
+                    required: [version, webEnabled, webProvider, privateWebPolicy, feedbackPolicy]
+                    properties:
+                      version:
+                        const: contextual-chat-v1
+                      webEnabled:
+                        type: boolean
+                      webProvider:
+                        const: MEDLINEPLUS_HEALTH_TOPICS
+                      privateWebPolicy:
+                        const: NEVER
+                      feedbackPolicy:
+                        const: EXPERT_REVIEW_REQUIRED_NO_AUTOTRAINING
+                      precision:
+                        type: object
+                        additionalProperties: false
+                        required: [version, referenceCount, corpusHash, trainedReranker, trainingScope, clinicalValidation, webSynthesisAllowed]
+                        properties:
+                          version:
+                            const: precision-chat-v1
+                          referenceCount:
+                            type: integer
+                            minimum: 0
+                          corpusHash:
+                            type: string
+                            pattern: '^[a-f0-9]{64}$'
+                          trainedReranker:
+                            type: boolean
+                          trainingScope:
+                            const: LOCAL_RETRIEVAL_RANKER_NOT_LLM
+                          clinicalValidation:
+                            const: NOT_PERFORMED
+                          webSynthesisAllowed:
+                            type: boolean
+        '401':
+          description: Missing or invalid authentication
+        '403':
+          description: Invalid staff tenant context
+
   /chat:
     post:
       summary: Retrieve evidence-backed chatbot answers
@@ -95,14 +191,14 @@ paths:
                     type: string
                   mode:
                     type: string
-                    enum: [LOCAL_EXTRACTIVE, GEMINI_GROUNDED_QUOTES, GEMINI_RAG, CONVERSATIONAL_HELP, CLARIFY, ABSTAIN, SAFETY]
+                    enum: [LOCAL_EXTRACTIVE, LOCAL_CASE_EVIDENCE, GEMINI_GROUNDED_QUOTES, GEMINI_RAG, CONVERSATIONAL_HELP, CLARIFY, ABSTAIN, SAFETY, OFFICIAL_WEB_EXTRACTIVE, PRECISE_LOCAL_EVIDENCE, PRECISE_WEB_EVIDENCE]
                   retrieval:
                     type: object
                     required: [method, matchedPassages]
                     properties:
                       method:
                         type: string
-                        enum: [BM25, HYBRID_BM25_VECTOR]
+                        enum: [BM25, HYBRID_BM25_VECTOR, APPROVED_WEB_BM25, CONTEXT_RERANKED_BM25, CASE_ITEM_EVIDENCE]
                       matchedPassages:
                         type: integer
                         minimum: 0
@@ -123,7 +219,7 @@ paths:
                           type: string
                         kind:
                           type: string
-                          enum: [PROJECT_GUIDE, ACADEMIC_CATALOGUE, CASE_RECORD, HEALTH_REFERENCE]
+                          enum: [PROJECT_GUIDE, ACADEMIC_CATALOGUE, CASE_RECORD, HEALTH_REFERENCE, OFFICIAL_WEB]
                         version:
                           type: string
                         score:
@@ -150,6 +246,65 @@ paths:
                     type: string
                   followupResolved:
                     type: boolean
+                  feedbackReceipt:
+                    type: string
+                    format: uuid
+                    description: Opaque, owner-bound public-answer feedback receipt, expiring after one hour. Not a training approval.
+                  context:
+                    type: object
+                    description: Bounded topic, focus, style and intent projection; history is not factual evidence. knowledgeRevision identifies the organization retrieval policy, not medical approval.
+                    properties:
+                      topicSwitchResolved:
+                        type: boolean
+                      request:
+                        type: object
+                        additionalProperties: false
+                        required: [attribute, language, evidenceStatus, method]
+                        description: Fixed request metadata only. Local query anchors and raw history are never included. Text matching is not clinical or semantic validation.
+                        properties:
+                          attribute:
+                            enum: [GENERAL, USES, SIDE_EFFECTS, STORAGE, PREVENTION, MECHANISM, SPECIFIC_FACT]
+                          language:
+                            type: string
+                          evidenceStatus:
+                            enum: [NOT_ASSESSED, MISSING, MATCHED_TEXT]
+                          method:
+                            const: CONSERVATIVE_TEXT_MATCH_NOT_SEMANTIC_PROOF
+                  answerQuality:
+                    type: object
+                    description: Output diagnostics only, not clinical accuracy, gold-standard agreement or model superiority.
+                    required: [focus, style, words, sourceCount, trainedReranker, assessment]
+                    properties:
+                      focus:
+                        type: string
+                      style:
+                        enum: [STANDARD, CONCISE]
+                      words:
+                        type: integer
+                        minimum: 0
+                      sourceCount:
+                        type: integer
+                        minimum: 0
+                      trainedReranker:
+                        type: boolean
+                      modelVersion:
+                        type: [string, 'null']
+                      assessment:
+                        enum: [EXTRACTIVE_SOURCE_SUPPORT_NOT_CLINICAL_ACCURACY, MECHANICAL_CITATION_CHECKS_NOT_SEMANTIC_OR_CLINICAL_PROOF]
+                      requestMatch:
+                        const: CONSERVATIVE_TEXT_MATCH_NOT_SEMANTIC_PROOF
+                  agentTrace:
+                    type: array
+                    maxItems: 5
+                    description: Tool/action outcomes, never hidden model reasoning.
+                    items:
+                      type: object
+                      required: [tool, status]
+                      properties:
+                        tool:
+                          type: string
+                        status:
+                          type: string
                   routing:
                     type: object
                     required: [intent, reasonCode, policyVersion]
@@ -170,33 +325,6 @@ paths:
           description: Case absent or inaccessible, without cross-tenant enumeration.
         '429':
           description: Chat rate limit exceeded.
-  /chat/status:
-    get:
-      summary: Get configured Health Assistant capabilities
-      operationId: getChatCapabilities
-      responses:
-        '200':
-          description: Feature flags and corpus counts; not a guarantee of provider availability.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  generationEnabled:
-                    type: boolean
-                  embeddingEnabled:
-                    type: boolean
-                  model:
-                    type: [string, 'null']
-                  publicPassages:
-                    type: integer
-                  healthReferencePassages:
-                    type: integer
-                  privateCasePolicy:
-                    type: string
-                    const: LOCAL_ONLY
-        '401':
-          description: Authentication required.
   /chat/stream:
     post:
       summary: Stream a conversational evidence-grounded answer
@@ -227,6 +355,163 @@ paths:
           description: Case absent or inaccessible.
         '429':
           description: Chat rate limit exceeded.
+  /chat/feedback:
+    post:
+      summary: Rate an owned public answer for later expert review
+      operationId: submitChatFeedback
+      description: Stores bounded metadata only with 30-day retention. No raw chat or correction text is accepted. Feedback never updates knowledge or trains a model automatically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [receipt, rating]
+              properties:
+                receipt:
+                  type: string
+                  format: uuid
+                rating:
+                  enum: [HELPFUL, NOT_HELPFUL]
+      responses:
+        '200':
+          description: Queued for expert review; no learning applied.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accepted, status, learningApplied]
+                properties:
+                  accepted:
+                    const: true
+                  status:
+                    const: PENDING_EXPERT_REVIEW
+                  learningApplied:
+                    const: false
+        '400':
+          description: Invalid or unsupported feedback fields.
+        '401':
+          description: Authentication required.
+        '404':
+          description: Receipt unavailable, expired or owned by another user.
+        '429':
+          description: Rate limit exceeded.
+  /chat/knowledge/references:
+    get:
+      operationId: listCurationReferences
+      summary: List fixed public references eligible for source-ranking review
+      description: Organization reviewers only. No private documents, raw chats, replacement medical facts or automatic training.
+      responses:
+        '200':
+          description: Versioned reference choices, topics, focuses and corpus hash.
+        '401':
+          description: Authentication required.
+        '403':
+          description: Authorized reviewer with explicit organization membership required.
+  /chat/knowledge/feedback:
+    get:
+      operationId: listOrganizationChatFeedback
+      summary: List up to 30 recent negative feedback metadata records in own organization
+      responses:
+        '200':
+          description: Ratings and source/version identifiers only; no raw messages or patient text.
+        '401':
+          description: Authentication required.
+        '403':
+          description: Organization reviewer required.
+  /chat/knowledge/candidates:
+    get:
+      operationId: listCurationCandidates
+      summary: List up to 30 recent proposals in own organization
+      responses:
+        '200':
+          description: Proposals and review journal. Pending proposals have no effect on retrieval.
+        '401':
+          description: Authentication required.
+        '403':
+          description: Organization reviewer required.
+    post:
+      operationId: proposeSourcePreference
+      summary: Propose a topic- and focus-compatible source preference
+      description: Source IDs must already exist in the current fixed registry. Free medical text and patient content are rejected.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [topicId, focus, sourceIds, corpusHash]
+              properties:
+                topicId:
+                  type: string
+                focus:
+                  enum: [DEFINITION, OVERVIEW, SIDE_EFFECTS, PREVENTION, IDENTITY, EXPLAIN]
+                sourceIds:
+                  type: array
+                  minItems: 1
+                  maxItems: 2
+                  uniqueItems: true
+                  items:
+                    type: string
+                corpusHash:
+                  type: string
+                  pattern: '^[a-f0-9]{64}$'
+      responses:
+        '201':
+          description: Pending organization-bound proposal. No model weights changed.
+        '400':
+          description: Invalid fields, stale corpus or incompatible source scope.
+        '401':
+          description: Authentication required.
+        '403':
+          description: Organization reviewer required.
+        '429':
+          description: Rate limit exceeded.
+  /chat/knowledge/candidates/{id}/review:
+    post:
+      operationId: reviewSourcePreference
+      summary: Independently approve, reject or revoke a source preference
+      description: A reviewer other than the creator is required. Atomic revisions prevent concurrent overwrites. Approval changes organization retrieval ranking only; revocation of the latest policy restores defaults. Neither operation changes model weights or historical answers.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-fA-F0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [decision, revision, reasonCode]
+              properties:
+                decision:
+                  enum: [APPROVE, REJECT, REVOKE]
+                revision:
+                  type: integer
+                  minimum: 1
+                reasonCode:
+                  enum: [SOURCE_FOCUS_SUPPORTED, NOT_RELEVANT, NEEDS_SOURCE_REVIEW, REVERT_TO_DEFAULT]
+      responses:
+        '200':
+          description: Updated proposal, journal and explicit modelWeightsChanged false.
+        '400':
+          description: Invalid or mismatched decision/reason.
+        '401':
+          description: Authentication required.
+        '403':
+          description: Self-review or unauthorized role denied.
+        '404':
+          description: Proposal absent or inaccessible.
+        '409':
+          description: Corpus changed or stale/concurrent review. Refresh before retrying.
+        '429':
+          description: Rate limit exceeded.
   /cases:
     post:
       summary: Create a new Verification Case
@@ -234,6 +519,7 @@ paths:
       operationId: createCase
       security:
         - bearerAuth: [ "patient", "pharmacist", "org_admin" ]
+        - cookieAuth: []
       requestBody:
         required: true
         content:
@@ -279,6 +565,7 @@ paths:
       operationId: listCases
       security:
         - bearerAuth: [ "patient", "pharmacist", "claims_reviewer", "org_admin", "super_admin", "research_evaluator" ]
+        - cookieAuth: []
       responses:
         '200':
           description: A list of cases
@@ -314,6 +601,7 @@ paths:
       operationId: updateCase
       security:
         - bearerAuth: [ "pharmacist", "claims_reviewer", "org_admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -435,6 +723,7 @@ paths:
       operationId: getDocumentContent
       security:
         - bearerAuth: [ "patient", "pharmacist", "claims_reviewer", "org_admin", "super_admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -497,6 +786,7 @@ paths:
       operationId: getDocumentPagePreview
       security:
         - bearerAuth: [ "patient", "pharmacist", "claims_reviewer", "org_admin", "super_admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -741,6 +1031,7 @@ paths:
       operationId: getCaseReconciliation
       security:
         - bearerAuth: [ "patient", "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin", "admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -858,6 +1149,7 @@ paths:
       operationId: confirmMedicineGroups
       security:
         - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -957,6 +1249,7 @@ paths:
       operationId: correctField
       security:
         - bearerAuth: [ "pharmacist", "claims_reviewer", "org_admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path
@@ -1002,6 +1295,7 @@ paths:
       operationId: getReviewQueue
       security:
         - bearerAuth: [ "claims_reviewer", "pharmacist", "org_admin" ]
+        - cookieAuth: []
       responses:
         '200':
           description: Cases waiting for human review
@@ -1024,6 +1318,7 @@ paths:
       operationId: submitReview
       security:
         - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin", "admin" ]
+        - cookieAuth: []
       parameters:
         - name: caseId
           in: path

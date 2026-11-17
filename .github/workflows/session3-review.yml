@@ -46,12 +46,22 @@ jobs:
           npm ci --prefix backend --ignore-scripts --no-audit --no-fund
       - name: Check disposable-database isolation policy
         run: node --test backend/tests/testDatabaseGuard.test.js
+      - name: Reject published production dependency advisories
+        run: npm audit --omit=dev --audit-level=moderate && npm audit --prefix backend --omit=dev --audit-level=moderate
       - name: Run actual independent HTTP contract regressions
         run: node scripts/session3-integration-checks.cjs
       - name: Check production request boundaries and outbound privacy
         run: node --test backend/tests/productionHardening.test.js backend/tests/productionHardening.u2.test.js
+      - name: Check browser cookie sessions, CSRF and durable logout revocation without live providers
+        run: node --test backend/tests/browserSession.test.js tests/contextual-chat/browser-session-client.test.cjs tests/contextual-chat/deployment.test.cjs
       - name: Check pharmacy chat policy, local private scope and provider boundaries
         run: npm run test:chat
+      - name: Check contextual chat, approved web privacy and feedback without live providers
+        run: node --test tests/contextual-chat/contextual.test.cjs tests/contextual-chat/http.test.cjs
+      - name: Check precise retrieval, independent source review and GPT-Claude comparison gates without paid calls
+        run: node --test tests/contextual-chat/precision.test.cjs tests/contextual-chat/curation.test.cjs tests/contextual-chat/provider-comparison.test.cjs tests/contextual-chat/question-relevance.test.cjs
+      - name: Check V2-01 bounded public diagnostic and real protected readiness routes
+        run: npm run test:readiness && npm run test:readiness:http
       - name: Check legacy projections and real protected result-revision handling
         run: node --test tests/release-v2/legacyProjection.test.cjs
       - name: Check Session 4 exact-source answers and signed dependency receipts

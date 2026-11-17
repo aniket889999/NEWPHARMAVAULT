@@ -11,7 +11,7 @@ import {
   ChevronRight, 
   Database
 } from 'lucide-react';
-import axios from 'axios';
+import apiClient from '../../api/apiClient';
 import { Link } from 'react-router-dom';
 
 const PharmacyDashboard: React.FC = () => {
@@ -23,20 +23,14 @@ const PharmacyDashboard: React.FC = () => {
   useEffect(() => {
     const fetchIntelligence = async () => {
       try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-        const userStr = localStorage.getItem('user');
-        const token = userStr ? JSON.parse(userStr).token : localStorage.getItem('token') || '';
-
-        const headers = { Authorization: `Bearer ${token}` };
-
         // Fetch Intelligence Dashboard
-        const { data } = await axios.get(`${API_URL}/pharmacy/intelligence`, { headers });
+        const { data } = await apiClient.get('/pharmacy/intelligence');
         setMetrics(data.metrics);
         setInsights(data.insights || []);
         
         // Fetch NABH Status
         try {
-          const nabhRes = await axios.get(`${API_URL}/regulatory/pharmacy-status`);
+          const nabhRes = await apiClient.get('/regulatory/pharmacy-status');
           setNabhStatus(nabhRes.data);
         } catch(e) {}
         
@@ -54,6 +48,7 @@ const PharmacyDashboard: React.FC = () => {
           healthScore: 92
         });
         setInsights([
+          'Demo values shown: live inventory data could not be loaded from the server.',
           'Amoxicillin 500mg batches within 30-day expiry threshold flagged for priority dispensing.',
           'Dolo 650mg stock replenishment recommended before seasonal demand surge.',
           'Blockchain batch verification audit: 17/17 records verified with CDSCO catalogue.'

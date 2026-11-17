@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ShieldCheck, User, Store, Mail, Lock, CheckCircle2, ChevronLeft, LogIn } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { portalHome, STAFF_PORTALS } from '../../features/navigation/portalPolicy';
 
 const AuthPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,6 +22,10 @@ const AuthPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  // Reviewer tab covers every provisioned staff role; backend login requires an exact role match.
+  const [staffRole, setStaffRole] = useState<string>('claims_reviewer');
+  const loginRole = activeRole === 'claims_reviewer' ? staffRole : activeRole;
+  const canSelfRegister = activeRole === 'patient';
 
   // Sync state if url param changes
   useEffect(() => {
@@ -33,6 +38,7 @@ const AuthPage: React.FC = () => {
   // Handle switching tabs
   const handleRoleChange = (role: 'patient' | 'pharmacy' | 'claims_reviewer') => {
     setActiveRole(role);
+    if (role !== 'patient') setIsLogin(true);
     setSearchParams({ role });
     setError('');
   };
@@ -43,23 +49,16 @@ const AuthPage: React.FC = () => {
 
     try {
       if (isLogin) {
-        await login(email, password, activeRole);
+        await login(email, password, loginRole);
         toast.success(`Signed in to ${portalDetails.title}`);
       } else {
-        await signup(name, email, password, activeRole);
+        if (!canSelfRegister) throw new Error('Staff and pharmacy accounts are provisioned by an organization administrator.');
+        await signup(name, email, password, 'patient');
         toast.success('Account created successfully');
       }
 
-      // Route based on role
-      if (activeRole === 'claims_reviewer') {
-        navigate('/review-queue');
-      } else if (activeRole === 'pharmacy') {
-        navigate('/pharmacy/dashboard');
-      } else {
-        navigate('/patient/dashboard');
-      }
+      navigate(portalHome(loginRole));
     } catch (err: any) {
-      console.error(err);
       const msg = err.response?.data?.message || err.message || 'Authentication failed. Please verify credentials.';
       setError(msg);
       toast.error(msg);
@@ -79,13 +78,7 @@ const AuthPage: React.FC = () => {
     try {
       await login(demoEmail, demoPass, demoRole);
       toast.success(`Signed in as ${demoRole.replace('_', ' ')} (Demo)`);
-      if (demoRole === 'claims_reviewer') {
-        navigate('/review-queue');
-      } else if (demoRole === 'pharmacy') {
-        navigate('/pharmacy/dashboard');
-      } else {
-        navigate('/patient/dashboard');
-      }
+      navigate(portalHome(demoRole));
     } catch (err: any) {
       // In case user doesn't exist, fill fields and let them submit
       setEmail(demoEmail);
@@ -201,7 +194,8 @@ const AuthPage: React.FC = () => {
           <p className="text-xs text-slate-500 mt-1">{portalDetails.subtitle}</p>
         </div>
 
-        {/* Quick Demo Access Bar */}
+        {/* Quick Demo Access Bar (development builds only; seeded synthetic accounts) */}
+        {import.meta.env.DEV && <>
         <div className="px-6 py-2">
           <button
             type="button"
@@ -219,6 +213,7 @@ const AuthPage: React.FC = () => {
             or use credentials
           </span>
         </div>
+        </>}
 
         {/* Form Body */}
         <div className="p-6 pt-2">
@@ -248,6 +243,24 @@ const AuthPage: React.FC = () => {
               </div>
             )}
 
+            {activeRole === 'claims_reviewer' && (
+              <div>
+                <label htmlFor="staff-role" className="block text-xs font-semibold text-slate-700 mb-1">
+                  Staff Role
+                </label>
+                <select
+                  id="staff-role"
+                  value={staffRole}
+                  onChange={(e) => setStaffRole(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600"
+                >
+                  {STAFF_PORTALS.map((option) => (
+                    <option key={option.role} value={option.role}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Email Address
@@ -274,6 +287,8 @@ const AuthPage: React.FC = () => {
                 <input
                   type="password"
                   required
+                  minLength={isLogin ? undefined : 15}
+                  autoComplete={isLogin ? 'current-password' : 'new-password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -294,7 +309,9 @@ const AuthPage: React.FC = () => {
 
           {/* Switch Login / Sign Up */}
           <div className="mt-5 text-center text-xs text-slate-500">
-            {isLogin ? (
+            {!canSelfRegister ? (
+              <span>Staff and pharmacy accounts are provisioned by an organization administrator.</span>
+            ) : isLogin ? (
               <span>
                 Don't have an account?{' '}
                 <button

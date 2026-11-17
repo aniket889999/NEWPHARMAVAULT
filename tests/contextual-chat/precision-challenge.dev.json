@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "precision-challenge-v1",
+  "synthetic": true,
+  "reviewStatus": "DEVELOPER_AUTHORED_NOT_INDEPENDENT_GOLD",
+  "split": "Development challenge: new wording, known source families; not an unseen clinical test set",
+  "cases": [
+    { "id": "definition-resistance", "message": "What does antibiotic resistance mean?", "expected": ["reference-antibiotic-resistance-definition"] },
+    { "id": "prevent-resistance", "message": "How can antibiotic resistance be reduced?", "expected": ["reference-antibiotic-resistance-prevention"] },
+    { "id": "review-definition", "message": "What does human-in-the-loop validation mean?", "expected": ["human-review"] },
+    { "id": "ocr-purpose", "message": "Explain the prescription OCR process", "expected": ["ocr"] },
+    { "id": "strength-meaning", "message": "Explain the meaning of a strength mismatch", "expected": ["strength-mismatch"] },
+    { "id": "freshness-meaning", "message": "What does answer freshness mean?", "expected": ["project-answer-freshness-v2"] },
+    { "id": "metformin-effects", "message": "List the adverse effects recorded for Metformin", "expected": ["nhs-metformin-effects"] },
+    { "id": "paracetamol-effects", "message": "Describe possible adverse effects associated with Paracetamol", "expected": ["nhs-paracetamol-effects"] },
+    { "id": "metformin-overview", "message": "Give a general reference overview of Metformin", "expected": ["nhs-metformin-overview"] },
+    { "id": "paracetamol-overview", "message": "Give a general reference overview of Paracetamol", "expected": ["nhs-paracetamol-overview"] },
+    { "id": "storage", "message": "Describe the available medicine storage reference", "expected": ["reference-medicine-storage"] },
+    { "id": "safety", "message": "Give an overview of medicine safety practices", "expected": ["reference-medicine-safety", "reference-medicine-risks"] },
+    { "id": "followup-effects", "message": "What about its adverse effects?", "history": ["Give a general reference overview of Metformin"], "expected": ["nhs-metformin-effects"] },
+    { "id": "followup-shorter", "message": "Make that shorter", "history": ["Describe possible adverse effects associated with Paracetamol"], "expected": ["nhs-paracetamol-effects"] },
+    { "id": "topic-switch", "message": "Now explain the adverse effects of Metformin", "history": ["Describe possible adverse effects associated with Paracetamol"], "expected": ["nhs-metformin-effects"] },
+    { "id": "review-followup", "message": "Explain that more simply", "history": ["What does human-in-the-loop validation mean?"], "expected": ["human-review"] }
+  ]
+}

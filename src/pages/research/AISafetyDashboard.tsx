@@ -35,6 +35,7 @@ const AISafetyDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
+      <p className="rounded-lg bg-amber-50 p-4 text-sm text-amber-950">Legacy heuristic audit panel, not measured LLM hallucination detection. Current TrustRAG case events are available in each case audit trail; this is not a consolidated log of the new chat.</p>
       
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 text-white">

@@ -100,7 +100,7 @@ test('Security Validation Suite', async (t) => {
     };
 
     try {
-      const token = jwt.sign({ id: 'fakeid' }, process.env.JWT_SECRET);
+      const token = jwt.sign({ id: '650000000000000000000001' }, process.env.JWT_SECRET, { expiresIn: '5m' });
       
       const res = await request(app)
         .post('/api/agents/orchestrate')
@@ -123,7 +123,7 @@ test('Security Validation Suite', async (t) => {
     User.findById = (id) => ({ select: () => Promise.resolve({ _id: id, role: 'patient' }) });
 
     try {
-      const token = jwt.sign({ id: 'fakeid' }, process.env.JWT_SECRET);
+      const token = jwt.sign({ id: '650000000000000000000001' }, process.env.JWT_SECRET, { expiresIn: '5m' });
       const res = await request(app)
         .post('/api/chat/vision-ocr')
         .set('Authorization', `Bearer ${token}`)

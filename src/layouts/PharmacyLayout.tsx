@@ -11,7 +11,8 @@ import {
   AlertTriangle, 
   Building2, 
   ShieldCheck, 
-  Inbox, 
+  Inbox,
+  MessageSquare,
   FileSignature, 
   ChevronRight,
   ExternalLink,
@@ -120,6 +121,11 @@ const PharmacyLayout: React.FC = () => {
                 <span>Verification Cases</span>
               </Link>
 
+              <Link to="/pharmacy/assistant" className={navItemClass('/pharmacy/assistant')}>
+                <MessageSquare className="w-4 h-4 mr-2.5 text-teal-600" />
+                <span>Evidence Chat · TrustRAG</span>
+              </Link>
+
               <Link to="/pharmacy/review-queue" className={navItemClass('/pharmacy/review-queue')}>
                 <Inbox className="w-4 h-4 mr-2.5 text-amber-600" />
                 <span>Reviewer Queue</span>
@@ -154,7 +160,7 @@ const PharmacyLayout: React.FC = () => {
                 {user?.name ? user.name.slice(0, 2).toUpperCase() : 'PH'}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-slate-800 truncate">{user?.name || 'Apollo Metro Pharmacy'}</p>
+                <p className="text-xs font-semibold text-slate-800 truncate">{user?.name || 'Pharmacy Hub'}</p>
                 <p className="text-[10px] text-slate-500 truncate">{user?.email || 'pharmacy@test.com'}</p>
               </div>
             </div>

@@ -61,18 +61,9 @@ const OrganizationSettings: React.FC = () => {
       setBranchLoc('');
       setBranchLicense('');
       fetchData();
-    } catch {
-      // Local optimistic update
-      const newB = {
-        _id: `br_${Date.now()}`,
-        name: branchName,
-        location: branchLoc,
-        licenseNumber: branchLicense || 'KA-BNG-CDSCO-2024-9988',
-        status: 'active'
-      };
-      setBranches(prev => [...prev, newB]);
-      setShowAddBranch(false);
-      toast.success('Dispensary branch registered successfully');
+    } catch (err: any) {
+      // Do not pretend a branch was created when the server rejected it.
+      toast.error(err?.response?.data?.message || 'Branch could not be created. Check your organization admin permissions.');
     }
   };
 
@@ -128,7 +119,7 @@ const OrganizationSettings: React.FC = () => {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Primary Contact Email
                 </label>
-                <p className="font-semibold text-slate-700 font-mono">{org.contactEmail || 'central.pharmacy@apollohealth.org'}</p>
+                <p className="font-semibold text-slate-700 font-mono">{org.contactEmail || 'central.pharmacy@example.org'}</p>
               </div>
 
               <div>
@@ -287,7 +278,7 @@ const OrganizationSettings: React.FC = () => {
                   required 
                   value={branchName}
                   onChange={e => setBranchName(e.target.value)}
-                  placeholder="e.g. Apollo Pharmacy - Indiranagar Hub"
+                  placeholder="e.g. Demo Pharmacy - Indiranagar Hub"
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-blue-600"
                 />
               </div>
@@ -339,8 +330,8 @@ const OrganizationSettings: React.FC = () => {
 
 const fallbackOrgData = {
   organization: {
-    name: 'Apollo Health & Retail Network',
-    contactEmail: 'central.pharmacy@apollohealth.org',
+    name: 'Demo Health Pharmacy Network (synthetic)',
+    contactEmail: 'central.pharmacy@example.org',
     contactPhone: '+91-80-2559-0011',
     address: {
       street: '45/2 Hosur Road, Koramangala',
@@ -360,14 +351,14 @@ const fallbackOrgData = {
 const fallbackBranches = [
   {
     _id: 'br_1',
-    name: 'Apollo Dispensary - Central Bengaluru Hub',
+    name: 'Demo Dispensary - Central Bengaluru Hub',
     location: 'Ground Floor, Medical Arts Building, Bengaluru',
     licenseNumber: 'KA-BNG-CDSCO-2024-8849',
     status: 'active'
   },
   {
     _id: 'br_2',
-    name: 'Apollo Pharmacy - Whitefield Technology Park',
+    name: 'Demo Pharmacy - Whitefield Technology Park',
     location: 'EPIP Zone, Whitefield, Bengaluru',
     licenseNumber: 'KA-BNG-CDSCO-2024-9122',
     status: 'active'

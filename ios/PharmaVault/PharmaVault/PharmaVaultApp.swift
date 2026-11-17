@@ -267,6 +267,10 @@ actor PharmaVaultAPI {
         try await request(path: "users/profile", method: "GET", token: token, body: Optional<String>.none)
     }
 
+    func revokeSessions(token: String) async throws {
+        let _: EmptyResponse = try await request(path: "users/logout", method: "POST", token: token, body: Optional<String>.none)
+    }
+
     func createCase(subjectReference: String?, token: String) async throws -> VerificationCase {
         try await request(path: "v1/cases", method: "POST", token: token, body: NewCaseRequest(subjectReference: subjectReference))
     }
@@ -362,6 +366,26 @@ final class AppSession: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "pharmavault.session.profile")
         user = nil
         message = nil
+        isLoading = false
+    }
+
+    func signOutAllDevices() async {
+        guard let token = user?.token else { signOut(); return }
+        let attempt = generation
+        let endpoint = APIConfiguration.baseURLString
+        isLoading = true
+        var notice = "Signed out. Earlier sessions on all devices were revoked."
+        do {
+            try await PharmaVaultAPI.shared.revokeSessions(token: token)
+        } catch AppError.unauthorized {
+            notice = "Your session is no longer valid."
+        } catch {
+            notice = "The local token was removed, but server sign-out could not be confirmed. Reconnect and sign in to revoke earlier sessions."
+        }
+        guard attempt == generation, endpoint == APIConfiguration.baseURLString else { return }
+        signOut()
+        message = notice
+        isLoading = false
     }
 
     func configureEndpoint(_ value: String) throws {
@@ -829,7 +853,8 @@ struct PrivacySettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 Section {
-                    Button("Sign out from this device", role: .destructive) { session.signOut() }
+                    Button("Sign out on all devices", role: .destructive) { Task { await session.signOutAllDevices() } }
+                        .disabled(session.isLoading)
                 }
                 if let message { Section { Text(message).font(.footnote) } }
             }

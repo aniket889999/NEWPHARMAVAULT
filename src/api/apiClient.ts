@@ -1,20 +1,17 @@
 import axios from 'axios';
+import { notifySessionExpired } from '../features/navigation/sessionProfile';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 const apiClient = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
 });
 
-// Interceptor to add Auth token to every request
+// Web sessions are HttpOnly cookies. Native iOS uses its separate bearer client.
 apiClient.interceptors.request.use(
   (config) => {
-    // TASK 3: Use 'token' as the single source of truth
-    const token = localStorage.getItem('token');
-    
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    config.headers['X-PharmaVault-Client'] = 'web';
     return config;
   },
   (error) => Promise.reject(error)
@@ -25,18 +22,10 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      console.error('[API CLIENT] 401 Unauthorized - Invalid or missing token');
-      
-      // Clear all potential token keys to be safe
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('pharmavault_user');
-      
-      // Notify and redirect
-      if (typeof window !== 'undefined') {
-        alert('Session expired or invalid. Please login again.');
-        window.location.href = '/auth';
-      }
+      // Failed sign-in is not an expired existing session. Let the form handle it
+      // without a modal, redirect or accidental credential-bearing error logs.
+      if (/\/users\/(?:login|register|profile|logout)$/.test(error.config?.url || '')) return Promise.reject(error);
+      notifySessionExpired();
     }
     return Promise.reject(error);
   }

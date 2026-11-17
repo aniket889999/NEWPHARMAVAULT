@@ -4,6 +4,7 @@ import { useChatStore } from '../../stores/chatStore';
 import ChatMessage from './ChatMessage';
 import { integrationApi } from '../../modules/verification/integration/api';
 import type { MedicineChoice } from '../../features/caseAssistant/types';
+import { clarificationQuestion } from '../../features/caseAssistant/clarificationQuestion';
 
 const ChatInterface: React.FC = () => {
   const [input, setInput] = useState('');
@@ -52,7 +53,7 @@ const ChatInterface: React.FC = () => {
     setInput('');
   };
   const suggestions = activeConversation?.caseId ? [
-    { title: 'Compare document strengths', query: 'Show prescription and invoice strength fields', Icon: FileCheck2 },
+    { title: 'Compare document strengths', query: 'Compare prescription and invoice dosage strength for the selected medicine', Icon: FileCheck2 },
     { title: 'Understand the risk flags', query: 'Why is my case flagged?', Icon: ShieldCheck },
     { title: 'Check the case status', query: 'What is the current case status?', Icon: BookOpen },
   ] : [
@@ -100,7 +101,12 @@ const ChatInterface: React.FC = () => {
           </div>
         ) : (
           <div className="mx-auto max-w-3xl space-y-8 py-8">
-            {messages.map(message => <ChatMessage key={message.id} message={message} busy={isLoading} onCheckEvidence={() => void refreshCaseFreshness()} onAskAgain={() => void askAgainWithCurrentEvidence(message.id)} onSelectMedicine={selectCaseMedicine} />)}
+            {messages.map(message => <ChatMessage key={message.id} message={message} busy={isLoading} onCheckEvidence={() => void refreshCaseFreshness()} onAskAgain={() => void askAgainWithCurrentEvidence(message.id)} onSelectMedicine={itemId => {
+              const question = clarificationQuestion(messages, message.id);
+              if (!question || isLoading) return;
+              selectCaseMedicine(itemId);
+              void sendMessage(question, { medicineItemId: itemId });
+            }} />)}
             {isLoading && <div className="flex items-center gap-2 text-xs text-slate-500"><Loader2 size={14} className="animate-spin" />{stage || 'Working on your answer...'}</div>}
             {!isLoading && messages.some(m => m.role === 'assistant') && (
               <button onClick={() => void regenerateLastResponse()} className="text-xs text-slate-500 underline decoration-slate-300 underline-offset-4 hover:text-teal-800">{activeConversation?.caseId ? 'Ask last question again · keep previous answer' : 'Regenerate last response'}</button>

@@ -20,6 +20,10 @@ const calculateHash = (data) => {
 };
 
 const seedPharmacyHub = async () => {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Refusing to seed synthetic demo data when NODE_ENV=production.');
+    process.exit(1);
+  }
   try {
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/pharmavault');
     console.log('Connected to MongoDB for Pharmacy Hub seeding...');
@@ -28,7 +32,7 @@ const seedPharmacyHub = async () => {
     let pharmacyUser = await User.findOne({ email: 'pharmacy@test.com' });
     if (!pharmacyUser) {
       pharmacyUser = await User.create({
-        name: 'Apollo Metro Pharmacy Hub',
+        name: 'Demo Metro Pharmacy Hub',
         email: 'pharmacy@test.com',
         password: 'password123',
         role: 'pharmacy'
@@ -46,14 +50,14 @@ const seedPharmacyHub = async () => {
     }
 
     // 2. Organization & Branch Setup
-    let org = await Organization.findOne({ name: 'Apollo Health & Retail Network' });
+    let org = await Organization.findOne({ name: 'Demo Health Pharmacy Network (synthetic)' });
     if (!org) {
       org = await Organization.create({
-        name: 'Apollo Health & Retail Network',
+        name: 'Demo Health Pharmacy Network (synthetic)',
         owner: pharmacyUser._id,
         plan: 'Enterprise',
         status: 'active',
-        contactEmail: 'central.pharmacy@apollohealth.org',
+        contactEmail: 'central.pharmacy@example.org',
         contactPhone: '+91-80-2559-0011',
         address: {
           street: '45/2 Hosur Road, Koramangala',
@@ -83,7 +87,7 @@ const seedPharmacyHub = async () => {
     if (!branch) {
       branch = await Branch.create({
         organizationId: org._id,
-        name: 'Apollo Dispensary - Central Bengaluru Hub',
+        name: 'Demo Dispensary - Central Bengaluru Hub',
         location: 'Ground Floor, Medical Arts Building, Bengaluru',
         licenseNumber: 'KA-BNG-CDSCO-2024-8849',
         managerId: pharmacyUser._id,
@@ -95,6 +99,22 @@ const seedPharmacyHub = async () => {
     pharmacyUser.organizationId = org._id;
     pharmacyUser.branchId = branch._id;
     await pharmacyUser.save();
+
+    // Staff accounts must belong to an organization (tenant scoping fails closed without one).
+    const staffAccounts = [
+      { email: 'reviewer@test.com', name: 'Clinical Claims Reviewer', role: 'claims_reviewer' },
+      { email: 'pharmacist@test.com', name: 'Demo Pharmacist', role: 'pharmacist' },
+      { email: 'orgadmin@test.com', name: 'Demo Organization Admin', role: 'org_admin' }
+    ];
+    for (const account of staffAccounts) {
+      let staff = await User.findOne({ email: account.email });
+      if (!staff) staff = new User({ ...account, password: 'password123' });
+      staff.role = account.role;
+      staff.organizationId = org._id;
+      staff.branchId = branch._id;
+      await staff.save();
+    }
+    console.log('Linked demo staff accounts to the demo organization.');
 
     // 3. Clear and Seed Medicines for Pharmacy Hub
     await Medicine.deleteMany({});
@@ -415,7 +435,7 @@ const seedPharmacyHub = async () => {
         manufacturingDate: new Date('2024-06-10'),
         expiryDate: doloExp,
         distributor: 'Apollo Central Logistics Depot',
-        pharmacyName: 'Apollo Dispensary Metro Hub',
+        pharmacyName: 'Demo Dispensary Metro Hub',
         pharmacyLocation: 'Bengaluru, KA',
         supplyChainStage: 'Dispensary Stocked',
         verificationStatus: 'Verified',
@@ -430,7 +450,7 @@ const seedPharmacyHub = async () => {
         manufacturingDate: new Date('2024-05-15'),
         expiryDate: azeExp,
         distributor: 'Cipla Certified Supply Logistics',
-        pharmacyName: 'Apollo Dispensary Metro Hub',
+        pharmacyName: 'Demo Dispensary Metro Hub',
         pharmacyLocation: 'Bengaluru, KA',
         supplyChainStage: 'Verified In-Store',
         verificationStatus: 'Verified',
@@ -445,7 +465,7 @@ const seedPharmacyHub = async () => {
         manufacturingDate: new Date('2024-07-01'),
         expiryDate: amxExp,
         distributor: 'Medreich Pharma Wholesalers',
-        pharmacyName: 'Apollo Dispensary Metro Hub',
+        pharmacyName: 'Demo Dispensary Metro Hub',
         pharmacyLocation: 'Bengaluru, KA',
         supplyChainStage: 'Dispensary Stocked',
         verificationStatus: 'Verified',
@@ -460,7 +480,7 @@ const seedPharmacyHub = async () => {
         manufacturingDate: new Date('2024-01-01'),
         expiryDate: new Date('2025-01-01'),
         distributor: 'Unverified Freight Route',
-        pharmacyName: 'Apollo Dispensary Metro Hub',
+        pharmacyName: 'Demo Dispensary Metro Hub',
         pharmacyLocation: 'Bengaluru, KA',
         supplyChainStage: 'Quarantined at Inbound Inspection',
         verificationStatus: 'Flagged / Counterfeit',

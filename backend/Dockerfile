@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim
+FROM node:22-bookworm-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee
 
 WORKDIR /app
 ENV NODE_ENV=production
@@ -11,7 +11,7 @@ RUN npm ci --omit=dev --engine-strict --no-audit --no-fund && npm cache clean --
 COPY --chown=node:node . .
 RUN mkdir -p /var/lib/pharmavault/documents \
     && chown -R node:node /var/lib/pharmavault \
-    && node -e "require('./data/academicMedicineCatalogue'); require('./services/trustRag/identityResolutionService'); import('pdf-to-img').then(() => console.log('Runtime dependencies verified.')).catch(() => process.exit(1))"
+    && node -e "require('./data/academicMedicineCatalogue'); require('./services/trustRag/identityResolutionService'); require('./services/contextualChatService'); import('pdf-to-img').then(() => console.log('Runtime dependencies verified.')).catch(() => process.exit(1))"
 
 USER node
 EXPOSE 5001

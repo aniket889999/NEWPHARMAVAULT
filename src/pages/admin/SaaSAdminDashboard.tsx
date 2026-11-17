@@ -21,9 +21,9 @@ const SaaSAdminDashboard: React.FC = () => {
       // Mock stats for dashboard
       setStats({
         totalOrgs: res.data.length,
-        totalBranches: res.data.length * 2, // simulated
+        totalBranches: 0, // Not measured by this endpoint.
         activePlans: res.data.filter((o:any) => o.status === 'active').length,
-        aiUsageTotal: 45200
+        aiUsageTotal: 0 // Not connected to a metering service.
       });
     } catch (err) {
       toast.error("Failed to load admin data");
@@ -72,9 +72,9 @@ const SaaSAdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
         {[
           { label: 'Total Organizations', value: stats.totalOrgs, icon: Building2, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-          { label: 'Active Branches', value: stats.totalBranches, icon: Activity, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-          { label: 'Enterprise AI Usage', value: stats.aiUsageTotal.toLocaleString(), icon: Zap, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-          { label: 'System Compliance', value: '99.9%', icon: ShieldCheck, color: 'text-indigo-500', bg: 'bg-indigo-500/10' }
+          { label: 'Active Branches', value: 'Not measured', icon: Activity, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+          { label: 'Enterprise AI Usage', value: 'Not connected', icon: Zap, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+          { label: 'System Compliance', value: 'Not certified', icon: ShieldCheck, color: 'text-indigo-500', bg: 'bg-indigo-500/10' }
         ].map((m, i) => (
           <div key={i} className="bg-slate-900 rounded-2xl p-6 border border-slate-800 shadow-xl">
             <div className={`w-12 h-12 ${m.bg} rounded-xl flex items-center justify-center mb-4`}>
@@ -170,7 +170,7 @@ const SaaSAdminDashboard: React.FC = () => {
                 </div>
               </div>
               <p className="text-xs leading-relaxed text-indigo-100">
-                System is currently managing <b>{stats.totalOrgs}</b> enterprise tenants with a cumulative safety verification score of <b>99.2%</b>.
+                <b>{stats.totalOrgs}</b> organization records are available. Platform AI load and safety performance are not measured by this dashboard.
               </p>
               <button className="w-full bg-white text-indigo-600 py-2 rounded-xl text-sm font-bold shadow-xl">
                 Generate Network Report
@@ -181,7 +181,7 @@ const SaaSAdminDashboard: React.FC = () => {
           <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800 shadow-xl">
             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
               <Workflow size={20} className="text-indigo-500" />
-              SaaS Events
+              Illustrative SaaS Events · no live event feed
             </h3>
             <div className="space-y-6">
               {[

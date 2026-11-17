@@ -1,7 +1,8 @@
 'use strict';
 // Opt-in controlled extraction-error demo, NOT evidence of an actual OCR mistake.
 // All actors/documents are synthetic; authentication and production routes remain enabled.
-if (process.argv[2] !== '--synthetic-browser-check') throw new Error('Explicit synthetic-browser-check opt-in required.');
+const projectAudit = process.argv[2] === '--synthetic-project-integration';
+if (!projectAudit && process.argv[2] !== '--synthetic-browser-check') throw new Error('Explicit synthetic-browser-check opt-in required.');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path'), crypto = require('node:crypto'), readline = require('node:readline');
 const { createRequire } = require('node:module');
 const root = path.resolve(__dirname, '../..'), backend = createRequire(path.join(root, 'backend/package.json'));
@@ -41,12 +42,27 @@ async function main() {
   const run = new mongoose.Types.ObjectId().toString(), owner = new mongoose.Types.ObjectId();
   org = await Org.create({ name: 'SYNTHETIC S4 Browser ' + run, owner, plan: 'Enterprise', status: 'active' });
   const accounts = {};
-  for (const role of ['patient', 'pharmacist']) {
+  for (const role of (projectAudit ? ['patient', 'pharmacist', 'pharmacy', 'research_evaluator', 'super_admin'] : ['patient', 'pharmacist'])) {
     const user = await User.create({ name: 'SYNTHETIC ' + role, email: role + '.' + run + '@example.invalid', password, role, organizationId: org._id });
     users.push(user._id); accounts[role] = user.email;
   }
   server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
   const api = 'http://127.0.0.1:' + server.address().port + '/api';
+  if (projectAudit) {
+    const checks = { patient: ['/v1/chat/status', '/v1/cases', '/medicines', '/orders/myorders', '/prescriptions/my-prescriptions', '/reminders/my-reminders', '/intelligence/timeline', '/intelligence/adherence', '/intelligence/refill-risk', '/intelligence/insights', '/intelligence/patient-graph', '/pharmacy/nearby?medicine=synthetic&lat=19.075&lng=72.875'],
+      pharmacy: ['/pharmacy/intelligence', '/regulatory/pharmacy-status', '/pharmacy/expiry-risk', '/pharmacy/stock-risk', '/pharmacy/prescription-queue', '/orders', '/blockchain/ledger', '/blockchain/integrity-check', '/pharmacy-intelligence/forecast', '/pharmacy-intelligence/dead-stock', '/pharmacy-intelligence/reorder', '/pharmacy-intelligence/suppliers', '/pharmacy-intelligence/seasonal', '/workflows/active', '/workflows/priorities', '/workflows/audit', '/organizations/me', '/branches'],
+      research_evaluator: ['/graph/medicine/paracetamol'], super_admin: ['/organizations', '/safety/audit-summary', '/safety/audit-logs'] };
+    const results = [];
+    for (const [role, endpoints] of Object.entries(checks)) {
+      const index = ['patient', 'pharmacist', 'pharmacy', 'research_evaluator', 'super_admin'].indexOf(role);
+      const token = jwt.sign({ id: String(users[index]) }, process.env.JWT_SECRET, { expiresIn: '2h' });
+      for (const endpoint of endpoints) {
+        const response = await fetch(api + endpoint, { headers: { Authorization: 'Bearer ' + token } });
+        await response.arrayBuffer(); results.push({ role, endpoint, status: response.status });
+      }
+    }
+    console.log(JSON.stringify({ projectReadSmoke: results, boundary: 'HTTP read availability on empty synthetic tenant only, not functionality or real-world validity.' }));
+  }
   const headers = { Authorization: 'Bearer ' + jwt.sign({ id: String(users[1]) }, process.env.JWT_SECRET, { expiresIn: '2h' }), 'Content-Type': 'application/json' };
   const post = async (endpoint, body, method = 'POST') => {
     const r = await fetch(api + endpoint, { method, headers, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });

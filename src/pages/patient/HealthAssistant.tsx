@@ -7,39 +7,60 @@ import { verificationApi } from '../../modules/verification/api/verificationApi'
 import { VerificationCase } from '../../modules/verification/types';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../api/apiClient';
-
-interface ChatCapabilities {
-  generationEnabled: boolean;
-  embeddingEnabled: boolean;
-  model: string | null;
-  healthReferencePassages: number;
-}
+import { portalHome } from '../../features/navigation/portalPolicy';
+import { ChatReadinessNotice } from '../../features/chatReadiness/ChatReadinessNotice';
+import { parseChatCapabilities } from '../../features/chatReadiness/presentation';
+import type { ChatCapabilities } from '../../features/chatReadiness/presentation';
+import { KnowledgeReviewPanel } from '../../features/chatReadiness/KnowledgeReviewPanel';
 
 const HealthAssistant: React.FC = () => {
   const { user } = useAuth();
+  const userId = user?._id;
   const [params, setParams] = useSearchParams();
   const caseId = params.get('caseId') || undefined;
   const { activeConversation, conversations, createConversation, setActiveConversation, deleteConversation, isLoading } = useChatStore();
   const [cases, setCases] = useState<VerificationCase[]>([]);
   const [capabilities, setCapabilities] = useState<ChatCapabilities | null>(null);
+  const [officialWebEnabled, setOfficialWebEnabled] = useState<boolean | null>(null);
   const [caseLoadError, setCaseLoadError] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     let cancelled = false;
     setCases([]);
     setCaseLoadError(false);
     verificationApi.getCases().then(data => { if (!cancelled) setCases(data); })
       .catch(() => { if (!cancelled) setCaseLoadError(true); });
-    apiClient.get<ChatCapabilities>('/v1/chat/status')
-      .then(({ data }) => { if (!cancelled) setCapabilities(data); })
-      .catch(() => { if (!cancelled) setCapabilities(null); });
     return () => { cancelled = true; };
-  }, [user?._id]);
+  }, [userId]);
 
   useEffect(() => {
-    if (user && (!activeConversation || activeConversation.caseId !== caseId)) createConversation(caseId);
+    if (!userId) return;
+    let cancelled = false, sequence = 0;
+    const controller = new AbortController();
+    const check = () => {
+      const request = ++sequence;
+      void apiClient.get<unknown>('/v1/chat/status', { signal: controller.signal })
+        .then(({ data }) => { if (!cancelled && request === sequence) {
+          setCapabilities(parseChatCapabilities(data));
+          const extra = data as { contextualChat?: { version?: string; webEnabled?: boolean } };
+          setOfficialWebEnabled(extra?.contextualChat?.version === 'contextual-chat-v1' && typeof extra.contextualChat.webEnabled === 'boolean' ? extra.contextualChat.webEnabled : null);
+        } })
+        .catch(() => { if (!cancelled && request === sequence) { setCapabilities(null); setOfficialWebEnabled(null); } });
+    };
+    const checkVisible = () => { if (document.visibilityState === 'visible') check(); };
+    check();
+    const interval = window.setInterval(checkVisible, 30000);
+    window.addEventListener('focus', checkVisible);
+    document.addEventListener('visibilitychange', checkVisible);
+    return () => { cancelled = true; controller.abort(); window.clearInterval(interval); window.removeEventListener('focus', checkVisible); document.removeEventListener('visibilitychange', checkVisible); };
+  }, [userId, isLoading]);
+
+  useEffect(() => {
+    // StrictMode may replay effects before a captured render updates.
+    const current = useChatStore.getState().activeConversation;
+    if (user && (!current || current.caseId !== caseId)) createConversation(caseId);
   }, [user, activeConversation, caseId, createConversation]);
 
   const newChat = () => { createConversation(caseId); setSidebarOpen(false); };
@@ -56,7 +77,7 @@ const HealthAssistant: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[100dvh] min-h-0 overflow-hidden bg-white text-slate-900">
+    <div className="flex h-[calc(100dvh-var(--pharmavault-demo-toolbar-height,0px))] min-h-0 overflow-hidden bg-white text-slate-900">
       {sidebarOpen && <button aria-label="Close chat sidebar" onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-40 bg-slate-900/30 lg:hidden" />}
       <aside className={(sidebarOpen ? 'fixed inset-y-0 left-0 z-50 flex' : 'hidden') + ' w-60 shrink-0 flex-col border-r border-slate-200 bg-slate-50 lg:static lg:flex'}>
         <div className="flex items-center justify-between px-4 pb-4 pt-6">
@@ -79,7 +100,7 @@ const HealthAssistant: React.FC = () => {
           <p className="flex items-center gap-2 text-[11px] text-teal-800"><ShieldCheck size={14} /> Private cases stay local</p>
           <p className="text-[10px] leading-4 text-slate-400">Up to 20 chats in memory. Refreshing or signing out clears them. No chat is saved to your browser storage.</p>
           <Link to="/cases" className="flex items-center gap-2 text-xs text-slate-600 hover:text-teal-700"><ArrowLeft size={13} /> Verification cases</Link>
-          <Link to={user?.role === 'patient' ? '/patient/dashboard' : '/cases'} className="block text-xs text-slate-400">Return to portal</Link>
+          <Link to={portalHome(user?.role)} className="block text-xs text-slate-400">Return to portal</Link>
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -88,19 +109,21 @@ const HealthAssistant: React.FC = () => {
             <div className="flex items-center gap-3">
               <button onClick={() => setSidebarOpen(true)} aria-label="Open chat sidebar" className="rounded p-1 text-slate-500 lg:hidden"><Menu size={19} /></button>
               <div><h1 className="text-sm font-semibold text-slate-900 md:text-base">Health Assistant <span className="ml-1 font-normal text-slate-400">/ TrustRAG</span></h1>
-                <p className="mt-0.5 text-[10px] text-slate-400">{caseId ? 'Local, authorized case evidence' : capabilities?.generationEnabled ? 'Gemini generation enabled · source-backed answers' : 'Local source mode · generation is not enabled'}</p>
+                <ChatReadinessNotice capabilities={capabilities} privateScope={Boolean(caseId)} />
               </div>
             </div>
             <button onClick={newChat} aria-label="Start a new chat" className="rounded-full border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"><Plus size={16} /></button>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
+            {!caseId && <KnowledgeReviewPanel />}
             <label htmlFor="chat-scope" className="text-[10px] uppercase tracking-wide text-slate-400">Evidence scope</label>
             <select id="chat-scope" value={caseId || ''} disabled={isLoading} onChange={e => changeScope(e.target.value)} className="max-w-full rounded-lg border-slate-200 py-1.5 pl-2 pr-7 text-xs text-slate-600">
               <option value="">Public medicine references + project knowledge</option>
               {caseId && !cases.some(c => c.id === caseId) && <option value={caseId}>Selected case - server checks access</option>}
               {cases.map(c => <option key={c.id} value={c.id}>{c.caseReference} · {c.status}</option>)}
             </select>
-            {capabilities?.embeddingEnabled && !caseId && <span className="rounded-full bg-teal-50 px-2 py-1 text-[10px] text-teal-700">Semantic retrieval enabled</span>}
+            {!caseId && officialWebEnabled !== null && <span className="text-[10px] text-slate-500">Official-source fallback: {officialWebEnabled ? 'enabled for approved public topics' : 'disabled'} · Feedback requires review, not automatic training</span>}
+            {capabilities?.embeddingEnabled && !caseId && <span className="rounded-full bg-teal-50 px-2 py-1 text-[10px] text-teal-700">Semantic retrieval configured · checked per answer</span>}
           </div>
           {caseLoadError && <p className="mt-2 text-xs text-amber-800">Could not load case choices. Public reference chat remains available.</p>}
         </header>

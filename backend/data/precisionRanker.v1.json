@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "precision-ranker-v1",
+  "kind": "PAIRWISE_LINEAR_RETRIEVAL_RERANKER_NOT_LLM",
+  "dataset": "Synthetic developer-authored development labels, not a clinical gold standard",
+  "corpusHash": "0d8fc4735d4ac16ba831f22e9da12c992f0680b70f29a4a2221d707f536c360e",
+  "trainingHash": "95cbda3b8002dd260502c54df93a947409e7363effa260e3a7877b20b1f5040c",
+  "trainingFamilies": [
+    "training-family-0",
+    "training-family-1",
+    "training-family-2",
+    "training-family-3",
+    "training-family-4",
+    "training-family-5",
+    "training-family-6",
+    "training-family-7",
+    "training-family-8",
+    "training-family-9",
+    "training-family-10",
+    "training-family-11",
+    "training-family-12",
+    "training-family-13"
+  ],
+  "trainingQueries": 42,
+  "weights": [
+    0.8874938906,
+    2.0727524874,
+    1.0428935149,
+    1.1544922115,
+    0.8202521739,
+    0.0123523982
+  ],
+  "lossBefore": 0.6931471805599336,
+  "lossAfter": 0.028558455822299156,
+  "pairCount": 966,
+  "epochs": 400,
+  "features": [
+    "lexical",
+    "topicMatch",
+    "focusMatch",
+    "titleOverlap",
+    "kindMatch",
+    "lengthPenalty"
+  ]
+}

@@ -5,6 +5,10 @@ const User = require('./models/userModel');
 dotenv.config();
 
 const seed = async () => {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Refusing to seed synthetic demo accounts when NODE_ENV=production.');
+    process.exit(1);
+  }
   try {
     await mongoose.connect(process.env.MONGO_URI);
     
