@@ -35,8 +35,12 @@ export const CasesListPage: React.FC = () => {
   };
 
   useEffect(() => {
+    if (user?.role === 'patient') {
+      navigate('/patient/cases', { replace: true });
+      return;
+    }
     fetchCases();
-  }, []);
+  }, [user, navigate]);
 
   // Filter cases
   const filteredCases = cases.filter(c => {

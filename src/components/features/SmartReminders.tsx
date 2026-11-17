@@ -121,6 +121,32 @@ const SmartReminders: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto p-6 md:p-8 space-y-6 font-sans">
+      {/* Coming Soon Hero Banner */}
+      <div className="bg-white rounded-2xl border border-amber-200 p-6 shadow-xs relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-300 rounded-full tracking-wider">
+                Coming Soon • Beta Preview
+              </span>
+              <span className="text-xs text-slate-400 font-mono">Q1 2027 Clinical Rollout</span>
+            </div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Smart Medication Reminders & Adherence Hub
+            </h1>
+            <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
+              Automated multi-channel dosing alerts (WhatsApp, SMS, and Smart Pillbox integration) are currently in active beta testing. All saved dosage schedules and demo simulation controls below remain fully accessible for preview.
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800">
+              Feature in Beta
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Information Banner */}
       <div className="bg-teal-50 border border-teal-200 text-teal-900 p-4 rounded-xl flex items-start shadow-2xs">
         <Info className="mr-3 flex-shrink-0 mt-0.5 text-teal-700 w-5 h-5" />
@@ -134,8 +160,8 @@ const SmartReminders: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Medication Reminders</h1>
-          <p className="text-xs text-slate-500 mt-1">Prescription dosing schedule and automated patient adherence tracking</p>
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Active Dose Schedule</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Prescription dosing schedule and automated patient adherence tracking</p>
         </div>
         <button 
           onClick={() => setShowAddModal(true)}

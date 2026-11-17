@@ -28,6 +28,22 @@ const PatientLayout: React.FC = () => {
     navigate('/');
   };
 
+  const getBreadcrumbTitle = () => {
+    const segment = location.pathname.split('/').pop() || '';
+    if (segment === 'cases') return 'Verification Cases & Audits';
+    if (segment === 'prescriptions') return 'Prescription Upload';
+    if (segment === 'authenticity') return 'Authenticity Verifier';
+    if (segment === 'doctor-consult') return 'Doctor Teleconsult';
+    if (segment === 'reminders') return 'Medication Reminders';
+    if (segment === 'health-records') return 'Health Records';
+    if (segment === 'medicines') return 'Medicine Directory';
+    if (segment === 'comparisons') return 'Compare Formulations';
+    if (segment === 'cart') return 'Dispensary Cart';
+    if (segment === 'orders') return 'My Orders';
+    if (segment === 'dashboard') return 'Dashboard Overview';
+    return segment.replace('-', ' ');
+  };
+
   const navItemClass = (path: string) => {
     const isActive = location.pathname === path;
     return `flex items-center px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
@@ -104,7 +120,10 @@ const PatientLayout: React.FC = () => {
 
               <Link to="/patient/reminders" className={navItemClass('/patient/reminders')}>
                 <Bell className="w-4 h-4 mr-2.5 text-slate-500" />
-                <span>Medication Reminders</span>
+                <span className="flex-1">Medication Reminders</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">
+                  Coming Soon
+                </span>
               </Link>
 
               <Link to="/patient/health-records" className={navItemClass('/patient/health-records')}>
@@ -183,7 +202,7 @@ const PatientLayout: React.FC = () => {
             <span>Patient Portal</span>
             <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
             <span className="font-semibold text-slate-800 capitalize">
-              {location.pathname.split('/').pop()?.replace('-', ' ') || 'Overview'}
+              {getBreadcrumbTitle()}
             </span>
           </div>
 

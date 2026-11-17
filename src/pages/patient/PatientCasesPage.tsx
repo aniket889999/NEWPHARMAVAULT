@@ -134,74 +134,75 @@ export const PatientCasesPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
-      {/* Top Header Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-7 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-semibold uppercase px-2.5 py-0.5 bg-teal-50 text-teal-800 border border-teal-200 rounded-full">
-                TrustRAG Evidence Engine
-              </span>
-              <span className="text-xs text-slate-400 font-mono">Patient Audit Scoped</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-              Prescription Verifications & Clinical Audits
-            </h1>
-            <p className="text-sm text-slate-500 max-w-2xl leading-relaxed">
-              Track the verification status of your uploaded prescriptions, batch authenticity reports, and cross-document discrepancy audits.
-            </p>
+    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6 font-sans">
+      {/* Top Banner */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1.5">
+            <span className="text-[11px] font-semibold uppercase px-2.5 py-0.5 bg-teal-50 text-teal-800 border border-teal-200 rounded-full">
+              Clinical Audits & Verification
+            </span>
+            <span className="text-xs text-slate-400">TrustRAG Tri-Document Engine</span>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setShowNewModal(true)}
-              className="px-4 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium text-xs flex items-center space-x-1.5 shadow-xs transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Initiate Verification</span>
-            </button>
-
-            <button
-              onClick={fetchCases}
-              disabled={isLoading}
-              className="p-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs transition-colors"
-              title="Refresh audit cases"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Prescription Verifications & Clinical Audits</h1>
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+            Track optical OCR formulation extraction, tamper-proof blockchain batch lineage, and authorized clinical sign-offs.
+          </p>
         </div>
 
-        {/* Audit Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-slate-100">
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-            <span className="text-[11px] font-medium text-slate-500">Total Cases</span>
-            <div className="text-xl font-bold text-slate-900 font-mono mt-0.5">{cases.length}</div>
-            <p className="text-[10px] text-slate-400 mt-0.5">In patient history</p>
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 text-xs text-slate-600 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl">
+            <ShieldCheck className="w-4 h-4 text-teal-600" />
+            <span>Patient Identity: <strong>PV-PT-9042</strong></span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-            <span className="text-[11px] font-medium text-slate-500">Verified Authentic</span>
-            <div className="text-xl font-bold text-emerald-600 font-mono mt-0.5">
-              {cases.filter(c => c.status === 'VERIFIED').length}
-            </div>
-            <p className="text-[10px] text-emerald-700 mt-0.5">Tamper-proof passed</p>
-          </div>
+          <button
+            onClick={fetchCases}
+            disabled={isLoading}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 text-xs transition-colors"
+            title="Refresh cases"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-            <span className="text-[11px] font-medium text-slate-500">Under Review</span>
-            <div className="text-xl font-bold text-amber-600 font-mono mt-0.5">
-              {cases.filter(c => c.status === 'NEEDS_REVIEW' || c.status === 'NEEDS_CORRECTION').length}
-            </div>
-            <p className="text-[10px] text-amber-700 mt-0.5">Auditor pending</p>
-          </div>
+          <button
+            onClick={() => setShowNewModal(true)}
+            className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs flex items-center space-x-1.5 shadow-2xs transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Case</span>
+          </button>
+        </div>
+      </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-            <span className="text-[11px] font-medium text-slate-500">Evidence Lineage</span>
-            <div className="text-xl font-bold text-teal-700 font-mono mt-0.5">100%</div>
-            <p className="text-[10px] text-teal-700 mt-0.5">SHA-256 anchored</p>
+      {/* 4 Summary Metric Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <span className="text-[11px] font-medium text-slate-500">Total Cases</span>
+          <div className="text-2xl font-bold text-slate-900 font-mono mt-0.5">{cases.length}</div>
+          <p className="text-[10px] text-slate-400 mt-0.5">In patient history</p>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <span className="text-[11px] font-medium text-slate-500">Verified Authentic</span>
+          <div className="text-2xl font-bold text-emerald-600 font-mono mt-0.5">
+            {cases.filter(c => c.status === 'VERIFIED').length}
           </div>
+          <p className="text-[10px] text-emerald-700 mt-0.5">Tamper-proof passed</p>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <span className="text-[11px] font-medium text-slate-500">Under Review</span>
+          <div className="text-2xl font-bold text-amber-600 font-mono mt-0.5">
+            {cases.filter(c => c.status === 'NEEDS_REVIEW' || c.status === 'NEEDS_CORRECTION' || c.status === 'DOCUMENTS_PENDING').length}
+          </div>
+          <p className="text-[10px] text-amber-700 mt-0.5">Auditor pending</p>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <span className="text-[11px] font-medium text-slate-500">Evidence Lineage</span>
+          <div className="text-2xl font-bold text-teal-700 font-mono mt-0.5">100%</div>
+          <p className="text-[10px] text-teal-700 mt-0.5">SHA-256 anchored</p>
         </div>
       </div>
 
