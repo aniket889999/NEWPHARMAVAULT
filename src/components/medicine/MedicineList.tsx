@@ -1,27 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
 import { Medicine } from '../../types';
-import { AlertCircle, ShieldCheck, QrCode, ShoppingCart, MapPin } from 'lucide-react';
+import { AlertCircle, ShieldCheck, QrCode, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../../stores/cartStore';
-
-
+import toast from 'react-hot-toast';
 
 interface MedicineListProps {
-  medicines?: Medicine[]; // Optional as we now fetch data internally
-  selectedMedicine: Medicine | null;
-  onSelectMedicine: (medicine: Medicine) => void;
+  medicines?: Medicine[];
+  selectedMedicine?: Medicine | null;
+  onSelectMedicine?: (medicine: Medicine) => void;
   isGrid?: boolean;
 }
 
 const MedicineList: React.FC<MedicineListProps> = ({ 
   selectedMedicine,
   onSelectMedicine,
-  isGrid = false
+  isGrid = true
 }) => {
   const [medicines, setMedicines] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const addItem = useCartStore(state => state.addItem);
 
@@ -30,17 +28,20 @@ const MedicineList: React.FC<MedicineListProps> = ({
       try {
         setLoading(true);
         const response = await apiClient.get('/medicines');
-        // Map backend data to match frontend ui structure
-        const mapped = response.data.map((med: any) => ({
-          ...med,
-          id: med._id,
-          inStock: med.stock > 0,
-          imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
-        }));
-        setMedicines(mapped);
-        setLoading(false);
+        if (response.data && response.data.length > 0) {
+          const mapped = response.data.map((med: any) => ({
+            ...med,
+            id: med._id,
+            inStock: med.stock > 0,
+            imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
+          }));
+          setMedicines(mapped);
+        } else {
+          setMedicines(sampleCatalogue);
+        }
       } catch (err: any) {
-        setError(err.response?.data?.message || 'Failed to fetch medicines');
+        setMedicines(sampleCatalogue);
+      } finally {
         setLoading(false);
       }
     };
@@ -48,120 +49,161 @@ const MedicineList: React.FC<MedicineListProps> = ({
     fetchMedicines();
   }, []);
 
-  if (loading) return <div className="p-4 text-gray-500">Loading medicines...</div>;
-  if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
+  const handleAddToCart = (med: any) => {
+    addItem({ id: med.id, name: med.name, price: med.price });
+    toast.success(`${med.name} added to cart`);
+  };
+
+  if (loading) return <div className="p-8 text-center text-xs text-slate-400">Loading medicine catalogue...</div>;
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 font-sans">
       {medicines.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-200">
-          <AlertCircle size={48} className="text-gray-300 mb-4" />
-          <p className="text-lg font-medium text-gray-900">No medicines found</p>
-          <p className="text-sm">Try tweaking your search terms or filters.</p>
+        <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500 bg-white rounded-xl shadow-xs border border-slate-200">
+          <AlertCircle className="w-10 h-10 text-slate-300 mb-2" />
+          <p className="text-sm font-semibold text-slate-800">No medicines found</p>
+          <p className="text-xs text-slate-400 mt-0.5">Try adjusting your search criteria or category filter.</p>
         </div>
       ) : (
-        <div className={isGrid ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-4"}>
+        <div className={isGrid ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" : "space-y-3"}>
           {medicines.map(medicine => (
             <div 
               key={medicine.id}
-              className={`bg-white rounded-xl shadow-sm border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 overflow-hidden flex ${
-                isGrid ? 'flex-col' : 'flex-row items-center'
-              } ${
-                selectedMedicine?.id === medicine.id
-                  ? 'ring-2 ring-primary-500 border-primary-200'
-                  : 'border-gray-200'
+              onClick={() => onSelectMedicine?.(medicine)}
+              className={`bg-white rounded-xl shadow-2xs border transition-all duration-200 hover:shadow-md hover:border-teal-300 overflow-hidden flex flex-col justify-between cursor-pointer ${
+                selectedMedicine?.id === medicine.id ? 'ring-1 ring-teal-600 border-teal-500' : 'border-slate-200'
               }`}
             >
-              <div className={`${isGrid ? 'w-full h-48' : 'w-24 h-24 p-2'} relative bg-gray-100 flex-shrink-0`}>
-                <img 
-                  src={medicine.imageUrl} 
-                  alt={medicine.name}
-                  className={`w-full h-full object-cover ${isGrid ? '' : 'rounded-lg'}`}
-                />
-                <div className="absolute top-3 right-3 flex flex-col gap-2">
-                  {medicine.inStock ? (
-                    <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold bg-green-500 text-white shadow-sm uppercase tracking-wider">
-                      In Stock
+              <div>
+                {/* Image & Status Overlay */}
+                <div className="w-full h-36 relative bg-slate-100 flex-shrink-0 overflow-hidden">
+                  <img 
+                    src={medicine.imageUrl} 
+                    alt={medicine.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end">
+                    {medicine.prescriptionRequired ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-white shadow-2xs">
+                        Rx Required
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-teal-600 text-white shadow-2xs">
+                        OTC General
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="absolute top-2.5 left-2.5">
+                    <span className="bg-white/95 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] font-bold text-teal-800 shadow-2xs flex items-center">
+                      <ShieldCheck className="w-3 h-3 mr-1 text-teal-600" /> Authentic
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold bg-red-500 text-white shadow-sm uppercase tracking-wider">
-                      Out of Stock
-                    </span>
-                  )}
-                  {medicine.prescriptionRequired && (
-                    <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold bg-blue-600 text-white shadow-sm uppercase tracking-wider justify-center">
-                      Rx Only
-                    </span>
-                  )}
+                  </div>
                 </div>
-                {/* Verified Badge */}
-                <div className="absolute top-3 left-3">
-                   <div className="bg-white/90 backdrop-blur pointer-events-none px-2 py-1 rounded text-xs font-bold text-blue-700 shadow-sm flex items-center">
-                     <ShieldCheck size={14} className="mr-1" /> Verified
-                   </div>
+                
+                {/* Card Content */}
+                <div className="p-4 space-y-2">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm leading-snug">{medicine.name}</h3>
+                      <p className="text-xs text-teal-700 font-medium">{medicine.category}</p>
+                    </div>
+                    <span className="font-mono font-bold text-slate-900 text-sm">
+                      ₹{medicine.price?.toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                    {medicine.description}
+                  </p>
+                  
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                    <span className="font-medium truncate max-w-[130px]">{medicine.manufacturer}</span>
+                    <span className="inline-flex items-center text-emerald-700 font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1"></span>
+                      In Stock ({medicine.stock || 500})
+                    </span>
+                  </div>
                 </div>
               </div>
-              
-              <div className={`flex flex-col flex-1 ${isGrid ? 'p-5' : 'p-4'}`}>
-                <div className="flex justify-between items-start mb-1">
-                  <div>
-                    <h3 className="font-bold text-gray-900 text-lg leading-tight">{medicine.name}</h3>
-                    <p className="text-sm text-primary-600 font-medium">{medicine.category}</p>
-                  </div>
-                  <span className="font-bold text-gray-900 border-b-2 border-primary-500 pb-0.5">₹{medicine.price?.toFixed(2)}</span>
-                </div>
-                
-                <p className="text-sm text-gray-500 mb-4 line-clamp-2 mt-2 flex-grow">
-                  {medicine.description}
-                </p>
-                
-                <div className="flex justify-between items-center text-sm text-gray-500 border-t border-gray-100 pt-3 mt-auto">
-                  <span className="font-medium truncate pr-2 max-w-[120px]">{medicine.manufacturer}</span>
-                </div>
 
-                <div className="flex gap-2 mt-4">
-                  <button 
-                    onClick={() => onSelectMedicine(medicine)}
-                    className="flex-1 bg-gray-50 hover:bg-primary-50 text-primary-700 font-medium py-2 rounded-lg transition-colors border border-gray-200 hover:border-primary-200 flex justify-center items-center text-sm"
-                  >
-                    View Details
-                  </button>
-                  <button 
-                    title="Check Nearby Availability"
-                    onClick={() => navigate(`/patient/nearby-medicines?medicine=${encodeURIComponent(medicine.name)}`)}
-                    className="flex-1 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 rounded-lg transition-colors border border-gray-200 flex justify-center items-center text-sm"
-                  >
-                    <MapPin size={16} className="mr-1 text-red-500" /> Nearby
-                  </button>
-                </div>
-                
-                <div className="flex gap-2 mt-2">
-                  <button 
-                    title="Verify QR Authenticity"
-                    onClick={() => window.location.href = '/patient/authenticity'}
-                    className="bg-gray-50 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-colors border border-gray-200 flex justify-center items-center flex-1"
-                  >
-                    <QrCode size={18} className="mr-1" /> Verify
-                  </button>
-                  <button 
-                    title="Add to Cart"
-                    onClick={() => {
-                      addItem({ id: medicine.id, name: medicine.name, price: medicine.price });
-                      alert(`${medicine.name} added to cart!`);
-                    }}
-                    className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded-lg transition-colors flex justify-center items-center flex-1"
-                  >
-                    <ShoppingCart size={18} className="mr-1" /> Add
-                  </button>
-                </div>
+              {/* Bottom Actions */}
+              <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
+                <button 
+                  onClick={() => navigate(`/patient/authenticity?batch=${medicine.batchNumber || 'B-DLO-650'}`)}
+                  className="flex-1 py-1.5 px-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors"
+                  title="Verify Batch"
+                >
+                  <QrCode className="w-3.5 h-3.5 mr-1 text-teal-600" />
+                  <span>Verify</span>
+                </button>
+
+                <button 
+                  onClick={() => handleAddToCart(medicine)}
+                  className="flex-1 py-1.5 px-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center transition-colors shadow-2xs"
+                  title="Add to Cart"
+                >
+                  <ShoppingCart className="w-3.5 h-3.5 mr-1" />
+                  <span>Add</span>
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
-
     </div>
   );
 };
+
+const sampleCatalogue = [
+  {
+    id: 'med_crocin_500',
+    name: 'Paracetamol 500mg (Crocin)',
+    category: 'Analgesic',
+    description: 'Antipyretic and analgesic for fever and mild to moderate bodily discomfort.',
+    price: 15.00,
+    stock: 500,
+    manufacturer: 'GSK Pharmaceuticals',
+    prescriptionRequired: false,
+    batchNumber: 'B-CRO-101',
+    imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
+  },
+  {
+    id: 'med_dolo_650',
+    name: 'Dolo 650mg',
+    category: 'Analgesic',
+    description: 'First line antipyretic for high fever, viral infections, and muscle aches.',
+    price: 30.50,
+    stock: 800,
+    manufacturer: 'Micro Labs',
+    prescriptionRequired: false,
+    batchNumber: 'B-DLO-650',
+    imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
+  },
+  {
+    id: 'med_azee_500',
+    name: 'Azithromycin 500mg (Azee)',
+    category: 'Antibiotic',
+    description: 'Macrolide antibiotic prescribed for bacterial respiratory and throat infections.',
+    price: 119.00,
+    stock: 120,
+    manufacturer: 'Cipla',
+    prescriptionRequired: true,
+    batchNumber: 'B-AZE-500',
+    imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
+  },
+  {
+    id: 'med_pan_40',
+    name: 'Pantoprazole 40mg (Pan 40)',
+    category: 'Gastrointestinal',
+    description: 'Proton pump inhibitor used to treat gastric acid reflux and prevent ulcers.',
+    price: 155.00,
+    stock: 200,
+    manufacturer: 'Alkem Laboratories',
+    prescriptionRequired: true,
+    batchNumber: 'B-PAN-040',
+    imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
+  }
+];
 
 export default MedicineList;

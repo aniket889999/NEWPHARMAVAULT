@@ -32,6 +32,18 @@ const seed = async () => {
       console.log('✅ Demo Pharmacy User created');
     }
 
+    // Create Demo Reviewer
+    const reviewerExists = await User.findOne({ email: 'reviewer@test.com' });
+    if (!reviewerExists) {
+      await User.create({
+        name: 'Clinical Claims Reviewer',
+        email: 'reviewer@test.com',
+        password: 'password123',
+        role: 'claims_reviewer'
+      });
+      console.log('✅ Demo Reviewer User created');
+    }
+
     console.log('🎉 Demo Setup Complete!');
     process.exit(0);
   } catch (err) {

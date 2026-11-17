@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import apiClient from './api/apiClient';
 
-// Auth Components
+// Auth Components & Landing
+import LandingPage from './pages/LandingPage';
 import RoleSelection from './pages/auth/RoleSelection';
 import AuthPage from './pages/auth/AuthPage';
 import RoleRoute from './components/auth/RoleRoute';
@@ -27,6 +28,7 @@ import PatientOrders from './pages/patient/Orders';
 import DoctorConsult from './pages/patient/DoctorConsult';
 import NearbyMedicines from './pages/patient/NearbyMedicines';
 import HealthRecords from './pages/patient/HealthRecords';
+import PatientCasesPage from './pages/patient/PatientCasesPage';
 
 // Pharmacy Dashboards & Features
 import PharmacyDashboard from './pages/pharmacy/Dashboard';
@@ -60,8 +62,8 @@ import { ReviewQueuePage } from './modules/verification/pages/ReviewQueuePage';
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public Auth Routes */}
-      <Route path="/" element={<Navigate to="/auth" replace />} />
+      {/* Public Pages */}
+      <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<RoleSelection />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage />} />
@@ -83,6 +85,7 @@ const AppRoutes: React.FC = () => {
         <Route path="reminders" element={<SmartReminders />} />
         <Route path="comparisons" element={<MedicineComparison />} />
         <Route path="prescriptions" element={<PrescriptionUpload />} />
+        <Route path="cases" element={<PatientCasesPage />} />
         <Route path="cart" element={<PatientCart />} />
         <Route path="orders" element={<PatientOrders />} />
         <Route path="doctor-consult" element={<DoctorConsult />} />
@@ -111,6 +114,8 @@ const AppRoutes: React.FC = () => {
         <Route path="prescription-queue" element={<PrescriptionQueue />} />
         <Route path="operations-intelligence" element={<OperationsIntelligence />} />
         <Route path="workflow-center" element={<WorkflowCenter />} />
+        <Route path="cases" element={<CasesListPage />} />
+        <Route path="review-queue" element={<ReviewQueuePage />} />
         <Route path="organization-settings" element={<OrganizationSettings />} />
         <Route path="accessibility" element={<AccessibilitySettings />} />
         <Route index element={<Navigate to="/pharmacy/dashboard" replace />} />
@@ -163,13 +168,13 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Catch-all */}
       {/* Super Admin Routes */}
       <Route path="/admin" element={<PharmacyLayout />}>
         <Route path="saas" element={<SaaSAdminDashboard />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/auth" replace />} />
+      {/* Catch-all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
@@ -195,10 +200,10 @@ function App() {
   return (
     <div className={`${highContrast ? 'grayscale contrast-125 bg-black' : 'bg-slate-50'} ${largeText ? 'text-lg' : 'text-base'}`}>
       <AuthProvider>
-        <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#333', color: '#fff' } }} />
+        <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#1e293b', color: '#fff' } }} />
         {!serverReachable && (
-          <div className="bg-red-600 text-white text-sm font-bold p-3 text-center sticky top-0 z-[9999] flex items-center justify-center gap-2 shadow-md">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <div className="bg-red-600 text-white text-sm font-semibold p-2.5 text-center sticky top-0 z-[9999] flex items-center justify-center gap-2 shadow-sm">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
             Server not reachable: Backend API connection failed. Please check if the server is running on port 5001.
           </div>
         )}
