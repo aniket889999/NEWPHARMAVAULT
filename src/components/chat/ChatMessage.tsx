@@ -21,6 +21,8 @@ const ChatMessage: React.FC<{ message: Message; onCheckEvidence?: () => void; on
   const rag = message.rag;
   const streaming = message.deliveryStatus === 'streaming';
   const caseAnswer = rag?.caseAnswer;
+  const request = rag?.context?.request;
+  const detailLabels: Record<string, string> = { GENERAL: 'General information', USES: 'Uses', SIDE_EFFECTS: 'Possible side effects', STORAGE: 'Storage', PREVENTION: 'Prevention', MECHANISM: 'How it works', SPECIFIC_FACT: 'Specific question' };
   const copy = async () => {
     const warning = caseAnswer && message.freshness?.status !== 'FRESH' ? '[Historical answer: current cited evidence is not confirmed. Check the current source before relying on it.]\n\n' : '';
     try { await navigator.clipboard.writeText(warning + message.content); setCopied(true); setTimeout(() => setCopied(false), 1800); }
@@ -44,6 +46,8 @@ const ChatMessage: React.FC<{ message: Message; onCheckEvidence?: () => void; on
         </div>
         {!streaming && rag?.context && <div className="mb-3 text-[11px] text-slate-500"><p>Context: {rag.context.topics.map(topic => topic.label).join(', ') || 'Current question'}{rag.context.followupResolved ? ' · carried from your earlier question' : ''}</p>{!!rag.agentTrace?.length && <details className="mt-1"><summary className="cursor-pointer">Evidence route · tool actions, not model reasoning</summary><ul className="mt-1 space-y-1">{rag.agentTrace.map((step, index) => <li key={index}>{step.tool.replace(/_/g, ' ')} → {step.status.replace(/_/g, ' ')}</li>)}</ul></details>}</div>}
         {caseAnswer?.bindingToken && <EvidenceFreshness value={message.freshness} generatedAt={caseAnswer.generatedAt} onCheck={onCheckEvidence} onAskAgain={onAskAgain} busy={busy} />}
+        {!streaming && rag?.context?.topicSwitchResolved && <p className="mb-2 text-xs text-teal-800">Switched to your new topic.</p>}
+        {!streaming && request && request.evidenceStatus !== 'NOT_ASSESSED' && <p className={'mb-2 rounded-lg px-3 py-2 text-xs ' + (request.evidenceStatus === 'MISSING' ? 'bg-amber-50 text-amber-900' : 'bg-slate-50 text-slate-600')}>{detailLabels[request.attribute] || 'Requested detail'} · {request.evidenceStatus === 'MISSING' ? 'No supporting passage found for this request.' : 'Supporting text found. Please verify the source.'}</p>}
         {!streaming && rag?.answerQuality && <p className="mb-2 text-[10px] text-slate-400">Focus: {rag.answerQuality.focus.replace(/_/g, ' ').toLowerCase()} · {rag.answerQuality.words} words · {rag.answerQuality.sourceCount} cited source(s){rag.context?.knowledgeRevision ? ' · reviewed retrieval policy v' + rag.context.knowledgeRevision : ''} · Not a clinical accuracy score</p>}
         <div className={'prose prose-sm max-w-none break-words leading-7 text-slate-800 prose-headings:font-semibold prose-a:text-teal-700 ' + (message.freshness?.status === 'STALE' ? 'border-l-2 border-amber-300 pl-3' : '')}>
           {message.content ? <ReactMarkdown skipHtml components={caseAnswer ? { a: ({ children }) => <span>{children}</span> } : undefined}>{message.content}</ReactMarkdown> : <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-teal-600" />}

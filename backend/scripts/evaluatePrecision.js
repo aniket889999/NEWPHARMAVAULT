@@ -6,7 +6,7 @@ const { rankPassages } = require('../services/chatRagService');
 const { focusOf } = require('../services/precisionRankingService');
 const tasks = require('../data/precisionTrainingTasks');
 const challenge = require('../../tests/contextual-chat/precision-challenge.dev.json');
-const CANDIDATE_FILES = ['backend/data/chatReferenceExtensions.js', 'backend/data/chatTopicRegistry.js', 'backend/data/precisionRanker.v1.json', 'backend/services/chatReferenceRegistry.js', 'backend/services/chatContextService.js', 'backend/services/contextualChatService.js', 'backend/services/preciseAnswerService.js', 'backend/services/precisionRankingService.js', 'backend/services/publicAnswerSynthesisService.js', 'backend/services/pharmacyChatPolicy.js', 'backend/services/approvedHealthSearchService.js'];
+const CANDIDATE_FILES = ['backend/data/chatReferenceExtensions.js', 'backend/data/chatTopicRegistry.js', 'backend/data/precisionRanker.v1.json', 'backend/services/chatReferenceRegistry.js', 'backend/services/chatContextService.js', 'backend/services/chatQuestionService.js', 'backend/services/contextualChatService.js', 'backend/services/preciseAnswerService.js', 'backend/services/precisionRankingService.js', 'backend/services/publicAnswerSynthesisService.js', 'backend/services/pharmacyChatPolicy.js', 'backend/services/approvedHealthSearchService.js'];
 const root = path.resolve(__dirname, '../..');
 function hashes() { return Object.fromEntries(CANDIDATE_FILES.map(file => [file, crypto.createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')])); }
 function evaluate() {

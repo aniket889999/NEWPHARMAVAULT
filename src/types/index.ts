@@ -101,8 +101,8 @@ export interface RagChatResponse {
   model?: string;
   followupResolved?: boolean;
   feedbackReceipt?: string;
-  context?: { version: string; topics: { id: string; label: string }[]; intent: string; focus?: string; knowledgeRevision?: number; style: string; followupResolved: boolean };
-  answerQuality?: { focus: string; style: string; words: number; sourceCount: number; trainedReranker: boolean; modelVersion: string | null; assessment: string };
+  context?: { version: string; topics: { id: string; label: string }[]; intent: string; focus?: string; knowledgeRevision?: number; style: string; followupResolved: boolean; topicSwitchResolved?: boolean; request?: { attribute: string; language: string; evidenceStatus: 'NOT_ASSESSED' | 'MISSING' | 'MATCHED_TEXT'; method: 'CONSERVATIVE_TEXT_MATCH_NOT_SEMANTIC_PROOF' } };
+  answerQuality?: { focus: string; style: string; words: number; sourceCount: number; trainedReranker: boolean; modelVersion: string | null; assessment: string; requestMatch?: 'CONSERVATIVE_TEXT_MATCH_NOT_SEMANTIC_PROOF' };
   agentTrace?: { tool: string; status: string }[];
 }
 

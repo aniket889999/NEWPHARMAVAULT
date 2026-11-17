@@ -36,6 +36,12 @@ test('contextual chat actual protected HTTP and review-only feedback', async t =
     const result = await request(app).post('/api/v1/chat/stream').set('Authorization', token(0)).send({ message: 'Explain it more simply', history: [{ role: 'user', text: 'Explain Ibuprofen' }] });
     assert.equal(result.status, 200); assert.match(result.text, /event: done/); assert.match(result.text, /"followupResolved":true/); assert.match(result.text, /"style":"CONCISE"/); assert.match(result.text, /APPROVED_WEB_BM25/); assert.equal(calls, 1, 'cached official result avoids another request');
   });
+  await t.test('specific question relevance and language boundaries survive protected JSON and SSE routes', async () => {
+    const result = await request(app).post('/api/v1/chat').set('Authorization', token(0)).send({ message: 'Can Metformin affect vitamin B12?' });
+    assert.equal(result.status, 200); assert.equal(result.body.mode, 'PRECISE_LOCAL_EVIDENCE'); assert.match(result.body.reply, /Vitamin B12/); assert.doesNotMatch(result.body.reply, /commonly used for type 2 diabetes/); assert.equal(result.body.context.request.attribute, 'SPECIFIC_FACT'); assert.equal(result.body.context.request.evidenceStatus, 'MATCHED_TEXT');
+    const language = await request(app).post('/api/v1/chat/stream').set('Authorization', token(0)).send({ message: 'Explain Paracetamol in Marathi.' });
+    assert.equal(language.status, 200); assert.match(language.text, /event: done/); assert.match(language.text, /UNSUPPORTED_ANSWER_LANGUAGE/); assert.equal(calls, 1, 'neither local detail nor unsupported language makes an external request');
+  });
   await t.test('feedback is protected, owner-bound, persisted as metadata and never auto-applied', async () => {
     assert.equal((await request(app).post('/api/v1/chat/feedback').set('Authorization', token(1)).send({ receipt, rating: 'HELPFUL' })).status, 404);
     const result = await request(app).post('/api/v1/chat/feedback').set('Authorization', token(0)).send({ receipt, rating: 'HELPFUL' }); assert.equal(result.status, 200); assert.equal(result.body.learningApplied, false);

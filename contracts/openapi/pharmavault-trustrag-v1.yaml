@@ -243,6 +243,23 @@ paths:
                   context:
                     type: object
                     description: Bounded topic, focus, style and intent projection; history is not factual evidence. knowledgeRevision identifies the organization retrieval policy, not medical approval.
+                    properties:
+                      topicSwitchResolved:
+                        type: boolean
+                      request:
+                        type: object
+                        additionalProperties: false
+                        required: [attribute, language, evidenceStatus, method]
+                        description: Fixed request metadata only. Local query anchors and raw history are never included. Text matching is not clinical or semantic validation.
+                        properties:
+                          attribute:
+                            enum: [GENERAL, USES, SIDE_EFFECTS, STORAGE, PREVENTION, MECHANISM, SPECIFIC_FACT]
+                          language:
+                            type: string
+                          evidenceStatus:
+                            enum: [NOT_ASSESSED, MISSING, MATCHED_TEXT]
+                          method:
+                            const: CONSERVATIVE_TEXT_MATCH_NOT_SEMANTIC_PROOF
                   answerQuality:
                     type: object
                     description: Output diagnostics only, not clinical accuracy, gold-standard agreement or model superiority.
@@ -264,6 +281,8 @@ paths:
                         type: [string, 'null']
                       assessment:
                         enum: [EXTRACTIVE_SOURCE_SUPPORT_NOT_CLINICAL_ACCURACY, MECHANICAL_CITATION_CHECKS_NOT_SEMANTIC_OR_CLINICAL_PROOF]
+                      requestMatch:
+                        const: CONSERVATIVE_TEXT_MATCH_NOT_SEMANTIC_PROOF
                   agentTrace:
                     type: array
                     maxItems: 5
