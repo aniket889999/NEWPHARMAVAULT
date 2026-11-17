@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from '../components/notifications/NotificationBell';
 import { 
   Store, 
   Package, 
@@ -13,6 +14,8 @@ import {
   ShieldCheck, 
   Inbox,
   MessageSquare,
+  Receipt,
+  KeyRound,
   FileSignature, 
   ChevronRight,
   ExternalLink,
@@ -131,6 +134,11 @@ const PharmacyLayout: React.FC = () => {
                 <span>Reviewer Queue</span>
               </Link>
 
+              <Link to="/pharmacy/claims" className={navItemClass('/pharmacy/claims')}>
+                <Receipt className="w-4 h-4 mr-2.5 text-blue-600" />
+                <span>Insurance Claims</span>
+              </Link>
+
               <Link to="/pharmacy/blockchain" className={navItemClass('/pharmacy/blockchain')}>
                 <Database className="w-4 h-4 mr-2.5 text-emerald-600" />
                 <span>Blockchain Ledger</span>
@@ -147,6 +155,11 @@ const PharmacyLayout: React.FC = () => {
               <Link to="/pharmacy/organization-settings" className={navItemClass('/pharmacy/organization-settings')}>
                 <Building2 className="w-4 h-4 mr-2.5 text-slate-500" />
                 <span>Branch Settings</span>
+              </Link>
+
+              <Link to="/pharmacy/security" className={navItemClass('/pharmacy/security')}>
+                <KeyRound className="w-4 h-4 mr-2.5 text-slate-500" />
+                <span>Security & MFA</span>
               </Link>
             </div>
           </div>
@@ -197,9 +210,10 @@ const PharmacyLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-4">
+            <NotificationBell />
             <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700">
               <Award className="w-3.5 h-3.5 text-emerald-600" />
-              <span>NABH Certified Dispensary</span>
+              <span>NABH Certified (demo value)</span>
             </div>
 
             <Link

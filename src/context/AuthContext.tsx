@@ -10,13 +10,23 @@ export interface User {
   role: 'patient' | 'pharmacy' | 'pharmacist' | 'claims_reviewer' | 'org_admin' | 'super_admin' | 'doctor' | 'admin' | string;
   organizationId?: string;
   branchId?: string;
+  mfaEnabled?: boolean;
+}
+
+/** Thrown by login() when the account has MFA and needs (or rejected) a code. */
+export class MfaRequiredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MfaRequiredError';
+  }
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, role: string) => Promise<void>;
+  login: (email: string, password: string, role: string, otp?: string) => Promise<void>;
+  refreshProfile: () => Promise<void>;
   signup: (name: string, email: string, password: string, role: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -72,11 +82,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => { invalidatePendingSession(); window.removeEventListener(SESSION_EXPIRED_EVENT, expire); channel.current?.close(); channel.current = null; };
   }, []);
 
-  const login = async (email: string, password: string, role: string): Promise<void> => {
+  const login = async (email: string, password: string, role: string, otp?: string): Promise<void> => {
     const current = ++epoch.current;
     setIsLoading(true);
     try {
-      const { data } = await apiClient.post('/users/login', { email, password, role });
+      let data: unknown;
+      try {
+        ({ data } = await apiClient.post('/users/login', { email, password, role, ...(otp ? { otp } : {}) }));
+      } catch (error) {
+        const body = (error as { response?: { data?: { mfaRequired?: boolean; message?: string } } }).response?.data;
+        if (body?.mfaRequired) throw new MfaRequiredError(body.message || 'Enter your authenticator code.');
+        throw error;
+      }
       const identity = parseSessionProfile(data);
       if (!identity) throw new Error('Sign-in response was not valid.');
       if (current !== epoch.current) return;
@@ -118,8 +135,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const refreshProfile = async () => {
+    try {
+      const { data } = await apiClient.get('/users/profile');
+      setUser(parseSessionProfile(data));
+    } catch {
+      /* keep the current identity; the 401 interceptor handles expiry */
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, signup, logout, refreshProfile }}>
       {children}
       {notice && <div role="status" className="fixed bottom-4 right-4 z-[100] max-w-md rounded-lg border border-slate-300 bg-white p-4 text-sm text-slate-800 shadow-lg">{notice}<button type="button" onClick={() => setNotice('')} aria-label="Dismiss session notice" className="ml-3 underline">Dismiss</button></div>}
     </AuthContext.Provider>

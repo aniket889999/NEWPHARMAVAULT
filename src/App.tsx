@@ -58,6 +58,13 @@ import { CasesListPage } from './modules/verification/pages/CasesListPage';
 import { CreateCaseWizardPage } from './modules/verification/pages/CreateCaseWizardPage';
 import { CaseDetailPage } from './modules/verification/pages/CaseDetailPage';
 import { ReviewQueuePage } from './modules/verification/pages/ReviewQueuePage';
+import PatientClaims from './pages/patient/PatientClaims';
+import PharmacyClaims from './pages/pharmacy/PharmacyClaims';
+import SecuritySettings from './pages/account/SecuritySettings';
+import PayerLayout from './layouts/PayerLayout';
+import PayerDashboard from './pages/payer/PayerDashboard';
+import PayerClaimsQueue from './pages/payer/PayerClaimsQueue';
+import PayerClaimWorkspace from './pages/payer/PayerClaimWorkspace';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -93,6 +100,8 @@ const AppRoutes: React.FC = () => {
         <Route path="health-records" element={<HealthRecords />} />
         <Route path="intelligence" element={<PatientIntelligence />} />
         <Route path="accessibility" element={<AccessibilitySettings />} />
+        <Route path="claims" element={<PatientClaims />} />
+        <Route path="security" element={<SecuritySettings />} />
         <Route index element={<Navigate to="/patient/dashboard" replace />} />
       </Route>
 
@@ -117,6 +126,8 @@ const AppRoutes: React.FC = () => {
         <Route path="cases" element={<CasesListPage />} />
         <Route path="review-queue" element={<ReviewQueuePage />} />
         <Route path="assistant" element={<HealthAssistant />} />
+        <Route path="claims" element={<PharmacyClaims />} />
+        <Route path="security" element={<SecuritySettings />} />
         <Route path="organization-settings" element={<OrganizationSettings />} />
         <Route path="accessibility" element={<AccessibilitySettings />} />
         <Route index element={<Navigate to="/pharmacy/dashboard" replace />} />
@@ -165,6 +176,32 @@ const AppRoutes: React.FC = () => {
         element={
           <RoleRoute allowedRoles={['pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
             <ReviewQueuePage />
+          </RoleRoute>
+        }
+      />
+
+      {/* Insurer (payer) portal: separate tenant, consent-scoped case access */}
+      <Route
+        path="/payer"
+        element={
+          <RoleRoute allowedRoles={['payer_reviewer', 'payer_admin']}>
+            <PayerLayout />
+          </RoleRoute>
+        }
+      >
+        <Route index element={<Navigate to="/payer/dashboard" replace />} />
+        <Route path="dashboard" element={<PayerDashboard />} />
+        <Route path="claims" element={<PayerClaimsQueue />} />
+        <Route path="claims/:claimId" element={<PayerClaimWorkspace />} />
+        <Route path="security" element={<SecuritySettings />} />
+      </Route>
+
+      {/* Account security for staff roles without a portal layout (e.g. claims reviewers) */}
+      <Route
+        path="/account/security"
+        element={
+          <RoleRoute>
+            <div className="min-h-screen bg-slate-50"><SecuritySettings /></div>
           </RoleRoute>
         }
       />

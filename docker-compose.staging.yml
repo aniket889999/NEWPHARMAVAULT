@@ -1,0 +1,69 @@
+# STAGING stack for one VM (synthetic data only). Two API replicas prove the
+# multi-instance settings: MongoDB lease locks + shared rate-limit counters.
+# Secrets live in ./backend/.env.staging (git-ignored). Caddy terminates HTTPS.
+services:
+  mongo:
+    image: mongo:7.0
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    volumes: [pharmavault_staging_mongo:/data/db]
+    healthcheck:
+      # Initialise the single-node replica set (needed for claim transactions), then ping.
+      test: ["CMD", "mongosh", "--quiet", "--eval", "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+    restart: unless-stopped
+
+  api:
+    build: { context: ./backend }
+    env_file: [./backend/.env.staging]
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      MONGO_URI: mongodb://mongo:27017/pharmavault_staging?replicaSet=rs0
+      DOCUMENT_STORAGE_ROOT: /var/lib/pharmavault/documents
+      TRUSTRAG_TESSDATA_PATH: /opt/tessdata
+      CASE_LOCK_BACKEND: mongo
+      RATE_LIMIT_STORE: mongo
+      TRUST_PROXY: 1
+      TRUSTRAG_LLM_ENABLED: "false"
+      TRUSTRAG_LLM_EXPORT_ALLOWED: "false"
+      RAG_CHAT_LLM_ENABLED: "false"
+      RAG_CHAT_PUBLIC_EXPORT_ALLOWED: "false"
+      E2E_SETUP_ENABLED: "false"
+    deploy:
+      replicas: 2
+    volumes:
+      - pharmavault_staging_documents:/var/lib/pharmavault/documents
+      - ./backend/tessdata:/opt/tessdata:ro
+    depends_on:
+      mongo: { condition: service_healthy }
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp:rw,nosuid,noexec,size=128m]
+
+  web:
+    build: { context: ., dockerfile: deploy/web.Dockerfile }
+    depends_on: [api]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp:rw,nosuid,noexec,size=32m,mode=1777]
+
+  caddy:
+    image: caddy:2
+    ports: ["80:80", "443:443"]
+    environment:
+      STAGING_DOMAIN: ${STAGING_DOMAIN:?set STAGING_DOMAIN, e.g. staging.example.org}
+    command: ["caddy", "reverse-proxy", "--from", "${STAGING_DOMAIN}", "--to", "web:8080"]
+    volumes: [caddy_data:/data]
+    depends_on: [web]
+    restart: unless-stopped
+
+volumes:
+  pharmavault_staging_mongo:
+  pharmavault_staging_documents:
+  caddy_data:

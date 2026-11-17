@@ -4,7 +4,7 @@ export function parseSessionProfile(value: unknown) {
   const user = value as Record<string, unknown>;
   if (typeof user._id !== 'string' || !/^[a-f0-9]{24}$/i.test(user._id) ||
     typeof user.name !== 'string' || typeof user.email !== 'string' || typeof user.role !== 'string') return null;
-  return { _id: user._id, name: user.name, email: user.email, role: user.role,
+  return { _id: user._id, name: user.name, email: user.email, role: user.role, mfaEnabled: user.mfaEnabled === true,
     ...(typeof user.organizationId === 'string' ? { organizationId: user.organizationId } : {}),
     ...(typeof user.branchId === 'string' ? { branchId: user.branchId } : {}) };
 }

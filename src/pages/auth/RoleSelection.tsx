@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Store, ShieldCheck, ArrowRight, ChevronLeft } from 'lucide-react';
+import { User, Store, ShieldCheck, ArrowRight, ChevronLeft, Building2 } from 'lucide-react';
 
 const RoleSelection: React.FC = () => {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ const RoleSelection: React.FC = () => {
         <span className="text-xs text-slate-400 font-medium">PharmaVault Gateway</span>
       </div>
 
-      <div className="max-w-5xl w-full mx-auto py-8">
+      <div className="max-w-6xl w-full mx-auto py-8">
         <div className="text-center mb-12">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold mb-3">
             <ShieldCheck className="w-3.5 h-3.5" />
@@ -32,7 +32,7 @@ const RoleSelection: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Patient Card */}
           <div
             onClick={() => navigate('/login?role=patient')}
@@ -89,6 +89,26 @@ const RoleSelection: React.FC = () => {
             </div>
             <div className="flex items-center text-xs font-semibold text-slate-800 group-hover:text-slate-900 pt-4 border-t border-slate-100">
               <span>Sign In as Reviewer</span>
+              <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+          {/* Insurer Card */}
+          <div
+            onClick={() => navigate('/login?role=claims_reviewer&staffRole=payer_reviewer')}
+            className="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer flex flex-col justify-between group"
+          >
+            <div>
+              <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 mb-5 group-hover:bg-indigo-700 group-hover:text-white transition-colors">
+                <Building2 className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Insurer Portal</h2>
+              <p className="text-xs text-slate-500 leading-relaxed mb-6">
+                Consent-based pharmacy claims queue, evidence workspace, claimant queries and recorded human decisions.
+              </p>
+            </div>
+            <div className="flex items-center text-xs font-semibold text-indigo-700 group-hover:text-indigo-800 pt-4 border-t border-slate-100">
+              <span>Sign In as Insurer</span>
               <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>

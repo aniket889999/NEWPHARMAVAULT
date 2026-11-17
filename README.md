@@ -1,5 +1,7 @@
 # PharmaVault TrustRAG
 
+> **version-3.0:** version-2.0 UI + v2-01 backend + claims/insurer portal, MFA, notifications. Setup, demo accounts and known gaps: [docs/version-3.0/README.md](docs/version-3.0/README.md).
+
 [![Offline checkpoint checks](https://github.com/aniket889999/NEWPHARMAVAULT/actions/workflows/checkpoints.yml/badge.svg?branch=main)](https://github.com/aniket889999/NEWPHARMAVAULT/actions/workflows/checkpoints.yml)
 
 ## Current engineering checkpoints

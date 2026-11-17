@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from '../components/notifications/NotificationBell';
 import { 
   Home, 
   Pill, 
@@ -15,7 +16,9 @@ import {
   Scale, 
   ClipboardList,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Receipt,
+  KeyRound
 } from 'lucide-react';
 
 const PatientLayout: React.FC = () => {
@@ -41,6 +44,8 @@ const PatientLayout: React.FC = () => {
     if (segment === 'cart') return 'Dispensary Cart';
     if (segment === 'orders') return 'My Orders';
     if (segment === 'dashboard') return 'Dashboard Overview';
+    if (segment === 'claims') return 'Insurance Claims';
+    if (segment === 'security') return 'Account Security';
     return segment.replace('-', ' ');
   };
 
@@ -99,6 +104,11 @@ const PatientLayout: React.FC = () => {
                 <ClipboardList className="w-4 h-4 mr-2.5 text-teal-600" />
                 <span>Verification Audits</span>
               </Link>
+
+              <Link to="/patient/claims" className={navItemClass('/patient/claims')}>
+                <Receipt className="w-4 h-4 mr-2.5 text-teal-600" />
+                <span>Insurance Claims</span>
+              </Link>
             </div>
           </div>
 
@@ -129,6 +139,11 @@ const PatientLayout: React.FC = () => {
               <Link to="/patient/health-records" className={navItemClass('/patient/health-records')}>
                 <FileText className="w-4 h-4 mr-2.5 text-slate-500" />
                 <span>Health Records</span>
+              </Link>
+
+              <Link to="/patient/security" className={navItemClass('/patient/security')}>
+                <KeyRound className="w-4 h-4 mr-2.5 text-slate-500" />
+                <span>Security & MFA</span>
               </Link>
             </div>
           </div>
@@ -207,6 +222,7 @@ const PatientLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-4">
+            <NotificationBell />
             <div className="flex items-center space-x-2 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-medium text-emerald-700">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
               <span>Account Active</span>
