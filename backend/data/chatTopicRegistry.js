@@ -19,7 +19,6 @@ module.exports = Object.freeze([
   { id: 'diclofenac', label: 'Diclofenac', aliases: ['diclofenac', 'voveran'], webTerm: 'diclofenac' },
   { id: 'telmisartan', label: 'Telmisartan', aliases: ['telmisartan', 'telma'], webTerm: 'telmisartan' },
   { id: 'insulin', label: 'Insulin', aliases: ['insulin'], webTerm: 'insulin' },
-  { id: 'vitamin-d', label: 'Vitamin D', aliases: ['vitamin d', 'cholecalciferol'], webTerm: 'vitamin d' },
   { id: 'iron-supplements', label: 'Iron supplements', aliases: ['iron tablets', 'iron supplement', 'ferrous sulfate'], webTerm: 'iron' },
   { id: 'medicine-storage', label: 'Medicine storage', aliases: ['medicine storage', 'medication storage', 'store medicines', 'storing medicines'], webTerm: 'medicine storage', concept: true },
   { id: 'medicine-safety', label: 'Medicine safety', aliases: ['medicine safety', 'medication safety', 'drug safety'], webTerm: 'medicine safety', concept: true },
