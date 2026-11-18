@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
 import { Building2, CreditCard, Zap, ShieldCheck, Workflow, Activity, Search, Globe, ArrowUpRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import PrivacyRequestsPanel from './PrivacyRequestsPanel';
 
 const SaaSAdminDashboard: React.FC = () => {
   const [organizations, setOrganizations] = useState<any[]>([]);
@@ -204,6 +205,9 @@ const SaaSAdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Data-principal deletion requests and audit integrity (real data, platform admins only) */}
+      <div className="mt-8"><PrivacyRequestsPanel /></div>
     </div>
   );
 };

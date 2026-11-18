@@ -111,7 +111,7 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 - Redis is **not** used; MongoDB provides the same lock/limit guarantees without new infrastructure. A Redis adapter can implement the same interface later.
 - MFA is enforced for staff/insurer roles only when `MFA_REQUIRED_FOR_STAFF=true` (off by default for the local demo). 8 one-time recovery codes are issued on enable. Setup uses a key + `otpauth://` link (no QR image library installed).
 - Document encryption is off until `DOCUMENT_ENCRYPTION_KEY` is set; losing that key makes encrypted documents unreadable — store it like a database password and back it up.
-- Retention removes content only; purged cases do not show a special message in the case page. Erasure requests are processed through the API (no super_admin screen yet).
+- Retention removes content only; purged cases do not show a special message in the case page. Erasure requests are processed on the super_admin dashboard (`/admin/saas`, Data Deletion Requests).
 - Reviewer queue SLA target (24 h) and insurer SLA (72 h) are fixed constants, not configurable.
 - No OCR job queue (BullMQ); OCR still runs in the API process.
 - Claim submission uses a MongoDB transaction only on a replica set; on a standalone dev MongoDB it falls back to two sequential writes.
