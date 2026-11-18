@@ -43,7 +43,8 @@ test('contract registers the claims schemas and MFA endpoints', () => {
     assert.match(contract, new RegExp(`\\.\\./schemas/${name.replace('.', '\\.')}`));
     assert.ok(fs.existsSync(path.join(root, 'contracts/schemas', name)));
   }
-  for (const op of ['POST /users/mfa/setup', 'POST /users/mfa/enable', 'POST /users/mfa/disable']) {
+  for (const op of ['POST /users/mfa/setup', 'POST /users/mfa/enable', 'POST /users/mfa/disable', 'POST /users/mfa/recovery-codes',
+    ...['deactivate', 'reactivate', 'role', 'sign-out', 'unlock', 'credential'].map((a) => `POST /users/staff/{userId}/${a}`)]) {
     assert.ok(contractOperations().has(op), op);
   }
 });

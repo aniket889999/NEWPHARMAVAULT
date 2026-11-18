@@ -32,7 +32,26 @@ const userSchema = mongoose.Schema(
       secretEnc: { type: String, default: null, select: false },
       pendingSecretEnc: { type: String, default: null, select: false },
       lastUsedCounter: { type: Number, default: -1, select: false },
-      enabledAt: { type: Date, default: null }
+      enabledAt: { type: Date, default: null },
+      // SHA-256 hashes of one-time recovery codes (services/platform/accountSecurity.js).
+      recoveryCodeHashes: { type: [String], default: [], select: false }
+    },
+    // Deactivated accounts cannot sign in; existing sessions are revoked via sessionVersion.
+    active: { type: Boolean, default: true, index: true },
+    deactivatedAt: { type: Date, default: null },
+    deactivatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    // Per-account lockout after repeated failed sign-ins.
+    login: {
+      failedCount: { type: Number, default: 0, min: 0 },
+      lockedUntil: { type: Date, default: null },
+      lastFailedAt: { type: Date, default: null }
+    },
+    // Professional registration of reviewers, confirmed by an organization admin.
+    professional: {
+      registrationNumber: { type: String, default: null, trim: true, maxlength: 40 },
+      council: { type: String, default: null, trim: true, maxlength: 120 },
+      verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      verifiedAt: { type: Date, default: null }
     },
     // Future-ready metadata for GraphRAG & Agents
     metadata: {

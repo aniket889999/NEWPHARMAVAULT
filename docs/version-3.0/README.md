@@ -109,10 +109,9 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 **Claims / platform limits:**
 - Only pharmacist-**VERIFIED** cases can be claimed (escalated cases cannot).
 - Redis is **not** used; MongoDB provides the same lock/limit guarantees without new infrastructure. A Redis adapter can implement the same interface later.
-- MFA is optional, not enforced for staff (Team & Access shows who has it off); no recovery codes; setup uses a key + `otpauth://` link (no QR image library installed).
+- MFA is enforced for staff/insurer roles only when `MFA_REQUIRED_FOR_STAFF=true` (off by default for the local demo). 8 one-time recovery codes are issued on enable. Setup uses a key + `otpauth://` link (no QR image library installed).
 - Document encryption is off until `DOCUMENT_ENCRYPTION_KEY` is set; losing that key makes encrypted documents unreadable — store it like a database password and back it up.
 - Retention removes content only; there is no patient-initiated "delete my data" request flow yet, and purged cases do not show a special message in the case page.
-- Team & Access cannot deactivate or change roles of existing staff yet.
 - Reviewer queue SLA target (24 h) and insurer SLA (72 h) are fixed constants, not configurable.
 - No OCR job queue (BullMQ); OCR still runs in the API process.
 - Claim submission uses a MongoDB transaction only on a replica set; on a standalone dev MongoDB it falls back to two sequential writes.
@@ -120,3 +119,20 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 - Settlement is simulated; no payment provider.
 - Insurer document preview shows the original file; OCR highlight boxes are only in the pharmacist case view.
 - Staging compose file is ready but nothing is deployed (needs a VM + domain).
+
+## 6. Reviewer launch hardening (branch `feature/B-reviewer-launch`)
+
+| Blocker | What exists now | Switch / where |
+| --- | --- | --- |
+| Multi-instance case lock | Case mutations use a MongoDB lease when `CASE_LOCK_BACKEND=mongo` | `services/platform/caseGuard.js` |
+| Four-eyes | Creator or document uploader of a case cannot VERIFY it (can still escalate / return) | `services/review/reviewPolicy.js` |
+| Assignment lease | Take / extend / release a case (30 min default, `REVIEW_ASSIGNMENT_MINUTES`); admins reassign; others cannot decide while it is held | `/api/v1/review/cases/:id/assignment` |
+| Reopen | Org admin reopens a VERIFIED/REJECTED case with a reason (blocked while a claim is open) | `/api/v1/review/cases/:id/reopen` |
+| Paged queues | Review queue and insurer queue page on the server (`X-Total-Count`) | `ReviewQueuePage.tsx`, `PayerClaimsQueue.tsx` |
+| Claim appeal | Claimant can appeal a rejected / partly approved decision once; a different insurer reviewer must decide | `POST /api/v1/claims/:id/appeal` |
+| Enforced MFA + recovery codes | `MFA_REQUIRED_FOR_STAFF=true` → staff without MFA only reach profile / MFA setup (403 `MFA_SETUP_REQUIRED`, UI redirects to Security). 8 hashed one-time recovery codes | `services/platform/accountSecurity.js` |
+| Login lockout | `LOGIN_MAX_FAILURES` (5) failures lock for `LOGIN_LOCK_MINUTES` (15); same generic error; admin unlock | `userController.authUser` |
+| Staff administration | Deactivate / reactivate, change role, sign out everywhere, unlock — same-organization only, never self, audited; role change and deactivation revoke sessions | Team & Access, `/api/users/staff/:id/*` |
+| Reviewer credential | `REVIEW_CREDENTIAL_REQUIRED=true` → VERIFY needs a registration number confirmed by an org admin | Team & Access → Registration |
+
+The admin confirms the registration manually; there is no live lookup against a pharmacy council register.

@@ -5,6 +5,8 @@ const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
 const { isWebClient, verifyBrowserMutation, setBrowserSession, clearBrowserSession } = require('../config/browserSession');
 const { generateSecret, verifyTotp, otpauthUri, encryptSecret, decryptSecret } = require('../utils/totp');
+const accountSecurity = require('../services/platform/accountSecurity');
+const auditLoggerService = require('../services/trustRag/auditLoggerService');
 const dummyPasswordHash = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 10);
 
 function credentials(body, { registration = false } = {}) {
@@ -18,7 +20,7 @@ function credentials(body, { registration = false } = {}) {
   return { email: body.email.trim().toLowerCase(), password: body.password, role: body.role, ...(registration ? { name: body.name.trim() } : {}) };
 }
 function profile(user) {
-  return { _id: user._id, name: user.name, email: user.email, role: user.role, mfaEnabled: Boolean(user.mfa?.enabled),
+  return { _id: user._id, name: user.name, email: user.email, role: user.role, mfaEnabled: Boolean(user.mfa?.enabled), mfaSetupRequired: accountSecurity.needsMfaSetup(user),
     ...(user.organizationId ? { organizationId: user.organizationId } : {}), ...(user.branchId ? { branchId: user.branchId } : {}) };
 }
 function sendSession(req, res, user, status = 200) {
@@ -35,24 +37,50 @@ const authUser = asyncHandler(async (req, res) => {
   const { email, password, role } = credentials(req.body);
   const user = await User.findOne({ email }).select('+sessionVersion +mfa.secretEnc +mfa.lastUsedCounter');
   const matches = await bcrypt.compare(password, user?.password || dummyPasswordHash);
-  if (user && matches && user.role === role) {
+  const now = new Date();
+  // Locked or deactivated accounts get the same opaque error as a wrong password.
+  const blocked = user && (user.active === false || accountSecurity.isLocked(user, now));
+  if (user && matches && user.role === role && !blocked) {
     if (user.mfa?.enabled) {
       const otp = typeof req.body.otp === 'string' ? req.body.otp.trim() : '';
       if (!otp) {
         return res.status(401).json({ message: 'Enter the 6-digit code from your authenticator app.', mfaRequired: true });
       }
-      const counter = verifyTotp(decryptSecret(user.mfa.secretEnc), otp, { lastUsedCounter: user.mfa.lastUsedCounter ?? -1 });
-      // Atomic update blocks the same code being replayed in parallel requests.
-      const accepted = counter !== null && await User.updateOne(
-        { _id: user._id, 'mfa.lastUsedCounter': { $lt: counter } },
-        { $set: { 'mfa.lastUsedCounter': counter } }
-      ).then((r) => r.modifiedCount === 1);
+      let accepted = false;
+      if (accountSecurity.looksLikeRecoveryCode(otp)) {
+        // One-time recovery code: atomically removed so it can never be reused.
+        accepted = await User.updateOne(
+          { _id: user._id, 'mfa.recoveryCodeHashes': accountSecurity.hashRecoveryCode(otp) },
+          { $pull: { 'mfa.recoveryCodeHashes': accountSecurity.hashRecoveryCode(otp) } }
+        ).then((r) => r.modifiedCount === 1);
+        if (accepted) {
+          await auditLoggerService.logEvent({ actorId: user._id, actorRole: user.role, action: 'MFA_RECOVERY_CODE_USED', targetType: 'User', targetId: user._id, metadata: {} });
+        }
+      } else {
+        const counter = verifyTotp(decryptSecret(user.mfa.secretEnc), otp, { lastUsedCounter: user.mfa.lastUsedCounter ?? -1 });
+        // Atomic update blocks the same code being replayed in parallel requests.
+        accepted = counter !== null && await User.updateOne(
+          { _id: user._id, 'mfa.lastUsedCounter': { $lt: counter } },
+          { $set: { 'mfa.lastUsedCounter': counter } }
+        ).then((r) => r.modifiedCount === 1);
+      }
       if (!accepted) {
+        await User.updateOne({ _id: user._id }, { $set: accountSecurity.failureUpdate(user, now) });
         return res.status(401).json({ message: 'The authenticator code is invalid or already used.', mfaRequired: true });
       }
     }
+    if (user.login?.failedCount || user.login?.lockedUntil) {
+      await User.updateOne({ _id: user._id }, { $set: { 'login.failedCount': 0, 'login.lockedUntil': null } });
+    }
     sendSession(req, res, user);
   } else {
+    if (user && !blocked) {
+      const update = accountSecurity.failureUpdate(user, now);
+      await User.updateOne({ _id: user._id }, { $set: update });
+      if (update['login.lockedUntil']) {
+        await auditLoggerService.logEvent({ actorId: user._id, actorRole: user.role, action: 'ACCOUNT_LOCKED', targetType: 'User', targetId: user._id, metadata: { until: update['login.lockedUntil'].toISOString() } });
+      }
+    }
     res.status(401);
     throw new Error('Invalid email or password');
   }
@@ -229,13 +257,22 @@ const enableMfa = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('The code did not match. Check the time on your phone and try again.');
   }
+  const recoveryCodes = accountSecurity.generateRecoveryCodes();
   await User.updateOne({ _id: user._id }, {
-    $set: { 'mfa.enabled': true, 'mfa.secretEnc': user.mfa.pendingSecretEnc, 'mfa.pendingSecretEnc': null, 'mfa.lastUsedCounter': counter, 'mfa.enabledAt': new Date() },
+    $set: {
+      'mfa.enabled': true, 'mfa.secretEnc': user.mfa.pendingSecretEnc, 'mfa.pendingSecretEnc': null, 'mfa.lastUsedCounter': counter, 'mfa.enabledAt': new Date(),
+      'mfa.recoveryCodeHashes': recoveryCodes.map(accountSecurity.hashRecoveryCode)
+    },
     // Enabling MFA revokes other sessions.
     $inc: { sessionVersion: 1 }
   });
+  await auditLoggerService.logEvent({ actorId: user._id, actorRole: user.role, action: 'MFA_ENABLED', targetType: 'User', targetId: user._id, metadata: {} });
   const fresh = await User.findById(user._id).select('+sessionVersion');
-  sendSession(req, res, fresh);
+  // Recovery codes are returned exactly once, together with the new session.
+  const web = isWebClient(req), token = generateToken(fresh._id, fresh.sessionVersion || 0, { web });
+  res.setHeader('Cache-Control', 'private, no-store');
+  if (web) setBrowserSession(res, token);
+  res.status(200).json({ ...profile(fresh), ...(web ? { session: 'HTTP_ONLY_COOKIE' } : { token }), recoveryCodes });
 });
 
 // @desc    Disable MFA (requires a current code)
@@ -252,8 +289,34 @@ const disableMfa = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('The code did not match.');
   }
-  await User.updateOne({ _id: user._id }, { $set: { 'mfa.enabled': false, 'mfa.secretEnc': null, 'mfa.pendingSecretEnc': null, 'mfa.enabledAt': null, 'mfa.lastUsedCounter': -1 } });
+  if (accountSecurity.mfaEnforcedFor(user.role)) {
+    res.status(403);
+    throw new Error('Two-factor authentication is required for staff accounts in this deployment and cannot be turned off.');
+  }
+  await User.updateOne({ _id: user._id }, { $set: { 'mfa.enabled': false, 'mfa.secretEnc': null, 'mfa.pendingSecretEnc': null, 'mfa.enabledAt': null, 'mfa.lastUsedCounter': -1, 'mfa.recoveryCodeHashes': [] } });
+  await auditLoggerService.logEvent({ actorId: user._id, actorRole: user.role, action: 'MFA_DISABLED', targetType: 'User', targetId: user._id, metadata: {} });
   res.status(200).json({ mfaEnabled: false });
+});
+
+// @desc    Replace recovery codes (requires a current authenticator code)
+// @route   POST /api/users/mfa/recovery-codes
+const regenerateRecoveryCodes = asyncHandler(async (req, res) => {
+  if (isWebClient(req)) verifyBrowserMutation(req);
+  const user = await User.findById(req.user._id).select('+mfa.secretEnc +mfa.lastUsedCounter');
+  if (!user.mfa?.enabled) {
+    res.status(400);
+    throw new Error('MFA is not enabled.');
+  }
+  const counter = verifyTotp(decryptSecret(user.mfa.secretEnc), String(req.body?.code || '').trim(), { lastUsedCounter: user.mfa.lastUsedCounter ?? -1 });
+  if (counter === null) {
+    res.status(400);
+    throw new Error('The code did not match.');
+  }
+  const recoveryCodes = accountSecurity.generateRecoveryCodes();
+  await User.updateOne({ _id: user._id }, { $set: { 'mfa.lastUsedCounter': counter, 'mfa.recoveryCodeHashes': recoveryCodes.map(accountSecurity.hashRecoveryCode) } });
+  await auditLoggerService.logEvent({ actorId: user._id, actorRole: user.role, action: 'MFA_RECOVERY_CODES_REGENERATED', targetType: 'User', targetId: user._id, metadata: {} });
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.status(200).json({ recoveryCodes });
 });
 
 // @desc    List staff accounts in the administrator's own organization
@@ -270,7 +333,7 @@ const listStaff = asyncHandler(async (req, res) => {
   }
   const [org, staff] = await Promise.all([
     Organization.findById(orgId).select('name kind').lean(),
-    User.find({ organizationId: orgId, role: { $ne: 'patient' } }).select('name email role branchId mfa.enabled createdAt').sort('name').lean()
+    User.find({ organizationId: orgId, role: { $ne: 'patient' } }).select('name email role branchId mfa.enabled active login.lockedUntil professional createdAt').sort('name').lean()
   ]);
   if (!org) {
     res.status(404);
@@ -280,8 +343,114 @@ const listStaff = asyncHandler(async (req, res) => {
   res.status(200).json({
     organization: { id: String(org._id), name: org.name, kind: org.kind || 'pharmacy' },
     assignableRoles: org.kind === 'payer' ? ['payer_reviewer', 'payer_admin'] : ['pharmacist', 'pharmacy', 'claims_reviewer', 'org_admin', 'branch_manager'],
-    staff: staff.map((u) => ({ id: String(u._id), name: u.name, email: u.email, role: u.role, mfaEnabled: Boolean(u.mfa?.enabled), createdAt: u.createdAt }))
+    staff: staff.map((u) => ({
+      id: String(u._id), name: u.name, email: u.email, role: u.role, mfaEnabled: Boolean(u.mfa?.enabled), createdAt: u.createdAt,
+      active: u.active !== false,
+      locked: Boolean(u.login?.lockedUntil && new Date(u.login.lockedUntil) > new Date()),
+      credential: u.professional?.registrationNumber
+        ? { registrationNumber: u.professional.registrationNumber, council: u.professional.council, verifiedAt: u.professional.verifiedAt }
+        : null,
+      credentialRequired: accountSecurity.CREDENTIAL_ROLES.includes(u.role)
+    })),
+    mfaRequiredForStaff: process.env.MFA_REQUIRED_FOR_STAFF === 'true',
+    credentialRequiredForReview: process.env.REVIEW_CREDENTIAL_REQUIRED === 'true'
   });
 });
 
-module.exports = { authUser, registerUser, provisionStaff, listStaff, getUserProfile, logoutUser, setupMfa, enableMfa, disableMfa };
+const STAFF_ADMIN_ROLES = ['org_admin', 'payer_admin', 'super_admin'];
+
+/** Loads a staff account the caller administers (same organization; never patients). */
+async function administeredStaff(req, res) {
+  if (isWebClient(req)) verifyBrowserMutation(req);
+  if (!STAFF_ADMIN_ROLES.includes(req.user?.role)) {
+    res.status(403);
+    throw new Error('Access denied: Staff administration requires an organization administrator.');
+  }
+  if (!/^[a-f\d]{24}$/i.test(String(req.params.userId))) {
+    res.status(404);
+    throw new Error('Staff member not found.');
+  }
+  const filter = { _id: req.params.userId, role: { $ne: 'patient' } };
+  if (req.user.role !== 'super_admin') filter.organizationId = req.user.organizationId || req.tenantContext?.organizationId;
+  const target = await User.findOne(filter);
+  if (!target) {
+    res.status(404);
+    throw new Error('Staff member not found.');
+  }
+  return target;
+}
+
+function notSelf(req, res, target, what) {
+  if (String(target._id) === String(req.user._id)) {
+    res.status(400);
+    throw new Error(`You cannot ${what} your own account.`);
+  }
+}
+
+async function auditStaff(req, target, action, metadata = {}) {
+  await auditLoggerService.logEvent({ actorId: req.user._id, actorRole: req.user.role, action, targetType: 'User', targetId: target._id, metadata: { targetRole: target.role, ...metadata } });
+}
+
+const staffView = (u) => ({ id: String(u._id), name: u.name, email: u.email, role: u.role, active: u.active !== false });
+
+// @route POST /api/users/staff/:userId/deactivate
+const deactivateStaff = asyncHandler(async (req, res) => {
+  const target = await administeredStaff(req, res);
+  notSelf(req, res, target, 'deactivate');
+  await User.updateOne({ _id: target._id }, { $set: { active: false, deactivatedAt: new Date(), deactivatedBy: req.user._id }, $inc: { sessionVersion: 1 } });
+  await auditStaff(req, target, 'STAFF_DEACTIVATED');
+  res.json({ ...staffView(target), active: false });
+});
+
+// @route POST /api/users/staff/:userId/reactivate
+const reactivateStaff = asyncHandler(async (req, res) => {
+  const target = await administeredStaff(req, res);
+  await User.updateOne({ _id: target._id }, { $set: { active: true, deactivatedAt: null, deactivatedBy: null, 'login.failedCount': 0, 'login.lockedUntil': null } });
+  await auditStaff(req, target, 'STAFF_REACTIVATED');
+  res.json({ ...staffView(target), active: true });
+});
+
+// @route POST /api/users/staff/:userId/role  { role }
+const changeStaffRole = asyncHandler(async (req, res) => {
+  const target = await administeredStaff(req, res);
+  notSelf(req, res, target, 'change the role of');
+  const org = await Organization.findById(target.organizationId).select('kind').lean();
+  const allowed = org?.kind === 'payer' ? ['payer_reviewer', 'payer_admin'] : ['pharmacist', 'pharmacy', 'claims_reviewer', 'org_admin', 'branch_manager'];
+  const role = req.body?.role;
+  if (!allowed.includes(role)) {
+    res.status(400);
+    throw new Error(`Role must be one of: ${allowed.join(', ')}.`);
+  }
+  // A role change ends the person's current sessions so new permissions apply immediately.
+  await User.updateOne({ _id: target._id }, { $set: { role }, $inc: { sessionVersion: 1 } });
+  await auditStaff(req, target, 'STAFF_ROLE_CHANGED', { from: target.role, to: role });
+  res.json({ ...staffView(target), role });
+});
+
+// @route POST /api/users/staff/:userId/sign-out
+const forceSignOutStaff = asyncHandler(async (req, res) => {
+  const target = await administeredStaff(req, res);
+  await User.updateOne({ _id: target._id }, { $inc: { sessionVersion: 1 } });
+  await auditStaff(req, target, 'STAFF_FORCED_SIGN_OUT');
+  res.json({ ...staffView(target), signedOut: true });
+});
+
+// @route POST /api/users/staff/:userId/unlock
+const unlockStaff = asyncHandler(async (req, res) => {
+  const target = await administeredStaff(req, res);
+  await User.updateOne({ _id: target._id }, { $set: { 'login.failedCount': 0, 'login.lockedUntil': null } });
+  await auditStaff(req, target, 'STAFF_UNLOCKED');
+  res.json({ ...staffView(target), locked: false });
+});
+
+// @route POST /api/users/staff/:userId/credential  { registrationNumber, council }
+const confirmStaffCredential = asyncHandler(async (req, res) => {
+  const target = await administeredStaff(req, res);
+  notSelf(req, res, target, 'confirm the credential of');
+  const credential = accountSecurity.validateRegistration(req.body || {});
+  await User.updateOne({ _id: target._id }, { $set: { 'professional.registrationNumber': credential.registrationNumber, 'professional.council': credential.council, 'professional.verifiedBy': req.user._id, 'professional.verifiedAt': new Date() } });
+  await auditStaff(req, target, 'STAFF_CREDENTIAL_CONFIRMED', { council: credential.council });
+  res.json({ ...staffView(target), credential: { ...credential, verifiedAt: new Date() } });
+});
+
+module.exports = { authUser, registerUser, provisionStaff, listStaff, getUserProfile, logoutUser, setupMfa, enableMfa, disableMfa, regenerateRecoveryCodes, deactivateStaff, reactivateStaff, changeStaffRole, forceSignOutStaff, unlockStaff, confirmStaffCredential };

@@ -31,6 +31,8 @@ const {
 } = require('../services/trustRag/caseEvidenceMutationService');
 // Adds a MongoDB lease (CASE_LOCK_BACKEND=mongo) around the frozen in-process guard.
 const reviewPolicy = require('../services/review/reviewPolicy');
+const accountSecurity = require('../services/platform/accountSecurity');
+const User = require('../models/userModel');
 const { withCaseMutationGuard } = require('../services/platform/caseGuard');
 
 function sendControlledError(res, err) {
@@ -1076,6 +1078,16 @@ const submitReview = asyncHandler(async (req, res) => {
         err.statusCode = 403;
         err.code = fourEyes;
         throw err;
+      }
+      // Professional credential: when REVIEW_CREDENTIAL_REQUIRED=true a VERIFY needs an admin-confirmed registration.
+      if (mapping.label === 'VERIFY' && accountSecurity.credentialRequiredFor(req.user.role)) {
+        const reviewer = await User.findById(req.user._id).select('professional').lean();
+        if (!accountSecurity.hasVerifiedCredential(reviewer)) {
+          const err = new Error('Your professional registration must be confirmed by an organization admin before you can verify cases.');
+          err.statusCode = 403;
+          err.code = 'REVIEWER_CREDENTIAL_REQUIRED';
+          throw err;
+        }
       }
 
       // Compute fresh current snapshot inside the per-case lock

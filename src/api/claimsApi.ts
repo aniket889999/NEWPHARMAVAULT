@@ -127,6 +127,7 @@ export const claimsApi = {
 
   // MFA
   mfaSetup: async () => (await apiClient.post<{ secret: string; otpauthUri: string }>('/users/mfa/setup', {})).data,
-  mfaEnable: async (code: string) => (await apiClient.post('/users/mfa/enable', { code })).data,
+  mfaEnable: async (code: string) => (await apiClient.post<{ recoveryCodes?: string[] }>('/users/mfa/enable', { code })).data,
+  mfaRecoveryCodes: async (code: string) => (await apiClient.post<{ recoveryCodes: string[] }>('/users/mfa/recovery-codes', { code })).data,
   mfaDisable: async (code: string) => (await apiClient.post('/users/mfa/disable', { code })).data
 };

@@ -11,6 +11,8 @@ export interface User {
   organizationId?: string;
   branchId?: string;
   mfaEnabled?: boolean;
+  /** Server says MFA must be turned on before anything else (MFA_REQUIRED_FOR_STAFF). */
+  mfaSetupRequired?: boolean;
 }
 
 /** Thrown by login() when the account has MFA and needs (or rejected) a code. */
@@ -70,6 +72,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setNotice('Your session expired or was revoked. Please sign in again.');
     };
     window.addEventListener(SESSION_EXPIRED_EVENT, expire);
+    const mfaRequired = () => { setUser((u) => (u ? { ...u, mfaSetupRequired: true } : u)); };
+    window.addEventListener('pharmavault:mfa-setup-required', mfaRequired);
     if (typeof BroadcastChannel !== 'undefined') {
       channel.current = new BroadcastChannel('pharmavault-session-v1');
       channel.current.onmessage = () => {
@@ -79,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     void restore();
     const invalidatePendingSession = () => { active = false; ++epoch.current; };
-    return () => { invalidatePendingSession(); window.removeEventListener(SESSION_EXPIRED_EVENT, expire); channel.current?.close(); channel.current = null; };
+    return () => { invalidatePendingSession(); window.removeEventListener(SESSION_EXPIRED_EVENT, expire); window.removeEventListener('pharmavault:mfa-setup-required', mfaRequired); channel.current?.close(); channel.current = null; };
   }, []);
 
   const login = async (email: string, password: string, role: string, otp?: string): Promise<void> => {

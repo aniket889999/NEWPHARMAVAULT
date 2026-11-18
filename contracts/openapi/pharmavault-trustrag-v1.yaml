@@ -28,6 +28,12 @@ components:
       description: Production HTTPS-only HttpOnly SameSite=Strict host cookie; development uses pv_session. No browser token is returned in JSON.
 
   schemas:
+    RecoveryCodes:
+      type: array
+      description: One-time MFA recovery codes, shown once. Stored server-side only as SHA-256 hashes.
+      minItems: 8
+      maxItems: 8
+      items: { type: string, pattern: '^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$' }
     ChatProviderReadiness:
       $ref: '../schemas/chat-provider-readiness.schema.json'
     VerificationCase:
@@ -92,6 +98,11 @@ components:
         ageHours: { type: integer, minimum: 0 }
       required: [ id, claimReference, status, claimedAmount, currency, openQueries, createdAt, ageHours ]
   parameters:
+    StaffUserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[a-f0-9]{24}$' }
     ClaimId:
       name: claimId
       in: path
@@ -2071,7 +2082,14 @@ paths:
               required: [ code ]
       responses:
         '200':
-          description: MFA enabled; a fresh session is issued
+          description: MFA enabled; a fresh session is issued. The one-time recovery codes are returned only in this response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mfaEnabled: { type: boolean }
+                  recoveryCodes: { $ref: '#/components/schemas/RecoveryCodes' }
         '400':
           description: Code did not match or setup not started
 
@@ -2096,6 +2114,174 @@ paths:
           description: MFA disabled
         '400':
           description: Code did not match or MFA not enabled
+        '403':
+          description: MFA is mandatory for this role (MFA_REQUIRED_FOR_STAFF)
+
+  /users/mfa/recovery-codes:
+    servers:
+      - url: /api
+    post:
+      summary: Replace the one-time recovery codes (needs a current authenticator code)
+      operationId: regenerateMfaRecoveryCodes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                code: { type: string, pattern: '^[0-9]{6}$' }
+              required: [ code ]
+      responses:
+        '200':
+          description: New codes; the previous set stops working
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recoveryCodes: { $ref: '#/components/schemas/RecoveryCodes' }
+                required: [ recoveryCodes ]
+        '400':
+          description: Code did not match or MFA not enabled
+
+  # ───────────── Team & Access (staff administration) ─────────────
+
+  /users/staff/{userId}/deactivate:
+    servers:
+      - url: /api
+    post:
+      summary: Deactivate a staff account and revoke all its sessions
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: deactivateStaff
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
+
+  /users/staff/{userId}/reactivate:
+    servers:
+      - url: /api
+    post:
+      summary: Reactivate a staff account (also clears any lockout)
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: reactivateStaff
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
+
+  /users/staff/{userId}/role:
+    servers:
+      - url: /api
+    post:
+      summary: Change a staff role within the organization type; revokes sessions
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: changeStaffRole
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                role: { type: string, enum: [ pharmacist, pharmacy, claims_reviewer, org_admin, branch_manager, payer_reviewer, payer_admin ] }
+              required: [ role ]
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
+
+  /users/staff/{userId}/sign-out:
+    servers:
+      - url: /api
+    post:
+      summary: Sign a staff member out of every session (bumps sessionVersion)
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: forceSignOutStaff
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
+
+  /users/staff/{userId}/unlock:
+    servers:
+      - url: /api
+    post:
+      summary: Clear a sign-in lockout
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: unlockStaff
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
+
+  /users/staff/{userId}/credential:
+    servers:
+      - url: /api
+    post:
+      summary: Record an admin-confirmed professional registration (needed for VERIFY when REVIEW_CREDENTIAL_REQUIRED=true)
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: confirmStaffCredential
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                registrationNumber: { type: string, pattern: '^[A-Za-z0-9/-]{3,40}$' }
+                council: { type: string, minLength: 3, maxLength: 120 }
+              required: [ registrationNumber, council ]
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
 
   # ───────────── Reviewer workflow (assignment lease, reopen) ─────────────
 
