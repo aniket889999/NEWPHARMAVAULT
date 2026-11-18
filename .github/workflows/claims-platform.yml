@@ -56,3 +56,5 @@ jobs:
         run: |
           npm audit --omit=dev --audit-level=critical
           npm audit --prefix backend --omit=dev --audit-level=critical
+      - name: Health Assistant demo evaluation (report only)
+        run: node tests/chat-eval/run.cjs --json chat-eval-results.json || true

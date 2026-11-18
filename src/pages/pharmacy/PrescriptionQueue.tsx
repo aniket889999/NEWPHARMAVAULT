@@ -135,11 +135,11 @@ const PrescriptionQueue: React.FC = () => {
                     <div>
                       <h4 className="font-bold text-slate-900 text-xs flex items-center">
                         <User className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                        {rx.patientName || 'Rahul Sharma'}
+                        {rx.patientName || rx.user?.name || 'Patient'}
                       </h4>
                       <p className="text-[11px] text-slate-500 flex items-center mt-0.5">
                         <Stethoscope className="w-3 h-3 mr-1 text-blue-600" />
-                        {rx.doctorName || 'Dr. Ramesh Kulkarni, MD'}
+                        {rx.doctorName || 'Doctor not read'}
                       </p>
                     </div>
                     {getStatusBadge(rx.status)}
@@ -179,7 +179,7 @@ const PrescriptionQueue: React.FC = () => {
                     Clinical Safety Verification Panel
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Patient: <strong>{selectedRx.patientName || 'Rahul Sharma'}</strong> • Attending: {selectedRx.doctorName || 'Dr. Ramesh Kulkarni'}
+                    Patient: <strong>{selectedRx.patientName || selectedRx.user?.name || 'Patient'}</strong> • Attending: {selectedRx.doctorName || 'Doctor not read'}
                   </p>
                 </div>
                 <div>{getStatusBadge(selectedRx.status)}</div>

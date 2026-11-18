@@ -181,7 +181,7 @@ const AuthPage: React.FC = () => {
       demoName: DEMO_CREDENTIALS[staffRole]?.name || 'Clinical Claims Reviewer',
       demoEmail: DEMO_CREDENTIALS[staffRole]?.email || 'reviewer@test.com'
     }
-  }[activeRole];
+  }[activeRole as 'patient' | 'claimant' | 'pharmacy' | 'claims_reviewer'];
 
   const IconComponent = portalDetails.icon;
 
