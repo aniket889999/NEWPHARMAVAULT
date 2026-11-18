@@ -55,7 +55,7 @@ test('admin and research entry routes enforce explicit client role gates', () =>
 });
 test('research dashboard projection exactly matches the published synthetic source and checksum', () => {
   const { researchSnapshot: snapshot } = loadClient('src/data/researchSnapshot.ts');
-  const raw = fs.readFileSync(path.join(root, snapshot.source)); const source = JSON.parse(raw);
+  const raw = fs.readFileSync(path.join(root, snapshot.source), 'utf8').replace(/\r\n/g, '\n'); const source = JSON.parse(raw);
   assert.equal(snapshot.sourceSha256, crypto.createHash('sha256').update(raw).digest('hex'));
   for (const key of ['implementationCommit', 'freezeCommit']) assert.deepEqual(snapshot[key], source[key]);
   for (const key of ['generatedAt', 'dataset', 'retrieval', 'temporal', 'observedNetworkAttempts']) assert.deepEqual(snapshot[key], source.results.heldout[key]);
