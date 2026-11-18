@@ -26,10 +26,11 @@ const {
 } = require('../services/trustRag/caseReconciliationService');
 const {
   FINALIZED_CASE_STATUSES,
-  withCaseMutationGuard,
   assertCaseMutableForEvidence,
   bumpCaseEvidenceRevision
 } = require('../services/trustRag/caseEvidenceMutationService');
+// Adds a MongoDB lease (CASE_LOCK_BACKEND=mongo) around the frozen in-process guard.
+const { withCaseMutationGuard } = require('../services/platform/caseGuard');
 
 function sendControlledError(res, err) {
   const statusCode = err.statusCode || 500;
