@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { VerificationCase } from '../types';
 import { verificationApi } from '../api/verificationApi';
 import { useAuth } from '../../../context/AuthContext';
-import { VerificationNav } from '../components/VerificationNav';
 import { PlusCircle, Filter, RefreshCw, AlertTriangle, FileText, ArrowRight, Search, AlertOctagon } from 'lucide-react';
 
 export const CasesListPage: React.FC = () => {
@@ -77,11 +76,8 @@ export const CasesListPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <VerificationNav />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Top Header & Action */}
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
+      {/* Top Header & Action */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -319,7 +315,6 @@ export const CasesListPage: React.FC = () => {
             </div>
           </div>
         )}
-      </main>
     </div>
   );
 };

@@ -62,6 +62,7 @@ import PatientClaims from './pages/patient/PatientClaims';
 import PharmacyClaims from './pages/pharmacy/PharmacyClaims';
 import SecuritySettings from './pages/account/SecuritySettings';
 import PayerLayout from './layouts/PayerLayout';
+import ReviewerLayout from './layouts/ReviewerLayout';
 import PayerDashboard from './pages/payer/PayerDashboard';
 import PayerClaimsQueue from './pages/payer/PayerClaimsQueue';
 import PayerClaimWorkspace from './pages/payer/PayerClaimWorkspace';
@@ -138,47 +139,21 @@ const AppRoutes: React.FC = () => {
       <Route path="/research/knowledge-graph" element={<RoleRoute allowedRoles={['super_admin', 'research_evaluator']}><KnowledgeGraphExplorer /></RoleRoute>} />
       <Route path="/research/ai-safety" element={<RoleRoute allowedRoles={['super_admin']}><AISafetyDashboard /></RoleRoute>} />
 
-      {/* TrustRAG Verification Routes (Work Order 3B) */}
+      {/* Reviewer Portal Routes with Dedicated Left Sidebar Layout */}
       <Route
-        path="/assistant"
         element={
           <RoleRoute allowedRoles={['patient', 'pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
-            <HealthAssistant />
+            <ReviewerLayout />
           </RoleRoute>
         }
-      />
-      <Route
-        path="/cases"
-        element={
-          <RoleRoute allowedRoles={['patient', 'pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
-            <CasesListPage />
-          </RoleRoute>
-        }
-      />
-      <Route
-        path="/cases/new"
-        element={
-          <RoleRoute allowedRoles={['patient', 'pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
-            <CreateCaseWizardPage />
-          </RoleRoute>
-        }
-      />
-      <Route
-        path="/cases/:caseId"
-        element={
-          <RoleRoute allowedRoles={['patient', 'pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
-            <CaseDetailPage />
-          </RoleRoute>
-        }
-      />
-      <Route
-        path="/review-queue"
-        element={
-          <RoleRoute allowedRoles={['pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
-            <ReviewQueuePage />
-          </RoleRoute>
-        }
-      />
+      >
+        <Route path="/assistant" element={<HealthAssistant />} />
+        <Route path="/cases" element={<CasesListPage />} />
+        <Route path="/cases/new" element={<CreateCaseWizardPage />} />
+        <Route path="/cases/:caseId" element={<CaseDetailPage />} />
+        <Route path="/review-queue" element={<ReviewQueuePage />} />
+        <Route path="/account/security" element={<div className="p-6 max-w-4xl mx-auto"><SecuritySettings /></div>} />
+      </Route>
 
       {/* Insurer (payer) portal: separate tenant, consent-scoped case access */}
       <Route
@@ -196,15 +171,6 @@ const AppRoutes: React.FC = () => {
         <Route path="security" element={<SecuritySettings />} />
       </Route>
 
-      {/* Account security for staff roles without a portal layout (e.g. claims reviewers) */}
-      <Route
-        path="/account/security"
-        element={
-          <RoleRoute>
-            <div className="min-h-screen bg-slate-50"><SecuritySettings /></div>
-          </RoleRoute>
-        }
-      />
 
       {/* Super Admin Routes */}
       <Route path="/admin" element={<RoleRoute allowedRoles={['super_admin']}><PharmacyLayout /></RoleRoute>}>
