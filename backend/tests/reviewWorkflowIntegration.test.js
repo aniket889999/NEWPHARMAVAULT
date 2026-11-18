@@ -162,6 +162,8 @@ test('Reviewer launch blockers: four-eyes, lease, reopen, paging, appeals', asyn
 
     const page = await auth(request(app).get('/api/v1/payer/claims?limit=1'), payerReviewer);
     assert.equal(page.body.length, 1);
-    assert.equal(page.headers['x-total-count'], '1');
+    // Two claims exist for this insurer: the reopen test's withdrawn claim and this one.
+    assert.equal(page.headers['x-total-count'], String(await Claim.countDocuments({ payerOrganizationId: payer._id })));
+    assert.equal(page.headers['x-total-count'], '2');
   });
 });
