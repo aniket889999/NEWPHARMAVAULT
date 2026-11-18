@@ -153,6 +153,22 @@ test('Claims module: consent, tenant isolation, human decisions, FHIR and MFA', 
     }
   });
 
+  await t.test('team admin: staff list is org-scoped and roles must match the organization type', async () => {
+    const team = await auth(request(app).get('/api/users/staff'), payerAdmin);
+    assert.equal(team.status, 200);
+    assert.equal(team.body.organization.kind, 'payer');
+    assert.deepEqual(team.body.assignableRoles, ['payer_reviewer', 'payer_admin']);
+    assert.deepEqual(team.body.staff.map((s) => s.email).sort(), [payerAdmin.email, payerReviewer.email].sort());
+    assert.ok(team.body.staff.every((s) => !('password' in s) && !('mfa' in s)));
+    assert.equal((await auth(request(app).get('/api/users/staff'), payerReviewer)).status, 403);
+
+    const body = { name: 'New Person', email: 'new.person@example.com', password: 'temporary-password-for-tests' };
+    assert.equal((await auth(request(app).post('/api/users/provision-staff').send({ ...body, role: 'pharmacist' }), payerAdmin)).status, 400);
+    const created = await auth(request(app).post('/api/users/provision-staff').send({ ...body, role: 'payer_reviewer' }), payerAdmin);
+    assert.equal(created.status, 201, JSON.stringify(created.body));
+    assert.equal(String(created.body.organizationId), String(payerA._id));
+  });
+
   await t.test('TOTP MFA: setup, enable, login requires code, replay rejected', async () => {
     const setup = await auth(request(app).post('/api/users/mfa/setup'), payerReviewer);
     assert.equal(setup.status, 200);

@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { getDocumentStorageRoot, ensureDocumentStorageRoot } = require('../../config/documentStorage');
+const documentCrypto = require('../platform/documentCrypto');
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MiB = 5,242,880 bytes
 
@@ -181,7 +182,9 @@ class StorageService {
       const caseDir = path.join(this.storageRoot, String(caseId));
       fs.mkdirSync(caseDir, { recursive: true, mode: 0o700 });
       localPath = path.join(caseDir, storedFilename);
-      fs.writeFileSync(localPath, buffer, { mode: 0o600, flag: 'wx' });
+      // Encrypted at rest when DOCUMENT_ENCRYPTION_KEY is configured (AES-256-GCM envelope).
+      const key = documentCrypto.configuredKey();
+      fs.writeFileSync(localPath, key ? documentCrypto.encrypt(buffer, key) : buffer, { mode: 0o600, flag: 'wx' });
     } catch (_) {
       const error = new Error('Document storage is unavailable.');
       error.statusCode = 503;
@@ -236,13 +239,16 @@ class StorageService {
       throw err;
     }
 
+    let stored;
     try {
-      return fs.readFileSync(targetPath);
+      stored = fs.readFileSync(targetPath);
     } catch (_) {
       const err = new Error('Document content is unavailable.');
       err.statusCode = 404;
       throw err;
     }
+    // Plaintext files written before encryption was enabled are returned unchanged.
+    return documentCrypto.decrypt(stored, documentCrypto.configuredKey());
   }
 }
 

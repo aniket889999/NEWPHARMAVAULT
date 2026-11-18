@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const NodePdfRendererProvider = require('./nodePdfRendererProvider');
 const { getDocumentStorageRoot, ensureDocumentStorageRoot } = require('../../config/documentStorage');
+const documentCrypto = require('../platform/documentCrypto');
 
 const MAX_PAGES = 3;
 const MAX_PAGE_DIMENSION = 2048;
@@ -302,7 +303,8 @@ class PdfRenderingService {
         fs.mkdirSync(previewDir, { recursive: true, mode: 0o700 });
       }
       const previewFile = path.join(previewDir, `page_${pageNumber}.png`);
-      fs.writeFileSync(previewFile, pngBuffer, { mode: 0o600 });
+      const key = documentCrypto.configuredKey();
+      fs.writeFileSync(previewFile, key ? documentCrypto.encrypt(pngBuffer, key) : pngBuffer, { mode: 0o600 });
 
       // Track disk preview for bounded eviction
       this._trackDiskPreview(previewFile);
@@ -349,7 +351,8 @@ class PdfRenderingService {
       );
 
       if (fs.existsSync(previewFile)) {
-        const buf = fs.readFileSync(previewFile);
+        // A preview that cannot be decrypted falls through to re-rendering below.
+        const buf = documentCrypto.decrypt(fs.readFileSync(previewFile), documentCrypto.configuredKey());
         this._setMemoryCache(cacheKey, buf);
         return buf;
       }

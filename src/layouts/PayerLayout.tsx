@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Building2, LayoutDashboard, Inbox, LogOut, ShieldCheck, ChevronRight, ExternalLink, KeyRound } from 'lucide-react';
+import { Building2, LayoutDashboard, Inbox, LogOut, ShieldCheck, ChevronRight, ExternalLink, KeyRound, Users } from 'lucide-react';
 import NotificationBell from '../components/notifications/NotificationBell';
 
 const PayerLayout: React.FC = () => {
@@ -23,7 +23,8 @@ const PayerLayout: React.FC = () => {
 
   const crumb = location.pathname.startsWith('/payer/claims/') ? 'Claim Workspace'
     : location.pathname === '/payer/claims' ? 'Claims Queue'
-    : location.pathname === '/payer/security' ? 'Account Security' : 'Dashboard Overview';
+    : location.pathname === '/payer/security' ? 'Account Security'
+    : location.pathname === '/payer/team' ? 'Team & Access' : 'Dashboard Overview';
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
@@ -57,6 +58,12 @@ const PayerLayout: React.FC = () => {
           <div>
             <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Account</p>
             <div className="space-y-1">
+              {user?.role === 'payer_admin' && (
+                <Link to="/payer/team" className={navItemClass('/payer/team')}>
+                  <Users className="w-4 h-4 mr-2.5 text-indigo-600" />
+                  <span>Team & Access</span>
+                </Link>
+              )}
               <Link to="/payer/security" className={navItemClass('/payer/security')}>
                 <KeyRound className="w-4 h-4 mr-2.5 text-slate-500" />
                 <span>Security & MFA</span>

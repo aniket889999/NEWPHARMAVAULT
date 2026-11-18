@@ -13,7 +13,9 @@
     "data:import": "node seeder.js",
     "seed:catalogue": "node seeders/catalogueSeeder.js",
     "mongo:local": "node scripts/runMongo.js",
-    "seed:demo": "node seedDemo.js && node seedPharmacyHub.js"
+    "seed:demo": "node seedDemo.js && node seedPharmacyHub.js",
+    "retention:run": "node scripts/runRetention.js",
+    "documents:encrypt": "node scripts/encryptStoredDocuments.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

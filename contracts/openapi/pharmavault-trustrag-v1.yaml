@@ -46,6 +46,49 @@ components:
       $ref: '../schemas/case-assistant-answer.schema.json'
     CaseAssistantFreshness:
       $ref: '../schemas/case-assistant-freshness.schema.json'
+    Claim:
+      $ref: '../schemas/claim.schema.json'
+    CaseShareGrant:
+      $ref: '../schemas/case-share-grant.schema.json'
+    Notification:
+      $ref: '../schemas/notification.schema.json'
+    ClaimsError:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Stable machine code, e.g. CONSENT_REQUIRED, CASE_NOT_VERIFIED, INVALID_CLAIM_TRANSITION, CLAIM_CHANGED, CONSENT_INACTIVE
+        message:
+          type: string
+      required: [ code, message ]
+    PayerClaimSummary:
+      type: object
+      properties:
+        id: { type: string }
+        claimReference: { type: string }
+        caseReference: { type: string }
+        status: { type: string }
+        claimedAmount: { type: number }
+        currency: { const: INR }
+        openQueries: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        ageHours: { type: integer, minimum: 0 }
+      required: [ id, claimReference, status, claimedAmount, currency, openQueries, createdAt, ageHours ]
+  parameters:
+    ClaimId:
+      name: claimId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{24}$'
+  responses:
+    ClaimsError:
+      description: Claims error (400 validation, 403 role or consent, 404 not found or other tenant, 409 invalid transition or concurrent change)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ClaimsError'
 
 security:
   - bearerAuth: []
@@ -1389,3 +1432,553 @@ paths:
               schema:
                 type: object
                 description: Synthetic FHIR Bundle
+
+  # ───────────── Claims module (version-3.0) ─────────────
+  # Claimant = role patient. Insurer = roles payer_reviewer, payer_admin in an
+  # Organization with kind "payer". Insurers read a case only through an active
+  # CaseShareGrant created by the claimant. All claim decisions are human.
+
+  /claims/payers:
+    get:
+      summary: List active insurer organizations a claimant can submit to
+      operationId: listClaimPayers
+      security:
+        - bearerAuth: [ "patient" ]
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Insurers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    name: { type: string }
+                  required: [ id, name ]
+
+  /claims/eligible-cases:
+    get:
+      summary: List the claimant's pharmacist-VERIFIED cases (only these can be claimed)
+      operationId: listClaimEligibleCases
+      security:
+        - bearerAuth: [ "patient" ]
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Eligible cases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    caseReference: { type: string }
+                    status: { const: VERIFIED }
+                    updatedAt: { type: string, format: date-time }
+                  required: [ id, caseReference, status ]
+
+  /claims:
+    get:
+      summary: List the claimant's own claims
+      operationId: listMyClaims
+      security:
+        - bearerAuth: [ "patient" ]
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Claims, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Claim'
+    post:
+      summary: Submit a claim on a VERIFIED case with explicit data-sharing consent
+      description: Creates a CaseShareGrant (all scopes, 90-day expiry) for the chosen insurer and a SUBMITTED claim. One open claim per case and insurer.
+      operationId: submitClaim
+      security:
+        - bearerAuth: [ "patient" ]
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                caseId: { type: string, pattern: '^[0-9a-fA-F]{24}$' }
+                payerOrganizationId: { type: string, pattern: '^[0-9a-fA-F]{24}$' }
+                claimedAmount: { type: number, exclusiveMinimum: 0, maximum: 10000000, multipleOf: 0.01 }
+                policyNumber: { type: string, pattern: '^[A-Za-z0-9-]{4,64}$' }
+                consent:
+                  type: object
+                  properties:
+                    accepted: { const: true }
+                  required: [ accepted ]
+              required: [ caseId, payerOrganizationId, claimedAmount, policyNumber, consent ]
+      responses:
+        '201':
+          description: Claim submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/ClaimsError'
+        '404':
+          $ref: '#/components/responses/ClaimsError'
+        '409':
+          $ref: '#/components/responses/ClaimsError'
+
+  /claims/{claimId}:
+    get:
+      summary: Get one of the claimant's claims
+      operationId: getMyClaim
+      security:
+        - bearerAuth: [ "patient" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Claim
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '404':
+          $ref: '#/components/responses/ClaimsError'
+
+  /claims/{claimId}/queries/{queryId}/answer:
+    post:
+      summary: Claimant answers an open insurer query (QUERY_RAISED -> UNDER_PAYER_REVIEW)
+      operationId: answerClaimQuery
+      security:
+        - bearerAuth: [ "patient" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+        - name: queryId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-fA-F]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                answer: { type: string, minLength: 2, maxLength: 2000 }
+              required: [ answer ]
+      responses:
+        '200':
+          description: Updated claim
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/ClaimsError'
+        '404':
+          $ref: '#/components/responses/ClaimsError'
+        '409':
+          $ref: '#/components/responses/ClaimsError'
+
+  /claims/{claimId}/withdraw:
+    post:
+      summary: Withdraw an open claim and revoke the insurer's case access
+      operationId: withdrawClaim
+      security:
+        - bearerAuth: [ "patient" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Claim withdrawn, CaseShareGrant revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '409':
+          $ref: '#/components/responses/ClaimsError'
+
+  /payer/claims:
+    get:
+      summary: Insurer claims queue (own organization only)
+      operationId: listPayerClaims
+      security:
+        - bearerAuth: [ "payer_reviewer", "payer_admin" ]
+        - cookieAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ SUBMITTED, UNDER_PAYER_REVIEW, QUERY_RAISED, APPROVED, PARTIALLY_APPROVED, REJECTED, SETTLED, WITHDRAWN ]
+      responses:
+        '200':
+          description: Queue items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PayerClaimSummary'
+
+  /payer/analytics:
+    get:
+      summary: Claim counts by status, decision time and query rate for the insurer organization
+      operationId: getPayerAnalytics
+      security:
+        - bearerAuth: [ "payer_reviewer", "payer_admin" ]
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Aggregates from recorded claims only
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  byStatus:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        count: { type: integer }
+                        claimedAmount: { type: number }
+                  decidedCount: { type: integer }
+                  averageDecisionHours: { type: [ number, 'null' ] }
+                  queryRate: { type: [ number, 'null' ] }
+                  note: { type: string }
+                required: [ byStatus, decidedCount, averageDecisionHours, queryRate ]
+
+  /payer/claims/{claimId}:
+    get:
+      summary: Insurer claim workspace with consented case evidence
+      description: Returns 403 CONSENT_INACTIVE when the grant expired or was revoked. Every view is audited. Storage keys are never returned.
+      operationId: getPayerClaim
+      security:
+        - bearerAuth: [ "payer_reviewer", "payer_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Claim, consent, case summary, documents metadata, extracted fields, checks, signals, pharmacist decisions, reason codes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  claim: { $ref: '#/components/schemas/Claim' }
+                  consent:
+                    type: object
+                    properties:
+                      grantedAt: { type: string, format: date-time }
+                      expiresAt: { type: string, format: date-time }
+                      scope: { type: array, items: { type: string } }
+                  pharmacyName: { type: string }
+                  case: { type: [ object, 'null' ] }
+                  documents: { type: array, items: { type: object } }
+                  extractedFields: { type: array, items: { type: object } }
+                  consistencyChecks: { type: array, items: { type: object } }
+                  riskSignals: { type: array, items: { type: object } }
+                  reviewDecisions: { type: array, items: { type: object } }
+                  reasonCodes:
+                    type: object
+                    properties:
+                      rejected: { type: array, items: { type: string } }
+                      partial: { type: array, items: { type: string } }
+                required: [ claim, consent, documents, extractedFields, consistencyChecks, riskSignals, reviewDecisions, reasonCodes ]
+        '403':
+          $ref: '#/components/responses/ClaimsError'
+        '404':
+          $ref: '#/components/responses/ClaimsError'
+
+  /payer/claims/{claimId}/documents/{documentId}/content:
+    get:
+      summary: Stream a consented case document to the insurer (audited, no-store)
+      operationId: getPayerClaimDocument
+      security:
+        - bearerAuth: [ "payer_reviewer", "payer_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+        - name: documentId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-fA-F]{24}$' }
+      responses:
+        '200':
+          description: Original document bytes
+          content:
+            application/pdf: {}
+            image/png: {}
+            image/jpeg: {}
+            image/webp: {}
+        '403':
+          $ref: '#/components/responses/ClaimsError'
+        '404':
+          $ref: '#/components/responses/ClaimsError'
+
+  /payer/claims/{claimId}/fhir-bundle:
+    get:
+      summary: Draft FHIR R4 claim bundle (Claim, Coverage, ClaimResponse) with structural validation
+      operationId: getPayerClaimFhirBundle
+      security:
+        - bearerAuth: [ "payer_reviewer", "payer_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Bundle, validation result and disclaimer (not certified NHCX conformance)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bundle: { type: object }
+                  validation:
+                    type: object
+                    properties:
+                      valid: { type: boolean }
+                      issues:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            severity: { type: string, enum: [ error, warning ] }
+                            path: { type: string }
+                            message: { type: string }
+                  disclaimer: { type: string }
+                required: [ bundle, validation, disclaimer ]
+
+  /payer/claims/{claimId}/start-review:
+    post:
+      summary: Insurer opens review (SUBMITTED -> UNDER_PAYER_REVIEW)
+      operationId: startPayerReview
+      security:
+        - bearerAuth: [ "payer_reviewer", "payer_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Updated claim
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Claim' }
+        '409':
+          $ref: '#/components/responses/ClaimsError'
+
+  /payer/claims/{claimId}/queries:
+    post:
+      summary: Insurer asks the claimant a question (UNDER_PAYER_REVIEW -> QUERY_RAISED)
+      operationId: raisePayerQuery
+      security:
+        - bearerAuth: [ "payer_reviewer", "payer_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                question: { type: string, minLength: 5, maxLength: 2000 }
+              required: [ question ]
+      responses:
+        '200':
+          description: Updated claim
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Claim' }
+        '400':
+          $ref: '#/components/responses/ClaimsError'
+        '409':
+          $ref: '#/components/responses/ClaimsError'
+
+  /payer/claims/{claimId}/decision:
+    post:
+      summary: Record a human claim decision
+      description: APPROVED must equal the claimed amount; PARTIALLY_APPROVED needs a lower amount and a partial reason code; REJECTED needs a rejection reason code. A 10-2000 character note is always required. Only one decision per claim (409 on a second attempt).
+      operationId: recordPayerDecision
+      security:
+        - bearerAuth: [ "payer_reviewer", "payer_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                decision: { type: string, enum: [ APPROVED, PARTIALLY_APPROVED, REJECTED ] }
+                approvedAmount: { type: number, exclusiveMinimum: 0, multipleOf: 0.01 }
+                reasonCode:
+                  type: string
+                  enum: [ DOCUMENT_MISMATCH, MISSING_DOCUMENT, NOT_COVERED_UNDER_POLICY, DUPLICATE_CLAIM, POLICY_INACTIVE, ITEM_NOT_COVERED, QUANTITY_LIMIT, AMOUNT_ABOVE_LIMIT, OTHER ]
+                note: { type: string, minLength: 10, maxLength: 2000 }
+              required: [ decision, note ]
+      responses:
+        '200':
+          description: Decision recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Claim' }
+        '400':
+          $ref: '#/components/responses/ClaimsError'
+        '409':
+          $ref: '#/components/responses/ClaimsError'
+
+  /payer/claims/{claimId}/settle:
+    post:
+      summary: Mark an approved claim settled (simulated, no payment moves)
+      operationId: settlePayerClaim
+      security:
+        - bearerAuth: [ "payer_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Settled claim with simulated settlement reference
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Claim' }
+        '409':
+          $ref: '#/components/responses/ClaimsError'
+
+  /pharmacy/claims:
+    get:
+      summary: Read-only status of claims built on this pharmacy organization's cases
+      operationId: listPharmacyLinkedClaims
+      security:
+        - bearerAuth: [ "pharmacy", "pharmacist", "claims_reviewer", "org_admin", "branch_manager" ]
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Claim status rows (no amounts, no insurer notes)
+
+  /notifications:
+    get:
+      summary: Latest 50 notifications for the signed-in user
+      operationId: listNotifications
+      responses:
+        '200':
+          description: Unread count and items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unread: { type: integer, minimum: 0 }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notification' }
+                required: [ unread, items ]
+
+  /notifications/read-all:
+    post:
+      summary: Mark all notifications read
+      operationId: markAllNotificationsRead
+      responses:
+        '200':
+          description: Done
+
+  /notifications/{notificationId}/read:
+    post:
+      summary: Mark one notification read
+      operationId: markNotificationRead
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-fA-F]{24}$' }
+      responses:
+        '200':
+          description: Done
+
+  /users/mfa/setup:
+    servers:
+      - url: /api
+    post:
+      summary: Start TOTP MFA enrolment; returns the base32 secret and otpauth URI once
+      description: The secret is stored AES-256-GCM encrypted as pending. Requires MFA_ENCRYPTION_KEY on the server (503 otherwise).
+      operationId: setupMfa
+      responses:
+        '200':
+          description: Enrolment secret
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret: { type: string, pattern: '^[A-Z2-7]+$' }
+                  otpauthUri: { type: string }
+                required: [ secret, otpauthUri ]
+        '409':
+          description: MFA already enabled
+
+  /users/mfa/enable:
+    servers:
+      - url: /api
+    post:
+      summary: Confirm enrolment with a valid 6-digit code; revokes other sessions
+      operationId: enableMfa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                code: { type: string, pattern: '^[0-9]{6}$' }
+              required: [ code ]
+      responses:
+        '200':
+          description: MFA enabled; a fresh session is issued
+        '400':
+          description: Code did not match or setup not started
+
+  /users/mfa/disable:
+    servers:
+      - url: /api
+    post:
+      summary: Turn MFA off with a current code
+      operationId: disableMfa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                code: { type: string, pattern: '^[0-9]{6}$' }
+              required: [ code ]
+      responses:
+        '200':
+          description: MFA disabled
+        '400':
+          description: Code did not match or MFA not enabled

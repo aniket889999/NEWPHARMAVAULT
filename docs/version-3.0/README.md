@@ -86,6 +86,12 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 | FHIR validation | Bundle builder (Task, Patient, Organization, DocumentReference, Claim, Coverage, ClaimResponse) + structural R4 validator; case export fixed (Task status codes were invalid) | `services/fhir/*` |
 | E2E | Playwright golden flow claimant ↔ insurer + isolation check | `e2e/` |
 | Staging | 2 API replicas, MongoDB replica set, Caddy HTTPS | `docker-compose.staging.yml` |
+| Contracts | Claims, insurer, notification and MFA endpoints in OpenAPI; `claim`, `case-share-grant`, `notification` schemas; route ↔ contract parity test | `contracts/`, `backend/tests/claimsContractParity.test.js` |
+| Encryption at rest | Documents and page previews AES-256-GCM encrypted when `DOCUMENT_ENCRYPTION_KEY` is set; old plaintext files stay readable; `npm --prefix backend run documents:encrypt -- --apply` migrates them | `services/platform/documentCrypto.js`, `scripts/encryptStoredDocuments.js` |
+| Retention | Removes document content + derived evidence of finished cases with no open/recent claims after `RETENTION_CASE_DAYS` (default 365); deletes notifications after 180 days; keeps audit, reviews and claims; dry run by default | `services/platform/retentionService.js`, `npm --prefix backend run retention:run` |
+| Admin UI | Team & Access: list staff (with MFA status), add staff with roles limited to the organization type. `/team` (pharmacy org admin), `/payer/team` (insurer admin) | `src/pages/account/TeamAccess.tsx` |
+| Reviewer polish | Review queue filters, search, oldest-first, waiting time with 24 h target; staff Claims Status page `/staff/claims`; bell + Security in the staff nav | `ReviewQueuePage.tsx`, `VerificationNav.tsx` |
+| AI context | Repo rules for any coding assistant | `CLAUDE.md` |
 
 ## 5. What is NOT set yet (honest list)
 
@@ -102,9 +108,13 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 
 **Claims / platform limits:**
 - Only pharmacist-**VERIFIED** cases can be claimed (escalated cases cannot).
-- `/pharmacy/claims` page is inside the Pharmacy layout (role `pharmacy`); pharmacist / claims-reviewer staff can call the API but have no page link yet.
 - Redis is **not** used; MongoDB provides the same lock/limit guarantees without new infrastructure. A Redis adapter can implement the same interface later.
-- MFA is optional, not enforced for staff; no recovery codes; setup uses a key + `otpauth://` link (no QR image library installed).
+- MFA is optional, not enforced for staff (Team & Access shows who has it off); no recovery codes; setup uses a key + `otpauth://` link (no QR image library installed).
+- Document encryption is off until `DOCUMENT_ENCRYPTION_KEY` is set; losing that key makes encrypted documents unreadable — store it like a database password and back it up.
+- Retention removes content only; there is no patient-initiated "delete my data" request flow yet, and purged cases do not show a special message in the case page.
+- Team & Access cannot deactivate or change roles of existing staff yet.
+- Reviewer queue SLA target (24 h) and insurer SLA (72 h) are fixed constants, not configurable.
+- No OCR job queue (BullMQ); OCR still runs in the API process.
 - Claim submission uses a MongoDB transaction only on a replica set; on a standalone dev MongoDB it falls back to two sequential writes.
 - FHIR check is structural only — not the official HL7 validator and not NHCX sandbox certification.
 - Settlement is simulated; no payment provider.

@@ -61,6 +61,7 @@ import { ReviewQueuePage } from './modules/verification/pages/ReviewQueuePage';
 import PatientClaims from './pages/patient/PatientClaims';
 import PharmacyClaims from './pages/pharmacy/PharmacyClaims';
 import SecuritySettings from './pages/account/SecuritySettings';
+import TeamAccess from './pages/account/TeamAccess';
 import PayerLayout from './layouts/PayerLayout';
 import ReviewerLayout from './layouts/ReviewerLayout';
 import PayerDashboard from './pages/payer/PayerDashboard';
@@ -153,6 +154,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/cases/:caseId" element={<CaseDetailPage />} />
         <Route path="/review-queue" element={<ReviewQueuePage />} />
         <Route path="/account/security" element={<div className="p-6 max-w-4xl mx-auto"><SecuritySettings /></div>} />
+        {/* Staff-only pages inside the reviewer workstation (the layout also admits patients for /cases) */}
+        <Route path="/staff/claims" element={<RoleRoute allowedRoles={['pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'branch_manager']}><PharmacyClaims /></RoleRoute>} />
+        <Route path="/team" element={<RoleRoute allowedRoles={['org_admin', 'super_admin']}><TeamAccess /></RoleRoute>} />
       </Route>
 
       {/* Insurer (payer) portal: separate tenant, consent-scoped case access */}
@@ -168,6 +172,7 @@ const AppRoutes: React.FC = () => {
         <Route path="dashboard" element={<PayerDashboard />} />
         <Route path="claims" element={<PayerClaimsQueue />} />
         <Route path="claims/:claimId" element={<PayerClaimWorkspace />} />
+        <Route path="team" element={<RoleRoute allowedRoles={['payer_admin']}><TeamAccess /></RoleRoute>} />
         <Route path="security" element={<SecuritySettings />} />
       </Route>
 

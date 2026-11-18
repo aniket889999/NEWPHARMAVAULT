@@ -118,6 +118,12 @@ function validateProductionSecurity() {
   if (!storageRoot || !path.isAbsolute(storageRoot)) {
     throw new Error('[CRITICAL] DOCUMENT_STORAGE_ROOT must be an absolute, persistent volume path in production.');
   }
+
+  // Opt-in hard requirement so existing deployments are not broken; staging sets it to true.
+  const documentKey = String(process.env.DOCUMENT_ENCRYPTION_KEY || '');
+  if (process.env.DOCUMENT_ENCRYPTION_REQUIRED === 'true' && documentKey.length < 32) {
+    throw new Error('[CRITICAL] DOCUMENT_ENCRYPTION_KEY (32+ characters) is required when DOCUMENT_ENCRYPTION_REQUIRED=true.');
+  }
 }
 
 module.exports = {

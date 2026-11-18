@@ -256,4 +256,32 @@ const disableMfa = asyncHandler(async (req, res) => {
   res.status(200).json({ mfaEnabled: false });
 });
 
-module.exports = { authUser, registerUser, provisionStaff, getUserProfile, logoutUser, setupMfa, enableMfa, disableMfa };
+// @desc    List staff accounts in the administrator's own organization
+// @route   GET /api/users/staff
+const listStaff = asyncHandler(async (req, res) => {
+  if (!['org_admin', 'payer_admin', 'super_admin'].includes(req.user?.role)) {
+    res.status(403);
+    throw new Error('Access denied: Staff list requires an organization administrator.');
+  }
+  const orgId = req.user.role === 'super_admin' ? req.query.organizationId : (req.user.organizationId || req.tenantContext?.organizationId);
+  if (!orgId) {
+    res.status(400);
+    throw new Error('An organization is required.');
+  }
+  const [org, staff] = await Promise.all([
+    Organization.findById(orgId).select('name kind').lean(),
+    User.find({ organizationId: orgId, role: { $ne: 'patient' } }).select('name email role branchId mfa.enabled createdAt').sort('name').lean()
+  ]);
+  if (!org) {
+    res.status(404);
+    throw new Error('Organization not found.');
+  }
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.status(200).json({
+    organization: { id: String(org._id), name: org.name, kind: org.kind || 'pharmacy' },
+    assignableRoles: org.kind === 'payer' ? ['payer_reviewer', 'payer_admin'] : ['pharmacist', 'pharmacy', 'claims_reviewer', 'org_admin', 'branch_manager'],
+    staff: staff.map((u) => ({ id: String(u._id), name: u.name, email: u.email, role: u.role, mfaEnabled: Boolean(u.mfa?.enabled), createdAt: u.createdAt }))
+  });
+});
+
+module.exports = { authUser, registerUser, provisionStaff, listStaff, getUserProfile, logoutUser, setupMfa, enableMfa, disableMfa };

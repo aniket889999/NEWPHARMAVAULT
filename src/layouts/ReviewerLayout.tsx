@@ -14,7 +14,9 @@ import {
   KeyRound, 
   LogOut, 
   ChevronRight, 
-  CheckCircle2
+  CheckCircle2,
+  Receipt,
+  Users
 } from 'lucide-react';
 
 const ReviewerLayout: React.FC = () => {
@@ -44,6 +46,8 @@ const ReviewerLayout: React.FC = () => {
     if (path === '/review-queue') return 'Reviewer Queue';
     if (path === '/assistant') return 'TrustRAG Evidence Assistant';
     if (path === '/account/security') return 'Account Security & MFA';
+    if (path === '/staff/claims') return 'Insurance Claims Status';
+    if (path === '/team') return 'Team & Access';
     return 'Reviewer Workstation';
   };
 
@@ -99,6 +103,13 @@ const ReviewerLayout: React.FC = () => {
                 <MessageSquare className="w-4 h-4 mr-2.5 text-indigo-600" />
                 <span>Evidence Assistant</span>
               </Link>
+
+              {user?.role !== 'patient' && (
+                <Link to="/staff/claims" className={navItemClass('/staff/claims')}>
+                  <Receipt className="w-4 h-4 mr-2.5 text-blue-600" />
+                  <span>Claims Status</span>
+                </Link>
+              )}
             </div>
           </div>
 
@@ -131,6 +142,12 @@ const ReviewerLayout: React.FC = () => {
               Account & Credentials
             </p>
             <div className="space-y-1">
+              {user && ['org_admin', 'super_admin'].includes(user.role) && (
+                <Link to="/team" className={navItemClass('/team')}>
+                  <Users className="w-4 h-4 mr-2.5 text-teal-600" />
+                  <span>Team & Access</span>
+                </Link>
+              )}
               <Link to="/account/security" className={navItemClass('/account/security')}>
                 <KeyRound className="w-4 h-4 mr-2.5 text-slate-500" />
                 <span>Security & 2FA</span>

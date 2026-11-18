@@ -31,6 +31,9 @@ services:
       RAG_CHAT_LLM_ENABLED: "false"
       RAG_CHAT_PUBLIC_EXPORT_ALLOWED: "false"
       E2E_SETUP_ENABLED: "false"
+      DOCUMENT_ENCRYPTION_REQUIRED: "true"
+      RETENTION_JOB_ENABLED: "true"
+      RETENTION_DRY_RUN: "true"
     deploy:
       replicas: 2
     volumes:
