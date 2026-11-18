@@ -1,7 +1,13 @@
-name: Playwright end-to-end (manual)
+name: Playwright end-to-end
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main, 'version-**']
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

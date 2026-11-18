@@ -137,6 +137,7 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 | Tamper-evident audit | Every new audit event is linked into one hash chain (SHA-256, or HMAC with `AUDIT_CHAIN_KEY`); model refuses updates/deletes; no edit/delete route. `GET /api/v1/audit/chain/verify` (super_admin, auditor), `npm --prefix backend run audit:verify`, daily write-once export `npm --prefix backend run audit:export -- --out <dir>` | `services/platform/auditChain.js` |
 | Data-principal rights | Anyone: *Download My Data* (JSON, no secrets). Patients: *Request Deletion* (30-day due date, cancellable). super_admin completes it: refused while a claim is open; purges documents, revokes consent, deletes notifications, anonymises and deactivates the account; claims/reviews/audit kept | Account Security page, `/api/v1/me/*`, `/api/v1/privacy/data-requests` |
 | Legal drafts | Privacy notice, terms, grievance process, production retention/encryption settings — **drafts, need counsel review** | `docs/legal/` |
+| Operations | Request id on every response; JSON access logs (`LOG_FORMAT=json`, default in production) with route patterns only; 5xx bodies carry `requestId`; Prometheus `/api/metrics` behind `METRICS_TOKEN`; `indexes:sync`; encrypted backup/restore scripts; runbook with alert rules; npm audit (critical) in CI; Playwright E2E on pull requests | `middleware/requestContext.js`, `ops/`, `.github/workflows/` |
 
 The admin confirms the registration manually; there is no live lookup against a pharmacy council register.
 

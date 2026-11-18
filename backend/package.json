@@ -17,7 +17,8 @@
     "retention:run": "node scripts/runRetention.js",
     "documents:encrypt": "node scripts/encryptStoredDocuments.js",
     "audit:verify": "node scripts/verifyAuditChain.js",
-    "audit:export": "node scripts/exportAuditLog.js"
+    "audit:export": "node scripts/exportAuditLog.js",
+    "indexes:sync": "node scripts/syncIndexes.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

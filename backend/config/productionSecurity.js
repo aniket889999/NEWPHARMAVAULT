@@ -60,7 +60,7 @@ function createCorsOptions() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-PharmaVault-Client'],
     // Paged reviewer/insurer queues return totals in headers so the array body stays backward compatible.
-    exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Limit'],
+    exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Limit', 'X-Request-Id'],
     maxAge: 600
   };
 }
