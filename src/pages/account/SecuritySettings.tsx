@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { KeyRound, ShieldCheck, Copy, ShieldOff, LifeBuoy, AlertTriangle } from 'lucide-react';
+import { KeyRound, ShieldCheck, Copy, ShieldOff, LifeBuoy, AlertTriangle, Download, Trash2 } from 'lucide-react';
+import { privacyApi, DataRequestView } from '../../api/privacyApi';
 import { useAuth } from '../../context/AuthContext';
 import { claimsApi, errorMessage } from '../../api/claimsApi';
 
@@ -18,6 +19,58 @@ const SecuritySettings: React.FC = () => {
   const [regenCode, setRegenCode] = useState('');
   const enabled = Boolean(user?.mfaEnabled);
   const required = Boolean(user?.mfaSetupRequired);
+  const isPatient = user?.role === 'patient';
+  const [requests, setRequests] = useState<DataRequestView[]>([]);
+  const [erasureReason, setErasureReason] = useState('');
+  const [showErasure, setShowErasure] = useState(false);
+  const openErasure = requests.find((r) => r.type === 'ERASURE' && r.status === 'OPEN');
+
+  const loadRequests = async () => {
+    try { setRequests(await privacyApi.myRequests()); } catch { /* the section still works without history */ }
+  };
+  useEffect(() => { if (!required) void loadRequests(); }, [required]);
+
+  const download = async () => {
+    setBusy(true);
+    try {
+      await privacyApi.downloadMyData();
+      toast.success('Your data was downloaded');
+      await loadRequests();
+    } catch (err) {
+      toast.error(errorMessage(err, 'The export could not be created.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const requestErasure = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await privacyApi.requestErasure(erasureReason.trim());
+      toast.success('Deletion request sent. We will confirm within 30 days.');
+      setShowErasure(false);
+      setErasureReason('');
+      await loadRequests();
+    } catch (err) {
+      toast.error(errorMessage(err, 'The request could not be sent.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancelErasure = async (id: string) => {
+    setBusy(true);
+    try {
+      await privacyApi.cancel(id);
+      toast.success('Deletion request cancelled');
+      await loadRequests();
+    } catch (err) {
+      toast.error(errorMessage(err, 'The request could not be cancelled.'));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const start = async () => {
     setBusy(true);
@@ -144,6 +197,48 @@ const SecuritySettings: React.FC = () => {
             <button disabled={busy || regenCode.length !== 6} className="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-semibold disabled:opacity-50">Create New Codes</button>
           </div>
         </form>
+      )}
+
+      {!required && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4 text-xs">
+          <div className="space-y-1">
+            <h2 className="text-sm font-bold text-slate-900">Your Data</h2>
+            <p className="text-slate-500 max-w-xl">Download a copy of the data PharmaVault holds about you{isPatient ? ', or ask us to delete it' : ''}.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={busy} onClick={download} className="px-4 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-semibold flex items-center gap-1.5 disabled:opacity-50"><Download className="w-4 h-4" /> Download My Data</button>
+            {isPatient && !openErasure && (
+              <button type="button" disabled={busy} onClick={() => setShowErasure(true)} className="px-4 py-2.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 font-semibold flex items-center gap-1.5 disabled:opacity-50"><Trash2 className="w-4 h-4" /> Request Deletion</button>
+            )}
+          </div>
+          {openErasure && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-amber-900 flex items-center justify-between gap-3">
+              <span>Deletion requested on {new Date(openErasure.createdAt).toLocaleDateString('en-IN')}{openErasure.dueBy ? ` · to be completed by ${new Date(openErasure.dueBy).toLocaleDateString('en-IN')}` : ''}. Open claims must be withdrawn or decided first.</span>
+              <button type="button" disabled={busy} onClick={() => void cancelErasure(openErasure.id)} className="px-3 py-1.5 rounded-lg border border-amber-300 bg-white font-semibold disabled:opacity-50">Cancel Request</button>
+            </div>
+          )}
+          {showErasure && (
+            <form onSubmit={requestErasure} className="space-y-2 rounded-xl border border-rose-200 p-4">
+              <p className="text-slate-700">We will delete your uploaded documents and extracted details, withdraw every data-sharing consent, and remove your name and email from your account. Claim decisions and the audit record are kept because insurers and regulators may need them. You will be signed out.</p>
+              <label htmlFor="erasure-reason" className="block font-semibold text-slate-700">Reason (optional)</label>
+              <textarea id="erasure-reason" maxLength={1000} rows={2} value={erasureReason} onChange={(e) => setErasureReason(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2" />
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowErasure(false)} className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg font-medium">Cancel</button>
+                <button type="submit" disabled={busy} className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold disabled:opacity-50">Send Deletion Request</button>
+              </div>
+            </form>
+          )}
+          {requests.length > 0 && (
+            <ul className="divide-y divide-slate-100 border-t border-slate-100" aria-label="Data request history">
+              {requests.slice(0, 5).map((r) => (
+                <li key={r.id} className="py-2 flex justify-between text-slate-600">
+                  <span>{r.type === 'EXPORT' ? 'Data download' : 'Deletion request'} · {new Date(r.createdAt).toLocaleDateString('en-IN')}</span>
+                  <span className="font-semibold">{r.status.toLowerCase()}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );

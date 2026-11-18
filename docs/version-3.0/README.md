@@ -111,7 +111,7 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 - Redis is **not** used; MongoDB provides the same lock/limit guarantees without new infrastructure. A Redis adapter can implement the same interface later.
 - MFA is enforced for staff/insurer roles only when `MFA_REQUIRED_FOR_STAFF=true` (off by default for the local demo). 8 one-time recovery codes are issued on enable. Setup uses a key + `otpauth://` link (no QR image library installed).
 - Document encryption is off until `DOCUMENT_ENCRYPTION_KEY` is set; losing that key makes encrypted documents unreadable — store it like a database password and back it up.
-- Retention removes content only; there is no patient-initiated "delete my data" request flow yet, and purged cases do not show a special message in the case page.
+- Retention removes content only; purged cases do not show a special message in the case page. Erasure requests are processed through the API (no super_admin screen yet).
 - Reviewer queue SLA target (24 h) and insurer SLA (72 h) are fixed constants, not configurable.
 - No OCR job queue (BullMQ); OCR still runs in the API process.
 - Claim submission uses a MongoDB transaction only on a replica set; on a standalone dev MongoDB it falls back to two sequential writes.
@@ -135,6 +135,8 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 | Staff administration | Deactivate / reactivate, change role, sign out everywhere, unlock — same-organization only, never self, audited; role change and deactivation revoke sessions | Team & Access, `/api/users/staff/:id/*` |
 | Reviewer credential | `REVIEW_CREDENTIAL_REQUIRED=true` → VERIFY needs a registration number confirmed by an org admin | Team & Access → Registration |
 | Tamper-evident audit | Every new audit event is linked into one hash chain (SHA-256, or HMAC with `AUDIT_CHAIN_KEY`); model refuses updates/deletes; no edit/delete route. `GET /api/v1/audit/chain/verify` (super_admin, auditor), `npm --prefix backend run audit:verify`, daily write-once export `npm --prefix backend run audit:export -- --out <dir>` | `services/platform/auditChain.js` |
+| Data-principal rights | Anyone: *Download My Data* (JSON, no secrets). Patients: *Request Deletion* (30-day due date, cancellable). super_admin completes it: refused while a claim is open; purges documents, revokes consent, deletes notifications, anonymises and deactivates the account; claims/reviews/audit kept | Account Security page, `/api/v1/me/*`, `/api/v1/privacy/data-requests` |
+| Legal drafts | Privacy notice, terms, grievance process, production retention/encryption settings — **drafts, need counsel review** | `docs/legal/` |
 
 The admin confirms the registration manually; there is no live lookup against a pharmacy council register.
 

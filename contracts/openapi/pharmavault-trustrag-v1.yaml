@@ -28,6 +28,17 @@ components:
       description: Production HTTPS-only HttpOnly SameSite=Strict host cookie; development uses pv_session. No browser token is returned in JSON.
 
   schemas:
+    DataRequest:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [ EXPORT, ERASURE ] }
+        status: { type: string, enum: [ OPEN, COMPLETED, BLOCKED, CANCELLED ] }
+        reason: { type: [ string, 'null' ] }
+        dueBy: { type: [ string, 'null' ], format: date-time }
+        createdAt: { type: string, format: date-time }
+        processedAt: { type: [ string, 'null' ], format: date-time }
+      required: [ id, type, status, createdAt ]
     AuditChainVerification:
       type: object
       properties:
@@ -2181,6 +2192,107 @@ paths:
           description: Invalid fromSeq
         '403':
           description: Caller is not super_admin or auditor
+
+  # ───────────── Data-principal rights (export, erasure) ─────────────
+
+  /me/data-export:
+    get:
+      summary: Download the signed-in person's own data as JSON
+      description: Excludes storage keys, password hashes, MFA secrets and staff identities. Audited.
+      operationId: exportMyData
+      responses:
+        '200':
+          description: Personal data export (format pharmavault-personal-data-export/v1)
+          content:
+            application/json:
+              schema: { type: object, properties: { format: { type: string, const: pharmavault-personal-data-export/v1 } }, required: [ format ] }
+
+  /me/data-requests:
+    get:
+      summary: The signed-in person's export and erasure requests
+      operationId: listMyDataRequests
+      responses:
+        '200':
+          description: Requests, newest first
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/DataRequest' } }
+
+  /me/erasure-request:
+    post:
+      summary: Ask for erasure (patients). Completed by a platform administrator within 30 days.
+      operationId: requestErasure
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, properties: { reason: { type: string, maxLength: 1000 } } }
+      responses:
+        '201':
+          description: Request recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataRequest' }
+        '403':
+          description: ERASURE_PATIENT_ONLY
+        '409':
+          description: ERASURE_ALREADY_REQUESTED
+
+  /me/data-requests/{id}/cancel:
+    post:
+      summary: Cancel an open erasure request
+      operationId: cancelMyDataRequest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{24}$' }
+      responses:
+        '200':
+          description: Cancelled
+        '404':
+          description: No open request with that id
+
+  /privacy/data-requests:
+    get:
+      summary: Erasure request queue (super_admin)
+      operationId: listErasureRequests
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [ OPEN, COMPLETED, BLOCKED, CANCELLED ], default: OPEN }
+      responses:
+        '200':
+          description: Requests, oldest first
+        '403':
+          description: Not super_admin
+
+  /privacy/data-requests/{id}/complete:
+    post:
+      summary: Perform an erasure (super_admin)
+      description: Refused while the person has an open claim. Purges document content of their cases, revokes consent grants, deletes notifications, anonymises and deactivates the account. Claims, review decisions and audit events are kept.
+      operationId: completeErasure
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, properties: { note: { type: string, minLength: 10, maxLength: 2000 } }, required: [ note ] }
+      responses:
+        '200':
+          description: Completed with outcome counts
+        '400':
+          description: NOTE_REQUIRED
+        '403':
+          description: Not super_admin
+        '404':
+          description: DATA_REQUEST_NOT_FOUND
+        '409':
+          description: ERASURE_BLOCKED_OPEN_CLAIMS or DATA_REQUEST_CLOSED
 
   # ───────────── Team & Access (staff administration) ─────────────
 

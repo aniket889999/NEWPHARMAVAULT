@@ -8,7 +8,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..', '..');
-const routesSource = ['backend/routes/claimsRoutes.js', 'backend/routes/reviewWorkflowRoutes.js']
+const routesSource = ['backend/routes/claimsRoutes.js', 'backend/routes/reviewWorkflowRoutes.js', 'backend/routes/auditRoutes.js', 'backend/routes/dataRightsRoutes.js']
   .map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 const contract = fs.readFileSync(path.join(root, 'contracts/openapi/pharmavault-trustrag-v1.yaml'), 'utf8');
 
@@ -34,7 +34,7 @@ test('claims routes and OpenAPI contract describe the same operations', () => {
   const routes = routeOperations();
   assert.ok(routes.length >= 24, 'expected the full claims + review workflow route table');
   for (const op of routes) assert.ok(documented.has(op), `route not in contract: ${op}`);
-  const claimsDocumented = [...documented].filter((op) => /\s\/(claims|payer|notifications|pharmacy\/claims|review\/)/.test(op));
+  const claimsDocumented = [...documented].filter((op) => /\s\/(claims|payer|notifications|pharmacy\/claims|review\/|audit\/|me\/|privacy\/)/.test(op));
   for (const op of claimsDocumented) assert.ok(routes.includes(op), `contract operation has no route: ${op}`);
 });
 

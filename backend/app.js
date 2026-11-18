@@ -113,6 +113,8 @@ app.use('/api/v1', protect, tenantMiddleware, claimsRoutes);
 app.use('/api/v1', protect, tenantMiddleware, require('./routes/reviewWorkflowRoutes'));
 // Audit log integrity check (read-only)
 app.use('/api/v1', protect, tenantMiddleware, require('./routes/auditRoutes'));
+// Data-principal rights: export my data, erasure requests
+app.use('/api/v1', protect, tenantMiddleware, require('./routes/dataRightsRoutes'));
 app.use('/api/v1', protect, tenantMiddleware, trustRagRoutes);
 
 app.use(notFound);
