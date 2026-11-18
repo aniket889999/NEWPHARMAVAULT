@@ -20,7 +20,10 @@ async function available(port) {
 async function main() {
   await available(5001); await available(5173);
   const environment = { ...process.env, PORT: '5001', NODE_ENV: 'development', FRONTEND_URL: 'http://127.0.0.1:5173', CORS_ALLOWED_ORIGINS: 'http://127.0.0.1:5173,http://localhost:5173',
-    TRUSTRAG_LLM_ENABLED: 'false', TRUSTRAG_LLM_EXPORT_ALLOWED: 'false', RAG_CHAT_LLM_ENABLED: 'false', RAG_CHAT_PUBLIC_EXPORT_ALLOWED: 'false', RAG_CHAT_EMBEDDINGS_ENABLED: 'false' };
+    TRUSTRAG_LLM_ENABLED: 'false', TRUSTRAG_LLM_EXPORT_ALLOWED: 'false', RAG_CHAT_LLM_ENABLED: 'false', RAG_CHAT_PUBLIC_EXPORT_ALLOWED: 'false', RAG_CHAT_EMBEDDINGS_ENABLED: 'false',
+    // Public questions may use the fixed MedlinePlus (U.S. National Library of Medicine) health-topic search.
+    // Only a registered topic term is sent: never the question, chat history or case data.
+    RAG_CHAT_WEB_ENABLED: process.env.RAG_CHAT_WEB_ENABLED || 'true' };
   const backend = spawn(process.execPath, ['server.js'], { cwd: path.join(root, 'backend'), env: environment, stdio: 'inherit' }); children.push(backend);
   backend.once('exit', code => { if (!stopping) stop(code || 1); });
   let ready = false;
