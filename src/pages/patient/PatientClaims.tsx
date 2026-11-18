@@ -26,6 +26,8 @@ const PatientClaims: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [appealFor, setAppealFor] = useState<string | null>(null);
+  const [appealReason, setAppealReason] = useState('');
 
   const selected = useMemo(() => claims.find((c) => c.id === selectedId) || null, [claims, selectedId]);
 
@@ -106,7 +108,22 @@ const PatientClaims: React.FC = () => {
     }
   };
 
-  const openCount = claims.filter((c) => ['SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED'].includes(c.status)).length;
+  const appeal = async () => {
+    if (!appealFor) return;
+    setBusy(true);
+    try {
+      replace(await claimsApi.appeal(appealFor, appealReason.trim()));
+      toast.success('Appeal sent. A different insurer reviewer will decide it.');
+      setAppealFor(null);
+      setAppealReason('');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Appeal could not be sent.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openCount = claims.filter((c) => ['SUBMITTED', 'APPEALED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED'].includes(c.status)).length;
   const queryCount = claims.filter((c) => c.status === 'QUERY_RAISED').length;
   const decidedCount = claims.filter((c) => c.decision).length;
 
@@ -210,6 +227,15 @@ const PatientClaims: React.FC = () => {
                   <p className="text-xs text-slate-600 mt-2 leading-relaxed">{selected.decision.note}</p>
                 </div>
               )}
+              {selected.appeal && (
+                <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 text-xs space-y-1">
+                  <p className="font-bold text-purple-900">You appealed on {new Date(selected.appeal.appealedAt).toLocaleDateString('en-IN')}</p>
+                  <p className="text-slate-700">{selected.appeal.reason}</p>
+                  {selected.appeal.previousDecision && (
+                    <p className="text-slate-500">Original decision: {CLAIM_STATUS_LABEL[selected.appeal.previousDecision.decision]} · {formatInr(selected.appeal.previousDecision.approvedAmount)}</p>
+                  )}
+                </div>
+              )}
               {selected.settlement && (
                 <p className="text-xs rounded-lg bg-slate-50 border border-slate-200 p-3 text-slate-600">
                   Settlement reference {selected.settlement.reference}. This is a simulated settlement; no payment was made.
@@ -262,7 +288,12 @@ const PatientClaims: React.FC = () => {
                 <Link to={`/cases/${selected.caseId}`} className="text-xs font-semibold text-teal-700 hover:text-teal-800 flex items-center gap-1">
                   View verification case <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
-                {['SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED'].includes(selected.status) && (
+                {['REJECTED', 'PARTIALLY_APPROVED'].includes(selected.status) && !selected.appeal && (
+                  <button disabled={busy} onClick={() => setAppealFor(selected.id)} className="px-3 py-1.5 rounded-lg border border-purple-200 text-purple-800 hover:bg-purple-50 text-xs font-semibold disabled:opacity-50">
+                    Appeal Decision
+                  </button>
+                )}
+                {['SUBMITTED', 'APPEALED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED'].includes(selected.status) && (
                   <button disabled={busy} onClick={() => withdraw(selected)} className="ml-auto px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-semibold disabled:opacity-50">
                     Withdraw Claim & Revoke Consent
                   </button>
@@ -272,6 +303,25 @@ const PatientClaims: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Appeal modal */}
+      {appealFor && (
+        <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="appeal-title">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5 space-y-3 text-xs">
+            <div className="flex items-center justify-between">
+              <h3 id="appeal-title" className="text-base font-bold text-slate-900">Appeal the insurer's decision</h3>
+              <button onClick={() => setAppealFor(null)} aria-label="Close" className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-slate-600">You can appeal once. A different reviewer at the insurer will look at the claim again.</p>
+            <label htmlFor="appeal-reason" className="block font-semibold text-slate-700">Why should the decision change? (20–2000 characters)</label>
+            <textarea id="appeal-reason" rows={5} minLength={20} maxLength={2000} value={appealReason} onChange={(e) => setAppealReason(e.target.value)} className="w-full border border-slate-300 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-teal-600" />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setAppealFor(null)} className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg font-medium">Cancel</button>
+              <button disabled={busy || appealReason.trim().length < 20} onClick={appeal} className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-lg font-bold disabled:opacity-50">Send Appeal</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Submit modal */}
       {showSubmit && (

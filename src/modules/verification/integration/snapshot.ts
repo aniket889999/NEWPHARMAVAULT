@@ -128,5 +128,7 @@ export function safeApiMessage(error: unknown, fallback = 'The operation could n
   if (machine === 'STALE_REVIEW_SNAPSHOT') return 'The evidence changed. Refresh and inspect the current snapshot before submitting again.';
   if (machine === 'CASE_BUSY') return 'This case is being updated. Wait briefly, then refresh.';
   if (machine === 'REVIEW_BLOCKED') return 'Verification is blocked by unresolved evidence. Return for correction or escalate.';
+  if (machine === 'FOUR_EYES_CASE_CREATOR' || machine === 'FOUR_EYES_DOCUMENT_UPLOADER') return 'Four-eyes rule: a different reviewer must verify a case you created or uploaded documents to. You can still escalate or return it for correction.';
+  if (machine === 'CASE_ASSIGNED_TO_OTHER') return 'Another reviewer is working on this case. Wait for them to finish or ask an organization admin to reassign it.';
   return fallback;
 }

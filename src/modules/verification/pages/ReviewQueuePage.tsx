@@ -1,29 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { VerificationCase } from '../types';
-import { verificationApi } from '../api/verificationApi';
+import toast from 'react-hot-toast';
+import { reviewWorkflowApi, QueueCase, isActiveLease, assigneeId, assigneeName } from '../api/reviewWorkflowApi';
 import { useAuth } from '../../../context/AuthContext';
 import { ReviewActionModal } from '../components/ReviewActionModal';
-import { RefreshCw, ShieldCheck, ArrowRight, ShieldAlert, CheckCircle2, Lock, Search, Clock } from 'lucide-react';
+import { RefreshCw, ShieldCheck, ArrowRight, ShieldAlert, CheckCircle2, Lock, Search, Clock, Hand, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const REVIEW_SLA_HOURS = 24;
+const PAGE_SIZE = 20;
 const ageHours = (iso?: string) => (iso ? Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 3600000)) : 0);
 
 export const ReviewQueuePage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [queueCases, setQueueCases] = useState<VerificationCase[]>([]);
+  const [queueCases, setQueueCases] = useState<QueueCase[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [assignedFilter, setAssignedFilter] = useState<'all' | 'me' | 'unassigned'>('all');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [busyCaseId, setBusyCaseId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Queue filters (client-side; the server already scopes the queue to this organization)
+  // Queue filters are applied by the server (paged, tenant-scoped)
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'NEEDS_REVIEW' | 'NEEDS_CORRECTION'>('ALL');
   const [search, setSearch] = useState('');
   const [sortOldest, setSortOldest] = useState(true);
 
   // Adjudication Modal state
-  const [selectedCase, setSelectedCase] = useState<VerificationCase | null>(null);
+  const [selectedCase, setSelectedCase] = useState<QueueCase | null>(null);
 
   const allowedRoles = ['claims_reviewer', 'pharmacist', 'pharmacy', 'org_admin', 'super_admin'];
   const hasAccess = user && allowedRoles.includes(user.role);
@@ -33,8 +39,16 @@ export const ReviewQueuePage: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await verificationApi.getReviewQueue();
-      setQueueCases(data);
+      const result = await reviewWorkflowApi.queue({
+        page,
+        limit: PAGE_SIZE,
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        assigned: assignedFilter === 'all' ? undefined : assignedFilter,
+        sort: sortOldest ? 'oldest' : 'newest',
+        q: debouncedSearch || undefined
+      });
+      setQueueCases(result.items);
+      setTotal(result.total);
     } catch (err: any) {
       console.error('Failed to load review queue:', err);
       const msg = err.response?.data?.message || err.message || 'Error fetching review queue';
@@ -45,10 +59,32 @@ export const ReviewQueuePage: React.FC = () => {
   };
 
   useEffect(() => {
+    const timer = window.setTimeout(() => { setDebouncedSearch(search.trim()); setPage(1); }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
     if (hasAccess) {
       fetchQueue();
     }
-  }, [hasAccess]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasAccess, page, statusFilter, assignedFilter, sortOldest, debouncedSearch]);
+
+  const takeCase = async (caseId: string) => {
+    setBusyCaseId(caseId);
+    try {
+      await reviewWorkflowApi.take(caseId);
+      toast.success('Case assigned to you');
+      await fetchQueue();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'The case could not be assigned.');
+      await fetchQueue();
+    } finally {
+      setBusyCaseId(null);
+    }
+  };
+
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (!hasAccess) {
     return (
@@ -82,7 +118,7 @@ export const ReviewQueuePage: React.FC = () => {
                 Reviewer Adjudication Queue
               </h1>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                {queueCases.length} Pending
+                {total} {statusFilter === 'ALL' && assignedFilter === 'all' && !debouncedSearch ? 'Pending' : 'Matching'}
               </span>
             </div>
             <p className="text-sm text-slate-500 mt-1">
@@ -103,15 +139,25 @@ export const ReviewQueuePage: React.FC = () => {
         </div>
 
         {/* Filters */}
-        {queueCases.length > 0 && (
+        {(
           <div className="flex flex-wrap items-center gap-2 mb-4">
             {(['ALL', 'NEEDS_REVIEW', 'NEEDS_CORRECTION'] as const).map((f) => (
               <button
                 key={f}
-                onClick={() => setStatusFilter(f)}
+                onClick={() => { setStatusFilter(f); setPage(1); }}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${statusFilter === f ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}
               >
-                {f === 'ALL' ? `All (${queueCases.length})` : `${f.replace(/_/g, ' ').toLowerCase()} (${queueCases.filter((c) => c.status === f).length})`}
+                {f === 'ALL' ? 'All statuses' : f.replace(/_/g, ' ').toLowerCase()}
+              </button>
+            ))}
+            <span className="w-px h-5 bg-slate-200 mx-1" />
+            {(['all', 'me', 'unassigned'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => { setAssignedFilter(f); setPage(1); }}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${assignedFilter === f ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300'}`}
+              >
+                {f === 'all' ? 'Everyone' : f === 'me' ? 'Assigned to me' : 'Unassigned'}
               </button>
             ))}
             <div className="relative ml-auto">
@@ -124,7 +170,7 @@ export const ReviewQueuePage: React.FC = () => {
                 className="pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg w-56 focus:outline-none focus:ring-1 focus:ring-indigo-600 bg-white"
               />
             </div>
-            <button onClick={() => setSortOldest((v) => !v)} className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+            <button onClick={() => { setSortOldest((v) => !v); setPage(1); }} className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-600 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" /> {sortOldest ? 'Oldest first' : 'Newest first'}
             </button>
           </div>
@@ -166,7 +212,7 @@ export const ReviewQueuePage: React.FC = () => {
             <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
               <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900">Review Queue is Clear</h3>
+            <h3 className="text-sm font-bold text-slate-900">{statusFilter === 'ALL' && assignedFilter === 'all' && !debouncedSearch ? 'Review Queue is Clear' : 'No cases match these filters'}</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
               There are no pending cases requiring review or correction at this time.
             </p>
@@ -182,17 +228,13 @@ export const ReviewQueuePage: React.FC = () => {
         {/* Queue Cards */}
         {!isLoading && !error && queueCases.length > 0 && (
           <div className="grid grid-cols-1 gap-4">
-            {queueCases
-              .filter((c) => statusFilter === 'ALL' || c.status === statusFilter)
-              .filter((c) => !search || `${c.caseReference} ${c.subjectReference || ''}`.toLowerCase().includes(search.toLowerCase()))
-              .sort((a, b) => {
-                const diff = new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime();
-                return sortOldest ? diff : -diff;
-              })
-              .map(c => {
+            {queueCases.map(c => {
               const waiting = ageHours(c.updatedAt || c.createdAt);
               const overdue = waiting > REVIEW_SLA_HOURS;
-              const caseId = c.id || c._id;
+              const caseId = (c.id || c._id)!;
+              const leased = isActiveLease(c);
+              const mine = leased && assigneeId(c) === user?._id;
+              const heldByOther = leased && !mine;
               const docCount = c.documentIds?.length || 0;
               const createdByName =
                 typeof c.createdBy === 'object' && c.createdBy !== null
@@ -228,6 +270,13 @@ export const ReviewQueuePage: React.FC = () => {
                       <span className={`inline-flex items-center gap-1 font-semibold ${overdue ? 'text-rose-700' : 'text-slate-500'}`}>
                         <Clock className="w-3.5 h-3.5" /> Waiting {waiting} h{overdue ? ` · over ${REVIEW_SLA_HOURS} h target` : ''}
                       </span>
+                      {leased && (
+                        <span className={`inline-flex items-center gap-1 font-semibold ${mine ? 'text-teal-700' : 'text-amber-700'}`}>
+                          <UserCheck className="w-3.5 h-3.5" />
+                          {mine ? 'Assigned to you' : `In review by ${assigneeName(c)}`}
+                          {c.assignmentExpiresAt ? ` until ${new Date(c.assignmentExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -240,9 +289,23 @@ export const ReviewQueuePage: React.FC = () => {
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
 
+                    {!mine && (
+                      <button
+                        onClick={() => takeCase(caseId)}
+                        disabled={heldByOther || busyCaseId === caseId}
+                        title={heldByOther ? 'Another reviewer holds this case' : 'Assign this case to yourself'}
+                        className="px-3.5 py-2 border border-teal-300 text-teal-800 hover:bg-teal-50 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Hand className="w-3.5 h-3.5" />
+                        <span>{busyCaseId === caseId ? 'Taking…' : 'Take case'}</span>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => setSelectedCase(c)}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5"
+                      disabled={heldByOther}
+                      title={heldByOther ? 'Another reviewer holds this case' : undefined}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <ShieldCheck className="w-4 h-4" />
                       <span>Adjudicate</span>
@@ -251,6 +314,18 @@ export const ReviewQueuePage: React.FC = () => {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Pager */}
+        {!isLoading && !error && total > 0 && (
+          <div className="flex items-center justify-between mt-4 text-xs text-slate-500">
+            <span>Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}</span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40" aria-label="Previous page"><ChevronLeft className="w-4 h-4" /></button>
+              <span className="font-semibold text-slate-700">Page {page} of {pageCount}</span>
+              <button onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={page >= pageCount} className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40" aria-label="Next page"><ChevronRight className="w-4 h-4" /></button>
+            </div>
           </div>
         )}
 

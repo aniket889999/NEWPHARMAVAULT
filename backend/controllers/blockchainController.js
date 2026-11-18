@@ -159,8 +159,8 @@ const verifyBatch = asyncHandler(async (req, res) => {
     }
 
     return res.status(200).json({
-      status: 'verified', title: 'Blockchain Verified Authentic',
-      message: 'This product is 100% verified against our immutable ledger and safe to use.',
+      status: 'verified', title: 'Batch Record Found (demo ledger)',
+      message: 'The batch number and manufacturer match a record in the PharmaVault demonstration ledger. This is not a regulatory certification or a safety guarantee; check the pack and consult a pharmacist.',
       score: 100,
       data: { 
         name: block.medicineName, 

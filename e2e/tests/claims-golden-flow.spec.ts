@@ -47,7 +47,7 @@ test.describe.serial('Claims golden flow (claimant ↔ insurer)', () => {
     await signIn(page, { tab: 'claims_reviewer', staffRole: 'payer_reviewer', email: 'insurer@test.com' });
     await page.waitForURL('**/payer/dashboard');
     await page.goto('/payer/claims');
-    await page.getByPlaceholder('Claim or case reference').fill(claimReference);
+    await page.getByPlaceholder('Claim reference').fill(claimReference);
     await page.getByRole('row', { name: new RegExp(claimReference) }).getByRole('link', { name: 'Open' }).click();
 
     await expect(page.getByText('Consent valid until')).toBeVisible();
@@ -77,7 +77,7 @@ test.describe.serial('Claims golden flow (claimant ↔ insurer)', () => {
     await signIn(page, { tab: 'claims_reviewer', staffRole: 'payer_reviewer', email: 'insurer@test.com' });
     await page.waitForURL('**/payer/dashboard');
     await page.goto('/payer/claims');
-    await page.getByPlaceholder('Claim or case reference').fill(claimReference);
+    await page.getByPlaceholder('Claim reference').fill(claimReference);
     await page.getByRole('row', { name: new RegExp(claimReference) }).getByRole('link', { name: 'Open' }).click();
 
     await page.getByRole('button', { name: 'Partial' }).click();

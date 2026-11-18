@@ -37,22 +37,9 @@ const PharmacyDashboard: React.FC = () => {
         setLoading(false);
       } catch (error) {
         console.error('Failed to fetch intelligence', error);
-        // Fallback default demo metrics so dashboard never looks broken
-        setMetrics({
-          totalValue: 845200,
-          totalMedicines: 48,
-          lowStockCount: 3,
-          expiringSoonCount: 2,
-          pendingPrescriptions: 5,
-          blockchainBatches: 17,
-          healthScore: 92
-        });
-        setInsights([
-          'Demo values shown: live inventory data could not be loaded from the server.',
-          'Amoxicillin 500mg batches within 30-day expiry threshold flagged for priority dispensing.',
-          'Dolo 650mg stock replenishment recommended before seasonal demand surge.',
-          'Blockchain batch verification audit: 17/17 records verified with CDSCO catalogue.'
-        ]);
+        // Never show invented numbers to reviewers: render "—" and say why.
+        setMetrics(null);
+        setInsights(['Live inventory data could not be loaded from the server. No figures are shown until it is available.']);
         setLoading(false);
       }
     };
@@ -104,7 +91,7 @@ const PharmacyDashboard: React.FC = () => {
             <span className="text-slate-500">Dispensary Health:</span>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
               <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-              Score: {loading ? '...' : `${metrics?.healthScore || 92}/100 (Optimal)`}
+              Score: {loading ? '...' : (typeof metrics?.healthScore === 'number' ? `${metrics.healthScore}/100` : '—')}
             </span>
           </div>
 
@@ -133,10 +120,10 @@ const PharmacyDashboard: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-bold text-slate-900 font-mono">
-            {loading ? '...' : `₹${(metrics?.totalValue || 845200).toLocaleString('en-IN')}`}
+            {loading ? '...' : (typeof metrics?.totalValue === 'number' ? `₹${metrics.totalValue.toLocaleString('en-IN')}` : '—')}
           </div>
           <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
-            <span>{metrics?.totalMedicines || 48} SKUs Active</span>
+            <span>{metrics?.totalMedicines ?? '—'} SKUs Active</span>
             <span className="text-blue-700 font-semibold group-hover:translate-x-0.5 transition-transform flex items-center">
               View Catalog <ChevronRight className="w-3 h-3 ml-0.5" />
             </span>
@@ -155,7 +142,7 @@ const PharmacyDashboard: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-bold text-rose-600 font-mono">
-            {loading ? '...' : metrics?.lowStockCount || 3}
+            {loading ? '...' : metrics?.lowStockCount ?? '—'}
           </div>
           <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
             <span className="text-rose-600 font-medium">Critical Reorder</span>
@@ -177,7 +164,7 @@ const PharmacyDashboard: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-bold text-amber-600 font-mono">
-            {loading ? '...' : metrics?.expiringSoonCount || 2}
+            {loading ? '...' : metrics?.expiringSoonCount ?? '—'}
           </div>
           <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
             <span className="text-amber-700 font-medium">&lt; 30 Days Window</span>
@@ -199,7 +186,7 @@ const PharmacyDashboard: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-bold text-slate-900 font-mono">
-            {loading ? '...' : metrics?.pendingPrescriptions || 5}
+            {loading ? '...' : metrics?.pendingPrescriptions ?? '—'}
           </div>
           <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
             <span className="text-indigo-600 font-medium">Fulfillment Pending</span>
@@ -260,7 +247,7 @@ const PharmacyDashboard: React.FC = () => {
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-100">
                 <div>
                   <div className="font-bold text-slate-900 text-sm">
-                    {loading ? '...' : metrics?.blockchainBatches || 17} Registered Batches
+                    {loading ? '...' : metrics?.blockchainBatches ?? '—'} Registered Batches
                   </div>
                   <p className="text-slate-500 text-[11px] mt-0.5">Immutable record on academic blockchain</p>
                 </div>
