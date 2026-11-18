@@ -14,7 +14,8 @@ async function as(browser: any, who: Who, fn: (p: Page) => Promise<void>) {
   const page = await ctx.newPage();
   await signIn(page, who);
   await page.waitForURL(who.home, { timeout: 20_000 });
-  try { await fn(page); } finally { await ctx.close(); }
+  page.setDefaultTimeout(8000);
+  try { await fn(page); } catch {} finally { await ctx.close(); }
 }
 
 async function visit(page: Page, route: string, name: string) {
@@ -25,23 +26,7 @@ async function visit(page: Page, route: string, name: string) {
 test('report screenshots', async ({ browser, page }) => {
   test.setTimeout(600_000);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/'); await snap(page, '01-landing');
-  await page.goto('/login?role=patient'); await snap(page, '02-login');
-
   await as(browser, { tab: 'patient', email: 'ananya.verma@claimant.example', home: '**/patient/**' }, async (p) => {
-    await visit(p, '/patient/dashboard', '03-patient-dashboard');
-    await visit(p, '/patient/prescriptions', '04-prescription-upload');
-    try {
-      await p.getByRole('button', { name: /Load Demo Prescription/ }).click();
-      await p.waitForTimeout(1000);
-      await p.getByRole('button', { name: /Run Local OCR/ }).click();
-      await p.waitForTimeout(20000);
-    } catch {}
-    await snap(p, '05-prescription-parsed');
-    await visit(p, '/patient/reminders', '06-reminders');
-    await visit(p, '/patient/nearby-medicines', '07-nearby');
-    try { await p.getByRole('button', { name: /Search|Find/ }).first().click(); await p.waitForTimeout(4000); } catch {}
-    await snap(p, '07b-nearby-results');
     await visit(p, '/patient/health-assistant', '08-assistant');
     try {
       const box = p.getByPlaceholder(/Ask about a medicine/);

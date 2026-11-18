@@ -30,7 +30,7 @@ jobs:
           npx --prefix e2e playwright install --with-deps chromium
       - run: npm --prefix backend run seed:all
       - working-directory: e2e
-        run: npx playwright test tests/report-screens.spec.ts --reporter=line || true
+        run: npx playwright test tests/report-screens.spec.ts --retries=0 --reporter=line || true
       - name: Commit screenshots to report-screenshots-out
         run: |
           mkdir /tmp/out && cp -r e2e/report/* /tmp/out/ || true
