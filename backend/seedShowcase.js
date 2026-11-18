@@ -17,6 +17,8 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 const User = require('./models/userModel');
 const Organization = require('./models/organizationModel');
+const Branch = require('./models/branchModel');
+const Medicine = require('./models/medicineModel');
 
 const INSURER_NAME = 'Sahyog Health Assurance (Demo)';
 const PASSWORD = 'password123';
@@ -50,6 +52,30 @@ async function upsertUser({ email, name, role, organizationId }) {
         address: { street: '4th Floor, Demo Towers', city: 'Pune', state: 'Maharashtra', zip: '411001', country: 'India' }
       });
     }
+    // Nearby medicines: map positions for the demo branch and two more synthetic pharmacies
+    // with their own inventory (fictional names, Bengaluru coordinates).
+    await Branch.updateMany({ name: 'Demo Dispensary - Central Bengaluru Hub' }, { $set: { coordinates: { lat: 12.9716, lng: 77.5946 }, location: 'MG Road, Bengaluru' } });
+    const inOneYear = new Date(Date.now() + 365 * 86_400_000);
+    const pharmacies = [
+      { org: 'Shree Sai Medicals (Demo)', branch: 'Shree Sai Medicals - Indiranagar', location: '100 Feet Road, Indiranagar, Bengaluru', lat: 12.9784, lng: 77.6408, license: 'KA-DEMO-21B-1001',
+        stock: [['Dolo 650mg Tablet', 120, 31, 'Micro Labs Limited', 'B-DLO-650'], ['Azithromycin 500mg (Azee 500)', 18, 118, 'Cipla Limited', 'B-AZE-500'], ['Cetirizine 10mg Tablet', 60, 22, 'Dr. Reddy\'s Laboratories', 'B-CTZ-010']] },
+      { org: 'CareWell Pharmacy (Demo)', branch: 'CareWell Pharmacy - Koramangala', location: '80 Feet Road, Koramangala, Bengaluru', lat: 12.9352, lng: 77.6245, license: 'KA-DEMO-21B-1002',
+        stock: [['Dolo 650mg Tablet', 6, 29, 'Micro Labs Limited', 'B-DLO-650'], ['Pantoprazole 40mg Tablet', 40, 95, 'Alkem Laboratories', 'B-PAN-402']] }
+    ];
+    for (const p of pharmacies) {
+      let org = await Organization.findOne({ name: p.org });
+      if (!org) org = await Organization.create({ name: p.org, owner: owner._id, kind: 'pharmacy', plan: 'Starter', status: 'active', contactEmail: 'store@pharmacy.example' });
+      let branch = await Branch.findOne({ organizationId: org._id, name: p.branch });
+      if (!branch) branch = await Branch.create({ organizationId: org._id, name: p.branch, licenseNumber: p.license, location: p.location, coordinates: { lat: p.lat, lng: p.lng } });
+      for (const [name, stock, price, manufacturer, batchNumber] of p.stock) {
+        await Medicine.updateOne(
+          { name, branchId: branch._id },
+          { $set: { name, category: 'General', description: `${name} (synthetic inventory)`, price, stock, manufacturer, prescriptionRequired: false, expiryDate: inOneYear, batchNumber, organizationId: org._id, branchId: branch._id } },
+          { upsert: true }
+        );
+      }
+    }
+
     const claimant = await upsertUser({ email: 'ananya.verma@claimant.example', name: 'Ananya Verma', role: 'patient' });
     const reviewer = await upsertUser({ email: 'rohit.mehta@sahyog-health.example', name: 'Rohit Mehta', role: 'payer_reviewer', organizationId: insurer._id });
     const admin = await upsertUser({ email: 'kavya.iyer@sahyog-health.example', name: 'Kavya Iyer', role: 'payer_admin', organizationId: insurer._id });

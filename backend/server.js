@@ -15,8 +15,11 @@ async function startServer() {
   const server = app.listen(PORT, () => console.log(`PharmaVault API listening on port ${PORT}.`));
   // Optional daily retention pass (RETENTION_JOB_ENABLED=true); one instance runs it via a MongoDB lease.
   const retentionSchedule = require('./services/platform/retentionService').startRetentionSchedule();
+  // Smart Reminders delivery (every minute; atomic per-reminder claim, safe with several instances).
+  const reminderSchedule = require('./services/platform/reminderScheduler').startReminderSchedule();
   const shutdown = () => {
     retentionSchedule?.stop();
+    reminderSchedule?.stop();
     const deadline = setTimeout(() => process.exit(1), 15000);
     deadline.unref();
     server.close(() => process.exit(0));

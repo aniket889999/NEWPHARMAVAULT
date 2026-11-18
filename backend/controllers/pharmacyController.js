@@ -1,13 +1,8 @@
 const asyncHandler = require('../middleware/asyncHandler');
 
-// Mock Database of Pharmacies
-const MOCK_PHARMACIES = [
-  { id: 'p1', name: 'Apollo Pharmacy', lat: 19.0760, lng: 72.8777, address: 'Main Street, Mumbai', rating: 4.5, openStatus: true, nabhCertified: true },
-  { id: 'p2', name: 'Wellness Forever', lat: 19.0800, lng: 72.8800, address: 'Station Road, Mumbai', rating: 4.8, openStatus: true, nabhCertified: true },
-  { id: 'p3', name: 'MedPlus', lat: 19.0700, lng: 72.8700, address: 'Market Square, Mumbai', rating: 4.2, openStatus: false, nabhCertified: false },
-  { id: 'p4', name: 'Noble Chemist', lat: 19.0850, lng: 72.8650, address: 'West End, Mumbai', rating: 4.0, openStatus: true, nabhCertified: true },
-  { id: 'p5', name: 'Local Medico', lat: 19.0720, lng: 72.8850, address: 'East View, Mumbai', rating: 3.8, openStatus: true, nabhCertified: false }
-];
+const Medicine = require('../models/medicineModel');
+const Branch = require('../models/branchModel');
+const Organization = require('../models/organizationModel');
 
 // Helper to calculate distance in km using Haversine formula
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -22,47 +17,57 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
   return R * c; // Distance in km
 }
 
-// @desc    Get nearby pharmacies for a specific medicine
-// @route   GET /api/pharmacies/nearby?medicine=...&lat=...&lng=...
-// @access  Public
+// @desc    Pharmacies on PharmaVault that stock a medicine, nearest first (real inventory)
+// @route   GET /api/pharmacy/nearby?medicine=...&lat=...&lng=...
+// @access  Public (no personal data in the response)
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const getNearbyPharmacies = asyncHandler(async (req, res) => {
-  const { medicine, lat, lng } = req.query;
-  const userLat = parseFloat(lat) || 19.0750;
-  const userLng = parseFloat(lng) || 72.8750;
-  
-  // In a real app, you would query Google Places API here.
-  // We use our mock database and dynamically generate stock and price for the demo.
-  
-  const basePrice = Math.floor(Math.random() * 100) + 50;
+  const medicine = typeof req.query.medicine === 'string' ? req.query.medicine.trim().slice(0, 80) : '';
+  const userLat = Number.parseFloat(req.query.lat);
+  const userLng = Number.parseFloat(req.query.lng);
+  const hasUser = Number.isFinite(userLat) && Number.isFinite(userLng);
+  if (medicine.length < 2) {
+    res.status(400);
+    throw new Error('Enter at least 2 letters of a medicine name.');
+  }
 
-  let results = MOCK_PHARMACIES.map(pharm => {
-    // Generate mock stock & price variations
-    const stock = Math.floor(Math.random() * 50); // 0 to 50
-    const priceVariance = (Math.random() * 20) - 10; // -10 to +10
-    const finalPrice = Math.max(10, basePrice + priceVariance);
-    
-    // Calculate Distance
-    const distanceKm = getDistanceFromLatLonInKm(userLat, userLng, pharm.lat, pharm.lng);
-    const estimatedTimeMins = Math.round(distanceKm * 15); // Rough estimate: 15 mins per km
+  // Sum stock per branch for medicines whose name contains the search text and are not expired.
+  const rows = await Medicine.aggregate([
+    { $match: { name: { $regex: escapeRegex(medicine), $options: 'i' }, branchId: { $ne: null }, expiryDate: { $gt: new Date() } } },
+    { $group: { _id: '$branchId', organizationId: { $first: '$organizationId' }, stock: { $sum: '$stock' }, price: { $min: '$price' }, names: { $addToSet: '$name' } } }
+  ]);
+  const branches = await Branch.find({ _id: { $in: rows.map((r) => r._id) }, status: { $ne: 'inactive' }, 'coordinates.lat': { $ne: null } }).lean();
+  const orgs = await Organization.find({ _id: { $in: branches.map((b) => b.organizationId) } }).select('name kind status').lean();
+  const orgById = new Map(orgs.map((o) => [String(o._id), o]));
 
-    return {
-      ...pharm,
-      distance: distanceKm,
-      estimatedTime: estimatedTimeMins,
-      medicineStock: stock,
-      medicinePrice: parseFloat(finalPrice.toFixed(2)),
-      searchedMedicine: medicine || 'Selected Medicine'
-    };
-  });
+  const results = branches
+    .filter((b) => (orgById.get(String(b.organizationId))?.kind || 'pharmacy') !== 'payer')
+    .map((b) => {
+      const row = rows.find((r) => String(r._id) === String(b._id));
+      const distance = hasUser ? getDistanceFromLatLonInKm(userLat, userLng, b.coordinates.lat, b.coordinates.lng) : null;
+      return {
+        id: String(b._id),
+        name: b.name,
+        organization: orgById.get(String(b.organizationId))?.name || null,
+        lat: b.coordinates.lat,
+        lng: b.coordinates.lng,
+        address: b.location || '',
+        rating: null,
+        openStatus: b.status === 'active',
+        nabhCertified: false,
+        licenseNumber: b.licenseNumber,
+        distance: distance === null ? null : Number(distance.toFixed(2)),
+        estimatedTime: distance === null ? null : Math.max(1, Math.round(distance * 15)),
+        medicineStock: row.stock,
+        medicinePrice: Number(row.price.toFixed(2)),
+        matchedMedicines: row.names.slice(0, 5),
+        searchedMedicine: medicine
+      };
+    })
+    .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 
-  // Sort by nearest by default
-  results.sort((a, b) => a.distance - b.distance);
-
-  res.json({
-    success: true,
-    count: results.length,
-    data: results
-  });
+  res.json({ success: true, count: results.length, source: 'PharmaVault pharmacy inventory', data: results });
 });
 
 module.exports = {

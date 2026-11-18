@@ -64,7 +64,7 @@ interface Pharmacy {
   lat: number;
   lng: number;
   address: string;
-  rating: number;
+  rating: number | null;
   openStatus: boolean;
   nabhCertified: boolean;
   distance: number;
@@ -77,16 +77,16 @@ interface Pharmacy {
 const NearbyMedicines: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const medicineName = searchParams.get('medicine') || 'Medicine';
+  const medicineName = searchParams.get('medicine') || 'Dolo 650';
   
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'nearest' | 'cheapest' | 'instock'>('nearest');
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
   
-  // This legacy directory contains synthetic Mumbai entries, not live stock.
-  const DEFAULT_LAT = 19.0750;
-  const DEFAULT_LNG = 72.8750;
+  // Used until the browser shares a location (demo pharmacies are in Bengaluru).
+  const DEFAULT_LAT = 12.9716;
+  const DEFAULT_LNG = 77.5946;
   
   const [userLocation, setUserLocation] = useState({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
   const [locationError, setLocationError] = useState(false);
@@ -134,7 +134,7 @@ const NearbyMedicines: React.FC = () => {
   });
 
   const handleReserve = (pharm: Pharmacy) => {
-    toast(`Demo only: no reservation or SMS was sent to ${pharm.name}. Contact a real pharmacy to confirm availability.`);
+    toast(`Online reservation is not available yet. ${pharm.name} has ${pharm.medicineStock} unit(s) in stock — use Directions or call the pharmacy to hold it.`);
   };
 
   const handleGetDirections = (pharm: Pharmacy) => {
@@ -143,7 +143,7 @@ const NearbyMedicines: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col bg-slate-50">
-      <div className="bg-amber-50 px-6 py-3 text-sm text-amber-950">Simulated pharmacy directory: stock, prices and certification badges are examples, not live verified data. Reservations and SMS are not connected. <button type="button" className="ml-2 underline" onClick={requestLocation}>Use my location for map distances</button></div>
+      <div className="bg-teal-50 px-6 py-3 text-sm text-teal-950">Live stock from pharmacies registered on PharmaVault (their own inventory), nearest first. Expired batches are not counted. <button type="button" className="ml-2 underline" onClick={requestLocation}>Use my location for map distances</button></div>
       {/* Header */}
       <div className="bg-white border-b px-6 py-4 flex items-center justify-between shrink-0 shadow-sm z-10 relative">
         <div className="flex items-center">
@@ -203,7 +203,7 @@ const NearbyMedicines: React.FC = () => {
                           {pharm.nabhCertified && <span className="ml-2 text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold" title="NABH Certified">NABH</span>}
                         </h3>
                         <div className="flex items-center text-xs text-slate-500 mt-1">
-                          <Star size={12} className="text-yellow-400 fill-current mr-1"/> {pharm.rating}
+                          {pharm.rating != null && <><Star size={12} className="text-yellow-400 fill-current mr-1"/> {pharm.rating}</>}
                           <span className="mx-2">•</span>
                           <span className={pharm.openStatus ? "text-green-600 font-medium" : "text-red-500 font-medium"}>
                             {pharm.openStatus ? 'Open Now' : 'Closed'}

@@ -26,18 +26,19 @@ const getCDSCOStatus = asyncHandler(async (req, res) => {
 
   if (match) {
     res.json({
-      verified: true,
+      verified: match.status === 'Approved',
+      source: 'PharmaVault local regulatory reference list (not an official CDSCO query)',
       status: match.status,
       licenseNumber: match.license,
       notes: match.note
     });
   } else {
-    // Default fallback for demo
+    // Never invent an approval: unknown medicines are reported as not in the reference list.
     res.json({
-      verified: true,
-      status: 'Approved',
-      licenseNumber: 'DL-IND-GENERIC-' + Math.floor(Math.random() * 10000),
-      notes: 'General Approval'
+      verified: false,
+      status: 'Not in local reference list',
+      licenseNumber: null,
+      notes: 'This medicine is not in PharmaVault\'s local regulatory reference list. This is not an official CDSCO query.'
     });
   }
 });
