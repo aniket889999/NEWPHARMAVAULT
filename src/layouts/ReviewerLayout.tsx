@@ -16,8 +16,14 @@ import {
   ChevronRight, 
   CheckCircle2,
   Receipt,
-  Users
+  Users,
+  LayoutDashboard
 } from 'lucide-react';
+
+// One portal for reviewing and deciding claims. Each section appears for the roles allowed to use it:
+// case review (verification evidence) for verification reviewers, claim decisions for the insurer.
+const CASE_REVIEW_ROLES = ['pharmacist', 'claims_reviewer', 'org_admin', 'super_admin'];
+const INSURER_ROLES = ['payer_reviewer', 'payer_admin'];
 
 const ReviewerLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -47,8 +53,12 @@ const ReviewerLayout: React.FC = () => {
     if (path === '/assistant') return 'TrustRAG Evidence Assistant';
     if (path === '/account/security') return 'Account Security & MFA';
     if (path === '/staff/claims') return 'Insurance Claims Status';
-    if (path === '/team') return 'Team & Access';
-    return 'Reviewer Workstation';
+    if (path === '/team' || path === '/payer/team') return 'Team & Access';
+    if (path === '/payer/dashboard') return 'Insurer Dashboard';
+    if (path === '/payer/claims') return 'Claims Queue';
+    if (path.startsWith('/payer/claims/')) return 'Claim Decision Workspace';
+    if (path === '/payer/security') return 'Account Security & MFA';
+    return 'Reviewer & Insurer';
   };
 
   const roleLabel = () => {
@@ -56,6 +66,8 @@ const ReviewerLayout: React.FC = () => {
     if (user?.role === 'pharmacist') return 'Licensed Pharmacist';
     if (user?.role === 'org_admin') return 'Organization Administrator';
     if (user?.role === 'super_admin') return 'System Administrator';
+    if (user?.role === 'payer_reviewer') return 'Insurer · Claims Reviewer';
+    if (user?.role === 'payer_admin') return 'Insurer · Administrator';
     return 'Clinical Reviewer';
   };
 
@@ -71,17 +83,17 @@ const ReviewerLayout: React.FC = () => {
             </div>
             <div>
               <span className="text-sm font-bold text-slate-900 tracking-tight block leading-tight">PharmaVault</span>
-              <span className="text-[10px] font-semibold text-teal-700 uppercase tracking-wider block leading-tight">Reviewer Workstation</span>
+              <span className="text-[10px] font-semibold text-teal-700 uppercase tracking-wider block leading-tight">Reviewer & Insurer</span>
             </div>
           </Link>
         </div>
 
         {/* Navigation Categories */}
         <nav className="flex-1 overflow-y-auto p-3.5 space-y-6">
-          {/* Section: Clinical Verification */}
-          <div>
+          {/* Section: Case Review */}
+          {user && CASE_REVIEW_ROLES.includes(user.role) && <div>
             <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Clinical Adjudication
+              Case Review
             </p>
             <div className="space-y-1">
               <Link to="/review-queue" className={navItemClass('/review-queue')}>
@@ -104,7 +116,27 @@ const ReviewerLayout: React.FC = () => {
                 <span>Evidence Assistant</span>
               </Link>
 
-              {user?.role !== 'patient' && (
+            </div>
+          </div>}
+
+          {/* Section: Insurance Claims */}
+          <div>
+            <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Insurance Claims
+            </p>
+            <div className="space-y-1">
+              {user && INSURER_ROLES.includes(user.role) ? (
+                <>
+                  <Link to="/payer/dashboard" className={navItemClass('/payer/dashboard')}>
+                    <LayoutDashboard className="w-4 h-4 mr-2.5 text-blue-600" />
+                    <span>Insurer Dashboard</span>
+                  </Link>
+                  <Link to="/payer/claims" className={navItemClass('/payer/claims')}>
+                    <Receipt className="w-4 h-4 mr-2.5 text-blue-600" />
+                    <span>Claims Queue · Approve / Reject</span>
+                  </Link>
+                </>
+              ) : (
                 <Link to="/staff/claims" className={navItemClass('/staff/claims')}>
                   <Receipt className="w-4 h-4 mr-2.5 text-blue-600" />
                   <span>Claims Status</span>
@@ -114,7 +146,7 @@ const ReviewerLayout: React.FC = () => {
           </div>
 
           {/* Section: Dispensary & Audit Hub */}
-          <div>
+          {user && CASE_REVIEW_ROLES.includes(user.role) && <div>
             <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
               Dispensary & Audits
             </p>
@@ -134,7 +166,7 @@ const ReviewerLayout: React.FC = () => {
                 <span>Blockchain Ledger</span>
               </Link>
             </div>
-          </div>
+          </div>}
 
           {/* Section: Account & Security */}
           <div>
@@ -142,13 +174,19 @@ const ReviewerLayout: React.FC = () => {
               Account & Credentials
             </p>
             <div className="space-y-1">
+              {user?.role === 'payer_admin' && (
+                <Link to="/payer/team" className={navItemClass('/payer/team')}>
+                  <Users className="w-4 h-4 mr-2.5 text-teal-600" />
+                  <span>Team & Access</span>
+                </Link>
+              )}
               {user && ['org_admin', 'super_admin'].includes(user.role) && (
                 <Link to="/team" className={navItemClass('/team')}>
                   <Users className="w-4 h-4 mr-2.5 text-teal-600" />
                   <span>Team & Access</span>
                 </Link>
               )}
-              <Link to="/account/security" className={navItemClass('/account/security')}>
+              <Link to={user && INSURER_ROLES.includes(user.role) ? '/payer/security' : '/account/security'} className={navItemClass(user && INSURER_ROLES.includes(user.role) ? '/payer/security' : '/account/security')}>
                 <KeyRound className="w-4 h-4 mr-2.5 text-slate-500" />
                 <span>Security & 2FA</span>
               </Link>
@@ -196,7 +234,7 @@ const ReviewerLayout: React.FC = () => {
         {/* Top Header Bar */}
         <header className="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between z-10 flex-shrink-0">
           <div className="flex items-center space-x-2 text-xs text-slate-500">
-            <span>Reviewer Workstation</span>
+            <span>Reviewer & Insurer</span>
             <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
             <span className="font-semibold text-slate-800">{getBreadcrumbTitle()}</span>
           </div>

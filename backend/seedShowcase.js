@@ -143,6 +143,16 @@ async function upsertUser({ email, name, role, organizationId }) {
       });
     }
 
+    // Workflow Center: real pipeline records for the demo pharmacy account.
+    try {
+      const WorkflowAudit = require('./models/workflowAuditModel');
+      if (!(await WorkflowAudit.exists({ pharmacyId: owner.pharmacyId || owner._id }))) {
+        await require('./workflows/workflowEngine').seedDemoWorkflows(owner.pharmacyId || owner._id, owner._id);
+      }
+    } catch (error) {
+      console.warn('Workflow seed skipped:', error.message);
+    }
+
     console.log(JSON.stringify({
       insurer: { id: String(insurer._id), name: insurer.name },
       accounts: [

@@ -276,7 +276,7 @@ export const LandingPage: React.FC = () => {
                 <div className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-800 border border-indigo-100 mb-2">
                   Payer & TPA
                 </div>
-                <h4 className="text-xl font-bold text-slate-900 mb-2">Insurer Portal</h4>
+                <h4 className="text-xl font-bold text-slate-900 mb-2">Reviewer &amp; Insurer Portal</h4>
                 <p className="text-xs text-slate-600 leading-relaxed mb-6">
                   Consent-governed claims adjudication, policy compliance checks, discrepancy fraud detection, and FHIR R4 interoperability.
                 </p>
@@ -306,7 +306,7 @@ export const LandingPage: React.FC = () => {
                   onClick={() => navigate('/login?role=claims_reviewer&staffRole=payer_reviewer')}
                   className="w-full py-2.5 px-4 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white font-medium text-sm flex items-center justify-center space-x-2 transition-colors"
                 >
-                  <span>Enter Insurer Portal</span>
+                  <span>Enter Reviewer &amp; Insurer Portal</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
