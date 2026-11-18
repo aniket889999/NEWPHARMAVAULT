@@ -84,8 +84,8 @@ test.describe.serial('Claims golden flow (claimant ↔ insurer)', () => {
     await page.getByLabel(/Approved amount/).fill('300');
     await page.getByLabel('Reason code').selectOption('QUANTITY_LIMIT');
     await page.getByLabel('Decision note (shared with claimant)').fill('Policy covers up to 300 for this medicine per claim.');
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Record Decision' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Record Decision' }).click();
     await expect(page.getByText('Decision recorded')).toBeVisible();
     await page.context().close();
   });

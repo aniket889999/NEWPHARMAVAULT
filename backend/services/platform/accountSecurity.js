@@ -59,33 +59,79 @@ function looksLikeRecoveryCode(value) {
 function lockoutPolicy(env = process.env) {
   return {
     maxFailures: intEnv(env, 'LOGIN_MAX_FAILURES', 5, 3, 20),
-    lockMinutes: intEnv(env, 'LOGIN_LOCK_MINUTES', 15, 1, 1440)
+    lockMinutes: intEnv(env, 'LOGIN_LOCK_MINUTES', 15, 1, 1440),
+    // Distributed guessing from many addresses still locks the whole account, but only at a much higher count.
+    accountMaxFailures: intEnv(env, 'LOGIN_ACCOUNT_MAX_FAILURES', 50, 10, 1000)
   };
 }
 
-function isLocked(user, now = new Date()) {
-  return Boolean(user?.login?.lockedUntil && new Date(user.login.lockedUntil) > now);
+const MAX_TRACKED_SOURCES = 20;
+
+/** Stable, non-reversible key for the client address (raw IPs are never stored). */
+function sourceKey(ip, env = process.env) {
+  const salt = env.JWT_SECRET || 'pharmavault';
+  return crypto.createHash('sha256').update(`login-source:${salt}:${String(ip || 'unknown')}`).digest('hex').slice(0, 24);
 }
 
-/** Returns the $set to apply after a failed attempt. */
-function failureUpdate(user, now = new Date(), env = process.env) {
-  const { maxFailures, lockMinutes } = lockoutPolicy(env);
-  const failures = (user?.login?.failedCount || 0) + 1;
-  if (failures >= maxFailures) {
-    return { 'login.failedCount': 0, 'login.lockedUntil': new Date(now.getTime() + lockMinutes * 60_000), 'login.lastFailedAt': now };
-  }
-  return { 'login.failedCount': failures, 'login.lastFailedAt': now };
+/**
+ * Locked when this source address is locked, or the whole account is (distributed attack).
+ * Someone who only knows a colleague's email can therefore lock out only their own address.
+ */
+function isLocked(user, now = new Date(), source = null) {
+  const login = user?.login || {};
+  if (login.lockedUntil && new Date(login.lockedUntil) > now) return true;
+  if (!source) return false;
+  const entry = (login.sources || []).find((s) => s.key === source);
+  return Boolean(entry?.lockedUntil && new Date(entry.lockedUntil) > now);
+}
+
+function anyLock(user, now = new Date()) {
+  const login = user?.login || {};
+  return isLocked(user, now) || (login.sources || []).some((s) => s.lockedUntil && new Date(s.lockedUntil) > now);
+}
+
+/** Returns the $set to apply after a failed attempt from `source`. */
+function failureUpdate(user, now = new Date(), env = process.env, source = 'unknown') {
+  const { maxFailures, lockMinutes, accountMaxFailures } = lockoutPolicy(env);
+  const until = new Date(now.getTime() + lockMinutes * 60_000);
+  const login = user?.login || {};
+  const sources = (login.sources || [])
+    .filter((s) => s.key !== source && (!s.lockedUntil || new Date(s.lockedUntil) > now || s.failedCount))
+    .slice(-(MAX_TRACKED_SOURCES - 1))
+    .map((s) => ({ key: s.key, failedCount: s.failedCount || 0, lockedUntil: s.lockedUntil || null }));
+  const previous = (login.sources || []).find((s) => s.key === source);
+  const count = (previous?.failedCount || 0) + 1;
+  const sourceLocked = count >= maxFailures;
+  sources.push({ key: source, failedCount: sourceLocked ? 0 : count, lockedUntil: sourceLocked ? until : (previous?.lockedUntil || null) });
+  const accountCount = (login.failedCount || 0) + 1;
+  const accountLocked = accountCount >= accountMaxFailures;
+  return {
+    'login.sources': sources,
+    'login.failedCount': accountLocked ? 0 : accountCount,
+    'login.lastFailedAt': now,
+    ...(accountLocked ? { 'login.lockedUntil': until } : {}),
+    ...(sourceLocked || accountLocked ? { lockedNow: { scope: accountLocked ? 'account' : 'source', until } } : {})
+  };
+}
+
+/** Removes the helper key before the update is written. */
+function storedFailureUpdate(update) {
+  const { lockedNow, ...rest } = update;
+  return rest;
 }
 
 function credentialRequiredFor(role, env = process.env) {
   return env.REVIEW_CREDENTIAL_REQUIRED === 'true' && CREDENTIAL_ROLES.includes(role);
 }
 
-function hasVerifiedCredential(user) {
-  return Boolean(user?.professional?.registrationNumber && user.professional.verifiedAt && user.professional.verifiedBy);
+function hasVerifiedCredential(user, now = new Date()) {
+  const p = user?.professional;
+  if (!p?.registrationNumber || !p.verifiedAt || !p.verifiedBy) return false;
+  // A registration past its renewal date no longer counts until the admin re-confirms it.
+  return !(p.validUntil && new Date(p.validUntil) < now);
 }
 
-function validateRegistration({ registrationNumber, council }) {
+function validateRegistration({ registrationNumber, council, checkedVia, validUntil }) {
   const number = typeof registrationNumber === 'string' ? registrationNumber.trim().toUpperCase() : '';
   const body = typeof council === 'string' ? council.trim() : '';
   if (!/^[A-Z0-9/-]{3,40}$/.test(number)) {
@@ -94,7 +140,18 @@ function validateRegistration({ registrationNumber, council }) {
   if (body.length < 3 || body.length > 120) {
     throw Object.assign(new Error('Name the registering council (e.g. State Pharmacy Council).'), { statusCode: 400, code: 'INVALID_COUNCIL' });
   }
-  return { registrationNumber: number, council: body };
+  const method = typeof checkedVia === 'string' ? checkedVia.trim() : '';
+  if (method.length < 5 || method.length > 200) {
+    throw Object.assign(new Error('Say how you checked the registration (e.g. "State Pharmacy Council register, searched by number").'), { statusCode: 400, code: 'INVALID_CHECK_METHOD' });
+  }
+  let renewal = null;
+  if (validUntil) {
+    renewal = new Date(validUntil);
+    if (Number.isNaN(renewal.getTime()) || renewal < new Date()) {
+      throw Object.assign(new Error('The renewal date must be a future date.'), { statusCode: 400, code: 'INVALID_VALID_UNTIL' });
+    }
+  }
+  return { registrationNumber: number, council: body, checkedVia: method, validUntil: renewal };
 }
 
 module.exports = {
@@ -109,7 +166,10 @@ module.exports = {
   looksLikeRecoveryCode,
   lockoutPolicy,
   isLocked,
+  anyLock,
+  sourceKey,
   failureUpdate,
+  storedFailureUpdate,
   credentialRequiredFor,
   hasVerifiedCredential,
   validateRegistration

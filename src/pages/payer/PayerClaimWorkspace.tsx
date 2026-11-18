@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -17,6 +18,7 @@ const PayerClaimWorkspace: React.FC = () => {
   const [data, setData] = useState<PayerClaimDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmDialog, confirm] = useConfirm();
   const [question, setQuestion] = useState('');
   const [decision, setDecision] = useState<'APPROVED' | 'PARTIALLY_APPROVED' | 'REJECTED'>('APPROVED');
   const [approvedAmount, setApprovedAmount] = useState('');
@@ -79,13 +81,13 @@ const PayerClaimWorkspace: React.FC = () => {
     }
   };
 
-  const submitDecision = (e: React.FormEvent) => {
+  const submitDecision = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!claim) return;
     const body: { decision: string; approvedAmount?: number; reasonCode?: string; note: string } = { decision, note: note.trim() };
     if (decision === 'PARTIALLY_APPROVED') body.approvedAmount = Number(approvedAmount);
     if (decision !== 'APPROVED') body.reasonCode = reasonCode;
-    if (!window.confirm(`Record "${CLAIM_STATUS_LABEL[decision]}" for ${claim.claimReference}? This cannot be undone.`)) return;
+    if (!(await confirm({ title: `Record "${CLAIM_STATUS_LABEL[decision]}"?`, message: `This decision for ${claim.claimReference} is final and the claimant is notified. It cannot be undone (the claimant may appeal once).`, confirmLabel: 'Record Decision', tone: decision === 'REJECTED' ? 'danger' : 'primary' }))) return;
     void run(() => claimsApi.decide(claimId, body), 'Decision recorded');
   };
 
@@ -103,6 +105,7 @@ const PayerClaimWorkspace: React.FC = () => {
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+      {confirmDialog}
       <Link to="/payer/claims" className="text-xs text-slate-500 hover:text-slate-800 inline-flex items-center"><ChevronLeft className="w-4 h-4" /> Back to queue</Link>
 
       {/* Header */}

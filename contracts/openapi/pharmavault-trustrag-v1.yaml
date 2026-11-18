@@ -1503,6 +1503,9 @@ paths:
                   type: array
                   items:
                     type: string
+                selfVerifyConfirmed:
+                  type: boolean
+                  description: Only when the organization allows single-pharmacist verification and the reviewer uploaded or created the case (403 FOUR_EYES_CONFIRMATION_REQUIRED otherwise). Audited as FOUR_EYES_SELF_VERIFY_CONFIRMED.
               required: [ "snapshotToken", "reasonCode", "notes" ]
       responses:
         '201':
@@ -2170,6 +2173,48 @@ paths:
         '400':
           description: Code did not match or MFA not enabled
 
+  /users/organization/review-policy:
+    servers:
+      - url: /api
+    post:
+      summary: Pharmacy org admin allows or forbids single-pharmacist verification (audited)
+      operationId: updateReviewPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, properties: { allowSingleReviewerVerify: { type: boolean } }, required: [ allowSingleReviewerVerify ] }
+      responses:
+        '200':
+          description: Updated policy
+        '403':
+          description: Not a pharmacy organization admin
+
+  /users/me/text-alerts:
+    servers:
+      - url: /api
+    post:
+      summary: Opt in or out of SMS / WhatsApp alerts (texts never contain case content)
+      description: Turning off removes the stored number. Delivery needs NOTIFY_TEXT_ENABLED and a configured gateway. Audited.
+      operationId: updateTextAlerts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                enabled: { type: boolean }
+                phone: { type: string, maxLength: 20 }
+                channel: { type: string, enum: [ sms, whatsapp ] }
+              required: [ enabled ]
+      responses:
+        '200':
+          description: Saved (phone returned masked)
+        '400':
+          description: INVALID_PHONE
+
   # ───────────── Audit log integrity (read-only; no edit/delete routes exist) ─────────────
 
   /audit/chain/verify:
@@ -2202,7 +2247,7 @@ paths:
       operationId: exportMyData
       responses:
         '200':
-          description: Personal data export (format pharmavault-personal-data-export/v1)
+          description: Personal data export (format pharmavault-personal-data-export/v1); with ?format=html a readable, printable summary
           content:
             application/json:
               schema: { type: object, properties: { format: { type: string, const: pharmavault-personal-data-export/v1 } }, required: [ format ] }
@@ -2420,7 +2465,9 @@ paths:
               properties:
                 registrationNumber: { type: string, pattern: '^[A-Za-z0-9/-]{3,40}$' }
                 council: { type: string, minLength: 3, maxLength: 120 }
-              required: [ registrationNumber, council ]
+                checkedVia: { type: string, minLength: 5, maxLength: 200, description: How the admin checked the registration }
+                validUntil: { type: string, format: date, description: Renewal date; after it VERIFY is blocked until re-confirmed }
+              required: [ registrationNumber, council, checkedVia ]
       responses:
         '200':
           description: Updated staff summary

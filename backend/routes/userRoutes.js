@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authUser, registerUser, provisionStaff, listStaff, getUserProfile, logoutUser, setupMfa, enableMfa, disableMfa, regenerateRecoveryCodes, deactivateStaff, reactivateStaff, changeStaffRole, forceSignOutStaff, unlockStaff, confirmStaffCredential } = require('../controllers/userController');
+const { authUser, registerUser, provisionStaff, listStaff, getUserProfile, logoutUser, setupMfa, enableMfa, disableMfa, regenerateRecoveryCodes, deactivateStaff, reactivateStaff, changeStaffRole, forceSignOutStaff, unlockStaff, confirmStaffCredential, updateReviewPolicy, updateTextAlerts } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 
 const { authLimiter } = require('../middleware/rateLimiter');
@@ -21,5 +21,7 @@ router.post('/staff/:userId/role', protect, changeStaffRole);
 router.post('/staff/:userId/sign-out', protect, forceSignOutStaff);
 router.post('/staff/:userId/unlock', protect, unlockStaff);
 router.post('/staff/:userId/credential', protect, confirmStaffCredential);
+router.post('/organization/review-policy', protect, updateReviewPolicy);
+router.post('/me/text-alerts', protect, updateTextAlerts);
 
 module.exports = router;

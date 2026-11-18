@@ -44,12 +44,26 @@ const userSchema = mongoose.Schema(
     login: {
       failedCount: { type: Number, default: 0, min: 0 },
       lockedUntil: { type: Date, default: null },
-      lastFailedAt: { type: Date, default: null }
+      lastFailedAt: { type: Date, default: null },
+      // Per-source lock: key = salted hash of the client address (raw IPs are not stored).
+      sources: {
+        type: [{ _id: false, key: String, failedCount: { type: Number, default: 0 }, lockedUntil: { type: Date, default: null } }],
+        default: []
+      }
+    },
+    // Opt-in text alerts (SMS / WhatsApp). Consent time recorded; can be withdrawn any time.
+    contact: {
+      phone: { type: String, default: null, maxlength: 16 },
+      channel: { type: String, enum: ['sms', 'whatsapp'], default: 'sms' },
+      textOptIn: { type: Boolean, default: false },
+      textConsentAt: { type: Date, default: null }
     },
     // Professional registration of reviewers, confirmed by an organization admin.
     professional: {
       registrationNumber: { type: String, default: null, trim: true, maxlength: 40 },
       council: { type: String, default: null, trim: true, maxlength: 120 },
+      checkedVia: { type: String, default: null, trim: true, maxlength: 200 },
+      validUntil: { type: Date, default: null },
       verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
       verifiedAt: { type: Date, default: null }
     },

@@ -26,9 +26,16 @@ const view = (r) => ({ id: String(r._id), type: r.type, status: r.status, reason
 router.get('/me/data-export', asyncHandler(async (req, res) => {
   const data = await service.buildExport(req.user._id);
   const record = await DataRequest.create({ userId: req.user._id, type: 'EXPORT', status: 'COMPLETED', processedAt: new Date() });
-  await audit(req, 'PERSONAL_DATA_EXPORTED', record._id, { cases: data.cases.length });
+  await audit(req, 'PERSONAL_DATA_EXPORTED', record._id, { cases: data.cases.length, format: req.query.format === 'html' ? 'html' : 'json' });
   res.setHeader('Cache-Control', 'private, no-store');
-  res.setHeader('Content-Disposition', `attachment; filename="pharmavault-my-data-${new Date().toISOString().slice(0, 10)}.json"`);
+  const stamp = new Date().toISOString().slice(0, 10);
+  if (req.query.format === 'html') {
+    // Readable summary; strict CSP because it is opened as a standalone page.
+    res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'");
+    res.setHeader('Content-Disposition', `attachment; filename="pharmavault-my-data-${stamp}.html"`);
+    return res.type('html').send(service.exportToHtml(data));
+  }
+  res.setHeader('Content-Disposition', `attachment; filename="pharmavault-my-data-${stamp}.json"`);
   res.json(data);
 }));
 

@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
 import { Users, UserPlus, ShieldCheck, ShieldAlert, X, RefreshCw, BadgeCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../api/apiClient';
 import { errorMessage } from '../../api/claimsApi';
 
-interface Credential { registrationNumber: string; council: string; verifiedAt: string | null }
+interface Credential { registrationNumber: string; council: string; verifiedAt: string | null; checkedVia?: string | null; validUntil?: string | null; expired?: boolean }
 interface StaffRow { id: string; name: string; email: string; role: string; mfaEnabled: boolean; createdAt: string; active: boolean; locked: boolean; credential: Credential | null; credentialRequired: boolean }
-interface TeamResponse { organization: { id: string; name: string; kind: 'pharmacy' | 'payer' }; assignableRoles: string[]; staff: StaffRow[]; mfaRequiredForStaff?: boolean; credentialRequiredForReview?: boolean }
+interface TeamResponse { organization: { id: string; name: string; kind: 'pharmacy' | 'payer'; allowSingleReviewerVerify?: boolean }; assignableRoles: string[]; staff: StaffRow[]; mfaRequiredForStaff?: boolean; credentialRequiredForReview?: boolean }
 type StaffAction = 'deactivate' | 'reactivate' | 'sign-out' | 'unlock';
 const ACTION_TEXT: Record<StaffAction, { label: string; done: string; confirm?: string }> = {
   deactivate: { label: 'Deactivate', done: 'deactivated and signed out', confirm: 'Deactivate this account? The person is signed out everywhere and cannot sign in until reactivated.' },
@@ -36,10 +37,11 @@ const TeamAccess: React.FC = () => {
   const [failed, setFailed] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [confirmDialog, confirm] = useConfirm();
   const [form, setForm] = useState({ name: '', email: '', role: '', password: '' });
   const { user: me } = useAuth();
   const [credentialFor, setCredentialFor] = useState<StaffRow | null>(null);
-  const [credential, setCredential] = useState({ registrationNumber: '', council: '' });
+  const [credential, setCredential] = useState({ registrationNumber: '', council: '', checkedVia: '', validUntil: '' });
 
   const load = async () => {
     try {
@@ -76,7 +78,7 @@ const TeamAccess: React.FC = () => {
 
   const runAction = async (row: StaffRow, action: StaffAction) => {
     const text = ACTION_TEXT[action];
-    if (text.confirm && !window.confirm(text.confirm)) return;
+    if (text.confirm && !(await confirm({ title: `${text.label}: ${row.name}?`, message: text.confirm, confirmLabel: text.label }))) return;
     setBusy(true);
     try {
       await apiClient.post(`/users/staff/${row.id}/${action}`, {});
@@ -90,7 +92,7 @@ const TeamAccess: React.FC = () => {
   };
 
   const changeRole = async (row: StaffRow, role: string) => {
-    if (role === row.role || !window.confirm(`Change ${row.name} to ${ROLE_LABEL[role] || role}? They will be signed out so the new permissions apply.`)) return;
+    if (role === row.role || !(await confirm({ title: 'Change role?', message: `Change ${row.name} to ${ROLE_LABEL[role] || role}? They will be signed out so the new permissions apply.`, confirmLabel: 'Change Role', tone: 'primary' }))) return;
     setBusy(true);
     try {
       await apiClient.post(`/users/staff/${row.id}/role`, { role });
@@ -108,7 +110,7 @@ const TeamAccess: React.FC = () => {
     if (!credentialFor) return;
     setBusy(true);
     try {
-      await apiClient.post(`/users/staff/${credentialFor.id}/credential`, { registrationNumber: credential.registrationNumber.trim(), council: credential.council.trim() });
+      await apiClient.post(`/users/staff/${credentialFor.id}/credential`, { registrationNumber: credential.registrationNumber.trim(), council: credential.council.trim(), checkedVia: credential.checkedVia.trim(), ...(credential.validUntil ? { validUntil: credential.validUntil } : {}) });
       toast.success(`Registration confirmed for ${credentialFor.name}`);
       setCredentialFor(null);
       await load();
@@ -119,10 +121,24 @@ const TeamAccess: React.FC = () => {
     }
   };
 
+  const toggleSingleReviewer = async (value: boolean) => {
+    setBusy(true);
+    try {
+      await apiClient.post('/users/organization/review-policy', { allowSingleReviewerVerify: value });
+      toast.success(value ? 'Single-pharmacist verification allowed (with confirmation)' : 'Four-eyes verification required again');
+      await load();
+    } catch (err) {
+      toast.error(errorMessage(err, 'The review policy could not be changed.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const withoutMfa = (data?.staff || []).filter((s) => !s.mfaEnabled).length;
 
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6 font-sans">
+      {confirmDialog}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <span className={`text-xs font-semibold uppercase px-2.5 py-0.5 border rounded-full ${tone.badge}`}>Administration</span>
@@ -141,6 +157,19 @@ const TeamAccess: React.FC = () => {
           <ShieldAlert className="w-4 h-4 flex-shrink-0" /> {withoutMfa} of {data.staff.length} staff account(s) have not turned on two-factor authentication.{' '}
           {data.mfaRequiredForStaff ? 'They will be asked to set it up at their next sign-in.' : 'Ask them to open Security & MFA.'}
         </p>
+      )}
+
+      {data && data.organization.kind === 'pharmacy' && (me?.role === 'org_admin' || me?.role === 'super_admin') && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+          <div className="space-y-1 max-w-2xl">
+            <p className="text-sm font-bold text-slate-900">Single-pharmacist store</p>
+            <p className="text-slate-500">By default a different reviewer must verify a case that someone uploaded or created (four-eyes rule). Turn this on only if your store has one pharmacist: they can then verify their own uploads after ticking a confirmation, and each such decision is flagged in the audit log.</p>
+          </div>
+          <label className="inline-flex items-center gap-2 font-semibold text-slate-700 cursor-pointer select-none">
+            <input type="checkbox" disabled={busy} checked={Boolean(data.organization.allowSingleReviewerVerify)} onChange={(e) => void toggleSingleReviewer(e.target.checked)} className="w-4 h-4" />
+            Allow with confirmation
+          </label>
+        </div>
       )}
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
@@ -178,12 +207,14 @@ const TeamAccess: React.FC = () => {
                       : <span className="px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">Active</span>}
                 </td>
                 <td className="py-3 px-4">
-                  {s.credential?.verifiedAt
-                    ? <span className="inline-flex items-center gap-1 text-emerald-700" title={s.credential.council}><BadgeCheck className="w-3.5 h-3.5" /> {s.credential.registrationNumber}</span>
+                  {s.credential?.verifiedAt && !s.credential.expired
+                    ? <span className="inline-flex items-center gap-1 text-emerald-700" title={`${s.credential.council}${s.credential.checkedVia ? ` · checked via ${s.credential.checkedVia}` : ''}`}><BadgeCheck className="w-3.5 h-3.5" /> {s.credential.registrationNumber}{s.credential.validUntil ? <span className="text-slate-400 font-normal"> · until {new Date(s.credential.validUntil).toLocaleDateString('en-IN')}</span> : null}</span>
+                    : s.credential?.expired && s.id !== me?._id
+                      ? <button type="button" onClick={() => { setCredentialFor(s); setCredential({ registrationNumber: s.credential?.registrationNumber || '', council: s.credential?.council || '', checkedVia: '', validUntil: '' }); }} className="text-rose-700 underline">Expired — re-confirm</button>
                     : s.credentialRequired
                       ? (s.id === me?._id
                         ? <span className="text-amber-700">Not confirmed</span>
-                        : <button type="button" onClick={() => { setCredentialFor(s); setCredential({ registrationNumber: '', council: '' }); }} className="text-amber-700 underline">{data.credentialRequiredForReview ? 'Required — confirm' : 'Confirm'}</button>)
+                        : <button type="button" onClick={() => { setCredentialFor(s); setCredential({ registrationNumber: '', council: '', checkedVia: '', validUntil: '' }); }} className="text-amber-700 underline">{data.credentialRequiredForReview ? 'Required — confirm' : 'Confirm'}</button>)
                       : <span className="text-slate-400">—</span>}
                 </td>
                 <td className="py-3 px-5 text-right whitespace-nowrap space-x-1.5">
@@ -219,6 +250,15 @@ const TeamAccess: React.FC = () => {
               <div>
                 <label htmlFor="cred-council" className="block font-semibold text-slate-700 mb-1">Registering council</label>
                 <input id="cred-council" required minLength={3} maxLength={120} placeholder="e.g. State Pharmacy Council" value={credential.council} onChange={(e) => setCredential({ ...credential, council: e.target.value })} className={`w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 ${tone.ring}`} />
+              </div>
+              <div>
+                <label htmlFor="cred-method" className="block font-semibold text-slate-700 mb-1">How you checked it</label>
+                <input id="cred-method" required minLength={5} maxLength={200} placeholder="e.g. Council online register, searched by number" value={credential.checkedVia} onChange={(e) => setCredential({ ...credential, checkedVia: e.target.value })} className={`w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 ${tone.ring}`} />
+              </div>
+              <div>
+                <label htmlFor="cred-until" className="block font-semibold text-slate-700 mb-1">Registration valid until (optional)</label>
+                <input id="cred-until" type="date" min={new Date().toISOString().slice(0, 10)} value={credential.validUntil} onChange={(e) => setCredential({ ...credential, validUntil: e.target.value })} className={`border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 ${tone.ring}`} />
+                <p className="text-[11px] text-slate-500 mt-1">After this date the pharmacist cannot verify cases until you re-confirm the renewed registration.</p>
               </div>
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button type="button" onClick={() => setCredentialFor(null)} className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg font-medium">Cancel</button>

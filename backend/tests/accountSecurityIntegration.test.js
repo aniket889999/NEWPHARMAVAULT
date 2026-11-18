@@ -155,7 +155,7 @@ test('Account security: enforced MFA, recovery codes, lockout, staff admin, cred
       assert.notEqual(escalate.body.code, 'REVIEWER_CREDENTIAL_REQUIRED');
 
       assert.equal((await as(request(app).post(`/api/users/staff/${reviewer._id}/credential`).send({ registrationNumber: 'x', council: 'State Pharmacy Council' }), admin)).status, 400);
-      const confirmed = await as(request(app).post(`/api/users/staff/${reviewer._id}/credential`).send({ registrationNumber: 'MH/12345', council: 'State Pharmacy Council' }), admin);
+      const confirmed = await as(request(app).post(`/api/users/staff/${reviewer._id}/credential`).send({ registrationNumber: 'MH/12345', council: 'State Pharmacy Council', checkedVia: 'Council register search by number', validUntil: '2030-12-31' }), admin);
       assert.equal(confirmed.status, 200, JSON.stringify(confirmed.body));
       const after = await as(request(app).post(`/api/v1/cases/${patientCase._id}/reviews`).send(body), reviewer);
       assert.notEqual(after.body.code, 'REVIEWER_CREDENTIAL_REQUIRED', 'confirmed reviewer reaches the snapshot check');

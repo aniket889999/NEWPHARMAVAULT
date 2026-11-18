@@ -69,3 +69,13 @@ test('claim appeal: once, only after a negative or partial decision, decided aga
   assert.equal(sm.isTerminal('REJECTED', 0), false);
   assert.equal(sm.isTerminal('REJECTED', 1), true);
 });
+
+test('single-pharmacist setting needs an explicit confirmation to override four-eyes', () => {
+  const { resolveFourEyes } = require('../services/review/reviewPolicy');
+  assert.deepEqual(resolveFourEyes(null), { code: null, override: false });
+  assert.equal(resolveFourEyes('FOUR_EYES_DOCUMENT_UPLOADER').code, 'FOUR_EYES_DOCUMENT_UPLOADER');
+  assert.equal(resolveFourEyes('FOUR_EYES_DOCUMENT_UPLOADER', { orgAllowsSingleReviewer: true }).code, 'FOUR_EYES_CONFIRMATION_REQUIRED');
+  assert.equal(resolveFourEyes('FOUR_EYES_CASE_CREATOR', { orgAllowsSingleReviewer: true, confirmed: 'yes' }).code, 'FOUR_EYES_CONFIRMATION_REQUIRED');
+  assert.deepEqual(resolveFourEyes('FOUR_EYES_CASE_CREATOR', { orgAllowsSingleReviewer: true, confirmed: true }), { code: null, override: true });
+  assert.equal(resolveFourEyes('FOUR_EYES_CASE_CREATOR', { confirmed: true }).code, 'FOUR_EYES_CASE_CREATOR', 'confirmation alone never overrides');
+});

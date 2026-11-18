@@ -942,7 +942,8 @@ const submitReview = asyncHandler(async (req, res) => {
     'decision',
     'reasonCode',
     'notes',
-    'evidenceItemIds'
+    'evidenceItemIds',
+    'selfVerifyConfirmed'
   ]);
   for (const key of Object.keys(req.body)) {
     if (!allowedReviewKeys.has(key)) {
@@ -1072,12 +1073,22 @@ const submitReview = asyncHandler(async (req, res) => {
       reviewPolicy.assertNotAssignedToOther(vCase, req.user._id);
       // Four-eyes: whoever created the case or uploaded its documents cannot give the final VERIFY.
       const uploaderIds = await Document.distinct('uploadedBy', { caseId: vCase._id });
-      const fourEyes = reviewPolicy.fourEyesViolation({ action: mapping.label, reviewerId: req.user._id, vCase, documentUploaderIds: uploaderIds });
-      if (fourEyes) {
-        const err = new Error('Four-eyes rule: a different reviewer must verify a case you created or uploaded documents to. You can still escalate or return it for correction.');
+      const fourEyesViolation = reviewPolicy.fourEyesViolation({ action: mapping.label, reviewerId: req.user._id, vCase, documentUploaderIds: uploaderIds });
+      const reviewOrg = fourEyesViolation ? await Organization.findById(vCase.organizationId).select('reviewPolicy').lean() : null;
+      const fourEyes = reviewPolicy.resolveFourEyes(fourEyesViolation, {
+        orgAllowsSingleReviewer: Boolean(reviewOrg?.reviewPolicy?.allowSingleReviewerVerify),
+        confirmed: req.body.selfVerifyConfirmed === true
+      });
+      if (fourEyes.code) {
+        const err = new Error(fourEyes.code === 'FOUR_EYES_CONFIRMATION_REQUIRED'
+          ? 'You uploaded or created this case. Your organization allows single-pharmacist verification: confirm that you personally checked the original documents.'
+          : 'Four-eyes rule: a different reviewer must verify a case you created or uploaded documents to. You can still escalate or return it for correction.');
         err.statusCode = 403;
-        err.code = fourEyes;
+        err.code = fourEyes.code;
         throw err;
+      }
+      if (fourEyes.override) {
+        await auditLoggerService.logEvent({ caseId: vCase._id, actorId: req.user._id, actorRole: req.user.role, action: 'FOUR_EYES_SELF_VERIFY_CONFIRMED', targetType: 'VerificationCase', targetId: vCase._id, metadata: { violation: fourEyesViolation } });
       }
       // Professional credential: when REVIEW_CREDENTIAL_REQUIRED=true a VERIFY needs an admin-confirmed registration.
       if (mapping.label === 'VERIFY' && accountSecurity.credentialRequiredFor(req.user.role)) {

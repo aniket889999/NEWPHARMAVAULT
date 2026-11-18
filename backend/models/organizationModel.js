@@ -28,6 +28,12 @@ const organizationSchema = new mongoose.Schema({
     enum: ['active', 'suspended', 'onboarding'],
     default: 'active'
   },
+  // Review policy chosen by the organization admin (Team & Access).
+  reviewPolicy: {
+    // Single-pharmacist stores: the person who uploaded documents may VERIFY after an
+    // explicit confirmation; every such decision is flagged in the audit log.
+    allowSingleReviewerVerify: { type: Boolean, default: false }
+  },
   contactEmail: String,
   contactPhone: String,
   address: {

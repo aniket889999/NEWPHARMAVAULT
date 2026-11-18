@@ -29,16 +29,25 @@ test('recovery codes are unique, well-formed and hashed case-insensitively', () 
   assert.equal(sec.looksLikeRecoveryCode('ABCD-EFG0'), false, 'ambiguous characters are excluded');
 });
 
-test('lockout counts failures and locks at the threshold', () => {
-  const env = { LOGIN_MAX_FAILURES: '3', LOGIN_LOCK_MINUTES: '10' };
+test('lockout is per source address; only many failures lock the whole account', () => {
+  const env = { LOGIN_MAX_FAILURES: '3', LOGIN_LOCK_MINUTES: '10', LOGIN_ACCOUNT_MAX_FAILURES: '10' };
   const now = new Date('2026-11-18T10:00:00Z');
-  assert.deepEqual(sec.failureUpdate({ login: { failedCount: 0 } }, now, env), { 'login.failedCount': 1, 'login.lastFailedAt': now });
-  const lock = sec.failureUpdate({ login: { failedCount: 2 } }, now, env);
-  assert.equal(lock['login.failedCount'], 0);
-  assert.equal(lock['login.lockedUntil'].toISOString(), '2026-11-18T10:10:00.000Z');
-  assert.equal(sec.isLocked({ login: { lockedUntil: lock['login.lockedUntil'] } }, now), true);
-  assert.equal(sec.isLocked({ login: { lockedUntil: lock['login.lockedUntil'] } }, new Date('2026-11-18T10:11:00Z')), false);
-  assert.deepEqual(sec.lockoutPolicy({ LOGIN_MAX_FAILURES: '1', LOGIN_LOCK_MINUTES: 'x' }), { maxFailures: 5, lockMinutes: 15 }, 'out-of-range values fall back to defaults');
+  const apply = (user, update) => {
+    const login = { ...(user.login || {}) };
+    for (const [k, v] of Object.entries(sec.storedFailureUpdate(update))) login[k.replace('login.', '')] = v;
+    return { login };
+  };
+  const attacker = sec.sourceKey('203.0.113.9', env), owner = sec.sourceKey('198.51.100.7', env);
+  assert.notEqual(attacker, owner);
+  let user = { login: {} };
+  for (let i = 0; i < 3; i += 1) user = apply(user, sec.failureUpdate(user, now, env, attacker));
+  assert.equal(sec.isLocked(user, now, attacker), true, 'the guessing address is locked');
+  assert.equal(sec.isLocked(user, now, owner), false, 'the real owner can still sign in from elsewhere');
+  assert.equal(sec.anyLock(user, now), true);
+  assert.equal(sec.isLocked(user, new Date('2026-11-18T10:11:00Z'), attacker), false, 'lock expires');
+  for (let i = 0; i < 7; i += 1) user = apply(user, sec.failureUpdate(user, now, env, sec.sourceKey(`10.0.0.${i}`, env)));
+  assert.equal(sec.isLocked(user, now, owner), true, 'distributed guessing locks the account at the higher threshold');
+  assert.deepEqual(sec.lockoutPolicy({ LOGIN_MAX_FAILURES: '1', LOGIN_LOCK_MINUTES: 'x' }), { maxFailures: 5, lockMinutes: 15, accountMaxFailures: 50 }, 'out-of-range values fall back to defaults');
 });
 
 test('reviewer credential rule and registration validation', () => {
@@ -48,7 +57,9 @@ test('reviewer credential rule and registration validation', () => {
   assert.equal(sec.credentialRequiredFor('pharmacist', {}), false);
   assert.equal(sec.hasVerifiedCredential({ professional: { registrationNumber: 'MH/12345', verifiedAt: new Date(), verifiedBy: 'x' } }), true);
   assert.equal(sec.hasVerifiedCredential({ professional: { registrationNumber: 'MH/12345' } }), false);
-  assert.deepEqual(sec.validateRegistration({ registrationNumber: ' mh/12345 ', council: 'State Pharmacy Council' }), { registrationNumber: 'MH/12345', council: 'State Pharmacy Council' });
-  assert.throws(() => sec.validateRegistration({ registrationNumber: 'x', council: 'State Pharmacy Council' }), /Registration number/);
-  assert.throws(() => sec.validateRegistration({ registrationNumber: 'MH/12345', council: '' }), /council/);
+  assert.deepEqual(sec.validateRegistration({ registrationNumber: ' mh/12345 ', council: 'State Pharmacy Council', checkedVia: 'Council register search' }), { registrationNumber: 'MH/12345', council: 'State Pharmacy Council', checkedVia: 'Council register search', validUntil: null });
+  assert.throws(() => sec.validateRegistration({ registrationNumber: 'MH/12345', council: 'State Pharmacy Council' }), /how you checked/);
+  assert.equal(sec.hasVerifiedCredential({ professional: { registrationNumber: 'MH/1', verifiedAt: new Date(), verifiedBy: 'x', validUntil: new Date('2020-01-01') } }), false, 'expired registration');
+  assert.throws(() => sec.validateRegistration({ registrationNumber: 'x', council: 'State Pharmacy Council', checkedVia: 'Council register search' }), /Registration number/);
+  assert.throws(() => sec.validateRegistration({ registrationNumber: 'MH/12345', council: '', checkedVia: 'Council register search' }), /council/);
 });

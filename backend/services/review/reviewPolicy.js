@@ -34,6 +34,17 @@ function fourEyesViolation({ action, reviewerId, vCase, documentUploaderIds = []
   return null;
 }
 
+/**
+ * Applies the organization's single-reviewer setting to a four-eyes violation.
+ * Returns { code } to block, or { override: true } when the reviewer confirmed.
+ */
+function resolveFourEyes(violation, { orgAllowsSingleReviewer = false, confirmed = false } = {}) {
+  if (!violation) return { code: null, override: false };
+  if (!orgAllowsSingleReviewer) return { code: violation, override: false };
+  if (confirmed !== true) return { code: 'FOUR_EYES_CONFIRMATION_REQUIRED', override: false };
+  return { code: null, override: true };
+}
+
 function assignmentMinutes(env = process.env) {
   const raw = Number(env.REVIEW_ASSIGNMENT_MINUTES);
   if (!Number.isInteger(raw) || raw <= 0) return DEFAULT_ASSIGNMENT_MINUTES;
@@ -125,6 +136,7 @@ module.exports = {
   controlled,
   sameId,
   fourEyesViolation,
+  resolveFourEyes,
   assignmentMinutes,
   activeAssignment,
   assertNotAssignedToOther,

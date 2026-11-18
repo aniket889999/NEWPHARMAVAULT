@@ -19,8 +19,12 @@ function credentials(body, { registration = false } = {}) {
   }
   return { email: body.email.trim().toLowerCase(), password: body.password, role: body.role, ...(registration ? { name: body.name.trim() } : {}) };
 }
+function maskPhoneSafe(phone) {
+  return require('../services/platform/textMessaging').maskPhone(phone);
+}
 function profile(user) {
   return { _id: user._id, name: user.name, email: user.email, role: user.role, mfaEnabled: Boolean(user.mfa?.enabled), mfaSetupRequired: accountSecurity.needsMfaSetup(user),
+    textAlerts: { enabled: Boolean(user.contact?.textOptIn), channel: user.contact?.channel || 'sms', phone: maskPhoneSafe(user.contact?.phone) },
     ...(user.organizationId ? { organizationId: user.organizationId } : {}), ...(user.branchId ? { branchId: user.branchId } : {}) };
 }
 function sendSession(req, res, user, status = 200) {
@@ -38,8 +42,9 @@ const authUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email }).select('+sessionVersion +mfa.secretEnc +mfa.lastUsedCounter');
   const matches = await bcrypt.compare(password, user?.password || dummyPasswordHash);
   const now = new Date();
+  const source = accountSecurity.sourceKey(req.ip);
   // Locked or deactivated accounts get the same opaque error as a wrong password.
-  const blocked = user && (user.active === false || accountSecurity.isLocked(user, now));
+  const blocked = user && (user.active === false || accountSecurity.isLocked(user, now, source));
   if (user && matches && user.role === role && !blocked) {
     if (user.mfa?.enabled) {
       const otp = typeof req.body.otp === 'string' ? req.body.otp.trim() : '';
@@ -65,20 +70,20 @@ const authUser = asyncHandler(async (req, res) => {
         ).then((r) => r.modifiedCount === 1);
       }
       if (!accepted) {
-        await User.updateOne({ _id: user._id }, { $set: accountSecurity.failureUpdate(user, now) });
+        await User.updateOne({ _id: user._id }, { $set: accountSecurity.storedFailureUpdate(accountSecurity.failureUpdate(user, now, process.env, source)) });
         return res.status(401).json({ message: 'The authenticator code is invalid or already used.', mfaRequired: true });
       }
     }
-    if (user.login?.failedCount || user.login?.lockedUntil) {
-      await User.updateOne({ _id: user._id }, { $set: { 'login.failedCount': 0, 'login.lockedUntil': null } });
+    if (user.login?.failedCount || user.login?.lockedUntil || user.login?.sources?.length) {
+      await User.updateOne({ _id: user._id }, { $set: { 'login.failedCount': 0, 'login.lockedUntil': null, 'login.sources': [] } });
     }
     sendSession(req, res, user);
   } else {
     if (user && !blocked) {
-      const update = accountSecurity.failureUpdate(user, now);
-      await User.updateOne({ _id: user._id }, { $set: update });
-      if (update['login.lockedUntil']) {
-        await auditLoggerService.logEvent({ actorId: user._id, actorRole: user.role, action: 'ACCOUNT_LOCKED', targetType: 'User', targetId: user._id, metadata: { until: update['login.lockedUntil'].toISOString() } });
+      const update = accountSecurity.failureUpdate(user, now, process.env, source);
+      await User.updateOne({ _id: user._id }, { $set: accountSecurity.storedFailureUpdate(update) });
+      if (update.lockedNow) {
+        await auditLoggerService.logEvent({ actorId: user._id, actorRole: user.role, action: 'ACCOUNT_LOCKED', targetType: 'User', targetId: user._id, metadata: { scope: update.lockedNow.scope, until: update.lockedNow.until.toISOString() } });
       }
     }
     res.status(401);
@@ -333,7 +338,7 @@ const listStaff = asyncHandler(async (req, res) => {
   }
   const [org, staff] = await Promise.all([
     Organization.findById(orgId).select('name kind').lean(),
-    User.find({ organizationId: orgId, role: { $ne: 'patient' } }).select('name email role branchId mfa.enabled active login.lockedUntil professional createdAt').sort('name').lean()
+    User.find({ organizationId: orgId, role: { $ne: 'patient' } }).select('name email role branchId mfa.enabled active login professional createdAt').sort('name').lean()
   ]);
   if (!org) {
     res.status(404);
@@ -341,14 +346,14 @@ const listStaff = asyncHandler(async (req, res) => {
   }
   res.setHeader('Cache-Control', 'private, no-store');
   res.status(200).json({
-    organization: { id: String(org._id), name: org.name, kind: org.kind || 'pharmacy' },
+    organization: { id: String(org._id), name: org.name, kind: org.kind || 'pharmacy', allowSingleReviewerVerify: Boolean(org.reviewPolicy?.allowSingleReviewerVerify) },
     assignableRoles: org.kind === 'payer' ? ['payer_reviewer', 'payer_admin'] : ['pharmacist', 'pharmacy', 'claims_reviewer', 'org_admin', 'branch_manager'],
     staff: staff.map((u) => ({
       id: String(u._id), name: u.name, email: u.email, role: u.role, mfaEnabled: Boolean(u.mfa?.enabled), createdAt: u.createdAt,
       active: u.active !== false,
-      locked: Boolean(u.login?.lockedUntil && new Date(u.login.lockedUntil) > new Date()),
+      locked: accountSecurity.anyLock(u),
       credential: u.professional?.registrationNumber
-        ? { registrationNumber: u.professional.registrationNumber, council: u.professional.council, verifiedAt: u.professional.verifiedAt }
+        ? { registrationNumber: u.professional.registrationNumber, council: u.professional.council, verifiedAt: u.professional.verifiedAt, checkedVia: u.professional.checkedVia || null, validUntil: u.professional.validUntil || null, expired: Boolean(u.professional.validUntil && new Date(u.professional.validUntil) < new Date()) }
         : null,
       credentialRequired: accountSecurity.CREDENTIAL_ROLES.includes(u.role)
     })),
@@ -405,7 +410,7 @@ const deactivateStaff = asyncHandler(async (req, res) => {
 // @route POST /api/users/staff/:userId/reactivate
 const reactivateStaff = asyncHandler(async (req, res) => {
   const target = await administeredStaff(req, res);
-  await User.updateOne({ _id: target._id }, { $set: { active: true, deactivatedAt: null, deactivatedBy: null, 'login.failedCount': 0, 'login.lockedUntil': null } });
+  await User.updateOne({ _id: target._id }, { $set: { active: true, deactivatedAt: null, deactivatedBy: null, 'login.failedCount': 0, 'login.lockedUntil': null, 'login.sources': [] } });
   await auditStaff(req, target, 'STAFF_REACTIVATED');
   res.json({ ...staffView(target), active: true });
 });
@@ -438,7 +443,7 @@ const forceSignOutStaff = asyncHandler(async (req, res) => {
 // @route POST /api/users/staff/:userId/unlock
 const unlockStaff = asyncHandler(async (req, res) => {
   const target = await administeredStaff(req, res);
-  await User.updateOne({ _id: target._id }, { $set: { 'login.failedCount': 0, 'login.lockedUntil': null } });
+  await User.updateOne({ _id: target._id }, { $set: { 'login.failedCount': 0, 'login.lockedUntil': null, 'login.sources': [] } });
   await auditStaff(req, target, 'STAFF_UNLOCKED');
   res.json({ ...staffView(target), locked: false });
 });
@@ -448,9 +453,60 @@ const confirmStaffCredential = asyncHandler(async (req, res) => {
   const target = await administeredStaff(req, res);
   notSelf(req, res, target, 'confirm the credential of');
   const credential = accountSecurity.validateRegistration(req.body || {});
-  await User.updateOne({ _id: target._id }, { $set: { 'professional.registrationNumber': credential.registrationNumber, 'professional.council': credential.council, 'professional.verifiedBy': req.user._id, 'professional.verifiedAt': new Date() } });
-  await auditStaff(req, target, 'STAFF_CREDENTIAL_CONFIRMED', { council: credential.council });
+  await User.updateOne({ _id: target._id }, { $set: { 'professional.registrationNumber': credential.registrationNumber, 'professional.council': credential.council, 'professional.checkedVia': credential.checkedVia, 'professional.validUntil': credential.validUntil, 'professional.verifiedBy': req.user._id, 'professional.verifiedAt': new Date() } });
+  await auditStaff(req, target, 'STAFF_CREDENTIAL_CONFIRMED', { council: credential.council, checkedVia: credential.checkedVia, validUntil: credential.validUntil });
   res.json({ ...staffView(target), credential: { ...credential, verifiedAt: new Date() } });
 });
 
-module.exports = { authUser, registerUser, provisionStaff, listStaff, getUserProfile, logoutUser, setupMfa, enableMfa, disableMfa, regenerateRecoveryCodes, deactivateStaff, reactivateStaff, changeStaffRole, forceSignOutStaff, unlockStaff, confirmStaffCredential };
+// @route POST /api/users/organization/review-policy  { allowSingleReviewerVerify }
+const updateReviewPolicy = asyncHandler(async (req, res) => {
+  if (isWebClient(req)) verifyBrowserMutation(req);
+  if (!['org_admin', 'super_admin'].includes(req.user?.role) || !req.user.organizationId) {
+    res.status(403);
+    throw new Error('Access denied: only a pharmacy organization admin can change the review policy.');
+  }
+  if (typeof req.body?.allowSingleReviewerVerify !== 'boolean') {
+    res.status(400);
+    throw new Error('allowSingleReviewerVerify must be true or false.');
+  }
+  const org = await Organization.findOneAndUpdate(
+    { _id: req.user.organizationId, kind: { $ne: 'payer' } },
+    { $set: { 'reviewPolicy.allowSingleReviewerVerify': req.body.allowSingleReviewerVerify } },
+    { new: true }
+  );
+  if (!org) {
+    res.status(404);
+    throw new Error('Pharmacy organization not found.');
+  }
+  await auditLoggerService.logEvent({ actorId: req.user._id, actorRole: req.user.role, action: 'REVIEW_POLICY_CHANGED', targetType: 'Organization', targetId: org._id, metadata: { allowSingleReviewerVerify: req.body.allowSingleReviewerVerify } });
+  res.json({ allowSingleReviewerVerify: org.reviewPolicy.allowSingleReviewerVerify });
+});
+
+// @route POST /api/users/me/text-alerts  { enabled, phone?, channel? }
+const updateTextAlerts = asyncHandler(async (req, res) => {
+  if (isWebClient(req)) verifyBrowserMutation(req);
+  const textMessaging = require('../services/platform/textMessaging');
+  const { enabled, phone, channel } = req.body || {};
+  if (typeof enabled !== 'boolean') {
+    res.status(400);
+    throw new Error('enabled must be true or false.');
+  }
+  let update;
+  if (enabled) {
+    if (!['sms', 'whatsapp'].includes(channel || 'sms')) {
+      res.status(400);
+      throw new Error('channel must be sms or whatsapp.');
+    }
+    let normalized;
+    try { normalized = textMessaging.normalizePhone(phone); } catch (error) { res.status(400); throw error; }
+    update = { 'contact.phone': normalized, 'contact.channel': channel || 'sms', 'contact.textOptIn': true, 'contact.textConsentAt': new Date() };
+  } else {
+    // Withdrawing consent also removes the number.
+    update = { 'contact.phone': null, 'contact.textOptIn': false, 'contact.textConsentAt': null };
+  }
+  await User.updateOne({ _id: req.user._id }, { $set: update });
+  await auditLoggerService.logEvent({ actorId: req.user._id, actorRole: req.user.role, action: enabled ? 'TEXT_ALERTS_ENABLED' : 'TEXT_ALERTS_DISABLED', targetType: 'User', targetId: req.user._id, metadata: { channel: enabled ? (channel || 'sms') : null } });
+  res.json({ enabled, channel: enabled ? (channel || 'sms') : 'sms', phone: enabled ? textMessaging.maskPhone(update['contact.phone']) : null, deliveryConfigured: textMessaging.textEnabled() });
+});
+
+module.exports = { authUser, registerUser, provisionStaff, listStaff, getUserProfile, logoutUser, setupMfa, enableMfa, disableMfa, regenerateRecoveryCodes, deactivateStaff, reactivateStaff, changeStaffRole, forceSignOutStaff, unlockStaff, confirmStaffCredential, updateReviewPolicy, updateTextAlerts };

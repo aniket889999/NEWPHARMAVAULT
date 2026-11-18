@@ -139,6 +139,19 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 | Legal drafts | Privacy notice, terms, grievance process, production retention/encryption settings — **drafts, need counsel review** | `docs/legal/` |
 | Operations | Request id on every response; JSON access logs (`LOG_FORMAT=json`, default in production) with route patterns only; 5xx bodies carry `requestId`; Prometheus `/api/metrics` behind `METRICS_TOKEN`; `indexes:sync`; encrypted backup/restore scripts; runbook with alert rules; npm audit (critical) in CI; Playwright E2E on pull requests | `middleware/requestContext.js`, `ops/`, `.github/workflows/` |
 
-The admin confirms the registration manually; there is no live lookup against a pharmacy council register.
+**Usability fixes (after the launch-blocker pass)**
+
+| Problem | Fix |
+| --- | --- |
+| One-pharmacist stores could not verify their own uploads | Team & Access → *Single-pharmacist store*: allowed after an explicit confirmation tick; audited as `FOUR_EYES_SELF_VERIFY_CONFIRMED` |
+| MFA setup needed a typed key | QR code on the Security page (dependency-free encoder, checked against a reference generator); key still shown as fallback |
+| Anyone knowing an email could lock that account | Lockout is per source address (hashed); the whole account locks only after `LOGIN_ACCOUNT_MAX_FAILURES` (50) |
+| Data download was raw JSON | *Download My Data (readable)* gives a plain-language page to print or save as PDF; JSON still available |
+| Browser pop-ups for confirmations | In-app confirmation dialog in the version-2.0 style (Team & Access, claims, insurer decision) |
+| English only | Language switch (English / हिन्दी) on the patient portal and Security page; claimant claims + security/privacy screens translated. **Hindi is a first draft — needs native-speaker review**; other screens still English |
+| Patients missed insurer questions | Opt-in SMS / WhatsApp alerts (no case content in texts) through a configurable gateway; off until `NOTIFY_TEXT_ENABLED` + gateway are set |
+| Registration typed in with no trace | Admin records how it was checked and an optional renewal date; expired registrations block VERIFY until re-confirmed |
+
+The admin confirms the registration manually (how it was checked is recorded); there is no live lookup against a pharmacy council register because councils publish no API.
 
 Audit chain notes: events written before this change are counted as `legacyUnchained` and not covered. Do not change `AUDIT_CHAIN_KEY` once set (old HMAC links would no longer verify). True write-once storage needs MongoDB roles without update/delete on `auditevents` plus off-site exports (e.g. an object-lock bucket) — that is an ops setting, not code.

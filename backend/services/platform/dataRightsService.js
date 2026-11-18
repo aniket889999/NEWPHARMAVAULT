@@ -112,4 +112,47 @@ async function completeErasure(requestId, admin, note) {
   return { id: String(request._id), status: 'COMPLETED', outcome };
 }
 
-module.exports = { ERASURE_DUE_DAYS, OPEN_CLAIM_STATUSES, buildExport, requestErasure, completeErasure };
+
+const esc = (v) => String(v ?? '—').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const day = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+const STATUS_TEXT = {
+  DRAFT: 'Draft', DOCUMENTS_PENDING: 'Waiting for documents', READY_FOR_PROCESSING: 'Ready to read', PROCESSING: 'Reading documents',
+  NEEDS_CORRECTION: 'Needs your correction', NEEDS_REVIEW: 'With the pharmacist', VERIFIED: 'Verified by pharmacist', REJECTED: 'Not verified',
+  CLOSED: 'Closed', FAILED: 'Could not be read', SUBMITTED: 'Sent to insurer', UNDER_PAYER_REVIEW: 'Insurer reviewing', QUERY_RAISED: 'Insurer has a question',
+  APPROVED: 'Approved', PARTIALLY_APPROVED: 'Partly approved', SETTLED: 'Settled (simulated)', WITHDRAWN: 'Withdrawn', APPEALED: 'Appealed'
+};
+const label = (s) => STATUS_TEXT[s] || s;
+const table = (head, rows) => rows.length
+  ? `<table><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+  : '<p class="none">Nothing here.</p>';
+
+/** Plain-language, printable summary of an export (open in a browser, print or save as PDF). */
+function exportToHtml(data) {
+  const fieldsByCase = new Map();
+  for (const f of data.extractedFields) {
+    const key = String(f.caseId);
+    if (!fieldsByCase.has(key)) fieldsByCase.set(key, []);
+    fieldsByCase.get(key).push(f);
+  }
+  const cases = data.cases.map((c, i) => {
+    const docs = data.documents.filter((d) => String(d.caseId) === c.id);
+    const decisions = data.reviewDecisions.filter((d) => String(d.caseId) === c.id);
+    const fields = fieldsByCase.get(c.id) || [];
+    return `<section><h3>Case ${i + 1} · ${esc(label(c.status))}</h3><p class="meta">Started ${day(c.createdAt)} · last change ${day(c.updatedAt)}${c.purgedAt ? ` · documents removed ${day(c.purgedAt)}` : ''}</p>
+      <h4>Documents</h4>${table(['Type', 'File', 'Uploaded'], docs.map((d) => [String(d.type).replace(/_/g, ' ').toLowerCase(), d.originalFilename || '—', day(d.createdAt)]))}
+      <h4>Details read from your documents</h4>${table(['Field', 'Value'], fields.slice(0, 200).map((f) => [String(f.fieldType).replace(/_/g, ' ').toLowerCase(), f.normalizedValue ?? f.rawValue]))}
+      <h4>Pharmacist decisions</h4>${table(['Date', 'Decision', 'Note'], decisions.map((d) => [day(d.createdAt), String(d.decision).replace(/_/g, ' ').toLowerCase(), d.notes]))}</section>`;
+  }).join('');
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your PharmaVault data</title>
+<style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:860px;margin:2rem auto;padding:0 1rem;line-height:1.5}h1{font-size:1.6rem}h2{border-bottom:2px solid #0d9488;padding-bottom:.25rem;margin-top:2rem}h3{margin-bottom:0}h4{margin:.75rem 0 .25rem;color:#475569}table{border-collapse:collapse;width:100%;font-size:.9rem;margin-bottom:.5rem}th,td{border:1px solid #e2e8f0;padding:.35rem .5rem;text-align:left;vertical-align:top}th{background:#f8fafc}.meta,.none,.note{color:#64748b;font-size:.85rem}section{border:1px solid #e2e8f0;border-radius:12px;padding:1rem;margin:1rem 0}@media print{.noprint{display:none}}</style></head><body>
+<h1>Your PharmaVault data</h1><p class="meta">Created ${day(data.generatedAt)}. ${esc(data.note)}</p>
+<p class="noprint note">Tip: use your browser's Print → “Save as PDF” to keep a copy.</p>
+<h2>Your account</h2>${table(['Name', 'Email', 'Account type', 'Two-factor sign-in', 'Joined'], [[data.account.name, data.account.email, data.account.role, data.account.mfaEnabled ? 'On' : 'Off', day(data.account.createdAt)]])}
+<h2>Your cases (${data.cases.length})</h2>${cases || '<p class="none">No cases.</p>'}
+<h2>Insurance claims (${data.claims.length})</h2>${table(['Reference', 'Status', 'Amount claimed', 'Decision', 'Submitted'], data.claims.map((c) => [c.claimReference, label(c.status), `₹${c.claimedAmount}`, c.decision?.decision ? `${label(c.decision.decision)}${c.decision.approvedAmount != null ? ` (₹${c.decision.approvedAmount})` : ''}` : '—', day(c.createdAt)]))}
+<h2>Data-sharing consents (${data.consentGrants.length})</h2>${table(['Given', 'Valid until', 'Withdrawn'], data.consentGrants.map((g) => [day(g.createdAt), day(g.expiresAt), g.revokedAt ? day(g.revokedAt) : 'Still active']))}
+<h2>Your recent activity</h2>${table(['Date', 'What happened'], data.activity.slice(0, 100).map((a) => [day(a.createdAt), String(a.action).replace(/_/g, ' ').toLowerCase()]))}
+<p class="note">The full machine-readable copy is available as JSON from the same page.${data.truncated ? ' Very long lists were shortened.' : ''}</p></body></html>`;
+}
+
+module.exports = { ERASURE_DUE_DAYS, OPEN_CLAIM_STATUSES, buildExport, exportToHtml, requestErasure, completeErasure };
