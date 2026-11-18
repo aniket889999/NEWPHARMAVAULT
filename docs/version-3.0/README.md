@@ -134,5 +134,8 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 | Login lockout | `LOGIN_MAX_FAILURES` (5) failures lock for `LOGIN_LOCK_MINUTES` (15); same generic error; admin unlock | `userController.authUser` |
 | Staff administration | Deactivate / reactivate, change role, sign out everywhere, unlock — same-organization only, never self, audited; role change and deactivation revoke sessions | Team & Access, `/api/users/staff/:id/*` |
 | Reviewer credential | `REVIEW_CREDENTIAL_REQUIRED=true` → VERIFY needs a registration number confirmed by an org admin | Team & Access → Registration |
+| Tamper-evident audit | Every new audit event is linked into one hash chain (SHA-256, or HMAC with `AUDIT_CHAIN_KEY`); model refuses updates/deletes; no edit/delete route. `GET /api/v1/audit/chain/verify` (super_admin, auditor), `npm --prefix backend run audit:verify`, daily write-once export `npm --prefix backend run audit:export -- --out <dir>` | `services/platform/auditChain.js` |
 
 The admin confirms the registration manually; there is no live lookup against a pharmacy council register.
+
+Audit chain notes: events written before this change are counted as `legacyUnchained` and not covered. Do not change `AUDIT_CHAIN_KEY` once set (old HMAC links would no longer verify). True write-once storage needs MongoDB roles without update/delete on `auditevents` plus off-site exports (e.g. an object-lock bucket) — that is an ops setting, not code.

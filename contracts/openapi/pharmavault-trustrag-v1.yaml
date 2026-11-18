@@ -28,6 +28,19 @@ components:
       description: Production HTTPS-only HttpOnly SameSite=Strict host cookie; development uses pv_session. No browser token is returned in JSON.
 
   schemas:
+    AuditChainVerification:
+      type: object
+      properties:
+        ok: { type: boolean }
+        checked: { type: integer, minimum: 0 }
+        fromSeq: { type: integer }
+        headSeq: { type: integer, minimum: 0 }
+        headHash: { type: [ string, 'null' ] }
+        legacyUnchained: { type: integer, minimum: 0, description: Events written before the chain existed (not covered) }
+        problem: { type: string, enum: [ MISSING_EVENT, PREV_HASH_MISMATCH, HASH_MISMATCH, HEAD_MISMATCH, AUDIT_CHAIN_KEY_MISSING, VERIFY_ERROR ] }
+        seq: { type: integer }
+        detail: { type: string }
+      required: [ ok, checked, headSeq, legacyUnchained ]
     RecoveryCodes:
       type: array
       description: One-time MFA recovery codes, shown once. Stored server-side only as SHA-256 hashes.
@@ -2145,6 +2158,29 @@ paths:
                 required: [ recoveryCodes ]
         '400':
           description: Code did not match or MFA not enabled
+
+  # ───────────── Audit log integrity (read-only; no edit/delete routes exist) ─────────────
+
+  /audit/chain/verify:
+    get:
+      summary: Recompute the tamper-evident audit hash chain and report the first break
+      description: super_admin or auditor only. Each event stores chainSeq, prevHash and hash (SHA-256, or HMAC-SHA-256 with AUDIT_CHAIN_KEY). The check itself is audited.
+      operationId: verifyAuditChain
+      parameters:
+        - name: fromSeq
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditChainVerification' }
+        '400':
+          description: Invalid fromSeq
+        '403':
+          description: Caller is not super_admin or auditor
 
   # ───────────── Team & Access (staff administration) ─────────────
 

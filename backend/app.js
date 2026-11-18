@@ -111,6 +111,8 @@ if (process.env.E2E_SETUP_ENABLED === 'true' && process.env.NODE_ENV !== 'produc
 app.use('/api/v1', protect, tenantMiddleware, claimsRoutes);
 // Reviewer workflow: case assignment lease and reopen (decisions stay in trustRagRoutes)
 app.use('/api/v1', protect, tenantMiddleware, require('./routes/reviewWorkflowRoutes'));
+// Audit log integrity check (read-only)
+app.use('/api/v1', protect, tenantMiddleware, require('./routes/auditRoutes'));
 app.use('/api/v1', protect, tenantMiddleware, trustRagRoutes);
 
 app.use(notFound);
