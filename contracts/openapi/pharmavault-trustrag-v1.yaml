@@ -52,6 +52,23 @@ components:
       $ref: '../schemas/case-share-grant.schema.json'
     Notification:
       $ref: '../schemas/notification.schema.json'
+    ReviewAssignment:
+      type: object
+      properties:
+        caseId: { type: string }
+        status: { type: string }
+        assignment:
+          oneOf:
+            - type: 'null'
+            - type: object
+              properties:
+                assignedTo: { type: string }
+                assignedToMe: { type: boolean }
+                assigneeName: { type: [ string, 'null' ] }
+                assignedAt: { type: string, format: date-time }
+                expiresAt: { type: string, format: date-time }
+              required: [ assignedTo, assignedToMe, assignedAt, expiresAt ]
+      required: [ caseId, status, assignment ]
     ClaimsError:
       type: object
       properties:
@@ -82,6 +99,38 @@ components:
       schema:
         type: string
         pattern: '^[0-9a-fA-F]{24}$'
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+    Sort:
+      name: sort
+      in: query
+      required: false
+      schema: { type: string, enum: [ oldest, newest ], default: oldest }
+    CaseId:
+      name: caseId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{24}$'
+  headers:
+    XTotalCount:
+      description: Total matching items across all pages
+      schema: { type: integer, minimum: 0 }
+    XPage:
+      description: Page returned (1-based)
+      schema: { type: integer, minimum: 1 }
+    XLimit:
+      description: Page size used
+      schema: { type: integer, minimum: 1, maximum: 100 }
   responses:
     ClaimsError:
       description: Claims error (400 validation, 403 role or consent, 404 not found or other tenant, 409 invalid transition or concurrent change)
@@ -1334,14 +1383,36 @@ paths:
 
   /review-queue:
     get:
-      summary: List cases requiring review
+      summary: List cases requiring review (tenant-scoped, paged, oldest first by default)
       operationId: getReviewQueue
       security:
         - bearerAuth: [ "claims_reviewer", "pharmacist", "org_admin" ]
         - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [ NEEDS_REVIEW, NEEDS_CORRECTION ] }
+        - name: assigned
+          in: query
+          required: false
+          description: me = cases I hold; unassigned = nobody holds an active lease; others = held by another reviewer
+          schema: { type: string, enum: [ me, unassigned, others ] }
+        - name: q
+          in: query
+          required: false
+          description: Case or subject reference prefix
+          schema: { type: string, maxLength: 64 }
       responses:
         '200':
-          description: Cases waiting for human review
+          description: One page of cases waiting for human review (array; totals in headers)
+          headers:
+            X-Total-Count: { $ref: '#/components/headers/XTotalCount' }
+            X-Page: { $ref: '#/components/headers/XPage' }
+            X-Limit: { $ref: '#/components/headers/XLimit' }
 
   /cases/{caseId}/reviews:
     get:
@@ -1408,11 +1479,11 @@ paths:
         '400':
           description: Validation error (missing/invalid snapshotToken, short notes, or unsupported decision)
         '403':
-          description: Forbidden role
+          description: Forbidden role, or four-eyes rule (FOUR_EYES_CASE_CREATOR / FOUR_EYES_DOCUMENT_UPLOADER) on VERIFY
         '404':
           description: Case not found or cross-tenant access denied
         '409':
-          description: Conflict (Stale snapshot token, review blocked by unresolved blockers, or case busy)
+          description: Conflict (stale snapshot token, unresolved blockers, case busy, or CASE_ASSIGNED_TO_OTHER)
 
   /cases/{caseId}/fhir-bundle:
     get:
@@ -1620,21 +1691,64 @@ paths:
         - bearerAuth: [ "payer_reviewer", "payer_admin" ]
         - cookieAuth: []
       parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
         - name: status
           in: query
           required: false
           schema:
             type: string
-            enum: [ SUBMITTED, UNDER_PAYER_REVIEW, QUERY_RAISED, APPROVED, PARTIALLY_APPROVED, REJECTED, SETTLED, WITHDRAWN ]
+            enum: [ SUBMITTED, UNDER_PAYER_REVIEW, QUERY_RAISED, APPROVED, PARTIALLY_APPROVED, REJECTED, SETTLED, WITHDRAWN, APPEALED ]
+        - name: q
+          in: query
+          required: false
+          description: Claim reference prefix
+          schema: { type: string, maxLength: 40 }
       responses:
         '200':
-          description: Queue items
+          description: One page of queue items (totals in headers)
+          headers:
+            X-Total-Count: { $ref: '#/components/headers/XTotalCount' }
+            X-Page: { $ref: '#/components/headers/XPage' }
+            X-Limit: { $ref: '#/components/headers/XLimit' }
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/PayerClaimSummary'
+
+  /claims/{claimId}/appeal:
+    post:
+      summary: Claimant appeals a REJECTED or PARTIALLY_APPROVED decision (once)
+      description: Requires an active consent grant. A different insurer reviewer must decide the appeal (403 FOUR_EYES_APPEAL otherwise).
+      operationId: appealClaim
+      security:
+        - bearerAuth: [ "patient" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason: { type: string, minLength: 20, maxLength: 2000 }
+              required: [ reason ]
+      responses:
+        '200':
+          description: Claim in APPEALED status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Claim' }
+        '400':
+          $ref: '#/components/responses/ClaimsError'
+        '409':
+          $ref: '#/components/responses/ClaimsError'
 
   /payer/analytics:
     get:
@@ -1768,7 +1882,7 @@ paths:
 
   /payer/claims/{claimId}/start-review:
     post:
-      summary: Insurer opens review (SUBMITTED -> UNDER_PAYER_REVIEW)
+      summary: Insurer opens review (SUBMITTED or APPEALED -> UNDER_PAYER_REVIEW)
       operationId: startPayerReview
       security:
         - bearerAuth: [ "payer_reviewer", "payer_admin" ]
@@ -1982,3 +2096,108 @@ paths:
           description: MFA disabled
         '400':
           description: Code did not match or MFA not enabled
+
+  # ───────────── Reviewer workflow (assignment lease, reopen) ─────────────
+
+  /review/cases/{caseId}/assignment:
+    get:
+      summary: Who holds the case right now
+      operationId: getReviewAssignment
+      security:
+        - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      responses:
+        '200':
+          description: Current assignment (null when free)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReviewAssignment' }
+        '404':
+          description: Case not found in your organization
+    post:
+      summary: Take (or renew) the case for a time-limited lease (REVIEW_ASSIGNMENT_MINUTES, default 30)
+      description: Fails with 409 CASE_ASSIGNED_TO_OTHER while another reviewer's lease is active. Org admins may pass force=true to reassign. Recording a decision ends the lease.
+      operationId: takeReviewAssignment
+      security:
+        - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                force: { type: boolean }
+      responses:
+        '200':
+          description: Assignment held by the caller
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReviewAssignment' }
+        '403':
+          description: Not a reviewer, or force without admin role
+        '409':
+          description: CASE_ASSIGNED_TO_OTHER or CASE_NOT_REVIEWABLE
+    delete:
+      summary: Release the case (holder, or an org admin)
+      operationId: releaseReviewAssignment
+      security:
+        - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      responses:
+        '200':
+          description: Released
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReviewAssignment' }
+        '409':
+          description: NOT_ASSIGNED_TO_YOU
+
+  /review/cases/{caseId}/reopen:
+    post:
+      summary: Reopen a VERIFIED or REJECTED case for a new review (org admin, audited)
+      description: Moves the case to NEEDS_REVIEW and bumps the evidence revision so every earlier snapshotToken is stale. Refused while an insurance claim on the case is open.
+      operationId: reopenCase
+      security:
+        - bearerAuth: [ "org_admin", "super_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason: { type: string, minLength: 10, maxLength: 2000 }
+              required: [ reason ]
+      responses:
+        '200':
+          description: Case reopened
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  caseId: { type: string }
+                  status: { const: NEEDS_REVIEW }
+                  previousStatus: { type: string, enum: [ VERIFIED, REJECTED ] }
+                  reopenCount: { type: integer, minimum: 1 }
+                  evidenceRevision: { type: integer, minimum: 1 }
+                required: [ caseId, status, previousStatus, reopenCount, evidenceRevision ]
+        '400':
+          description: REOPEN_REASON_REQUIRED
+        '403':
+          description: FORBIDDEN_ROLE
+        '409':
+          description: CASE_NOT_REOPENABLE or CLAIM_IN_PROGRESS

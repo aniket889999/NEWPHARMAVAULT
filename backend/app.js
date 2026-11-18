@@ -109,6 +109,8 @@ if (process.env.E2E_SETUP_ENABLED === 'true' && process.env.NODE_ENV !== 'produc
 
 // Claims module (claimant ↔ insurer), pharmacy claim status and notifications
 app.use('/api/v1', protect, tenantMiddleware, claimsRoutes);
+// Reviewer workflow: case assignment lease and reopen (decisions stay in trustRagRoutes)
+app.use('/api/v1', protect, tenantMiddleware, require('./routes/reviewWorkflowRoutes'));
 app.use('/api/v1', protect, tenantMiddleware, trustRagRoutes);
 
 app.use(notFound);

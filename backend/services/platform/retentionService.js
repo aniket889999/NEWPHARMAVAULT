@@ -21,7 +21,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const FINISHED_CASE_STATUSES = Object.freeze(['VERIFIED', 'REJECTED', 'CLOSED', 'FAILED']);
-const OPEN_CLAIM_STATUSES = Object.freeze(['SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED', 'APPROVED', 'PARTIALLY_APPROVED']);
+const OPEN_CLAIM_STATUSES = Object.freeze(['SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED', 'APPROVED', 'PARTIALLY_APPROVED', 'APPEALED']);
 const DAY_MS = 86_400_000;
 
 function readPolicy(env = process.env) {

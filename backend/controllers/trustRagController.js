@@ -30,6 +30,7 @@ const {
   bumpCaseEvidenceRevision
 } = require('../services/trustRag/caseEvidenceMutationService');
 // Adds a MongoDB lease (CASE_LOCK_BACKEND=mongo) around the frozen in-process guard.
+const reviewPolicy = require('../services/review/reviewPolicy');
 const { withCaseMutationGuard } = require('../services/platform/caseGuard');
 
 function sendControlledError(res, err) {
@@ -897,10 +898,19 @@ const getReviewQueue = asyncHandler(async (req, res) => {
     filter.organizationId = req.tenantContext.organizationId;
   }
 
-  const queue = await VerificationCase.find(filter)
-    .populate('createdBy', 'name email role')
-    .sort('-updatedAt');
-
+  // Server-side paging and filters; the body stays an array (totals in X-Total-Count).
+  const paging = reviewPolicy.parseQueueQuery(req.query);
+  const pagedFilter = reviewPolicy.queueFilter(filter, paging, req.user._id);
+  const [queue, total] = await Promise.all([
+    VerificationCase.find(pagedFilter)
+      .populate('createdBy', 'name email role')
+      .populate('assignedTo', 'name role')
+      .sort(paging.sort === 'newest' ? '-updatedAt' : 'updatedAt')
+      .skip((paging.page - 1) * paging.limit)
+      .limit(paging.limit),
+    VerificationCase.countDocuments(pagedFilter)
+  ]);
+  reviewPolicy.setPagingHeaders(res, { page: paging.page, limit: paging.limit, total });
   res.status(200).json(queue);
 });
 
@@ -1056,6 +1066,18 @@ const submitReview = asyncHandler(async (req, res) => {
         }
       }
 
+      // Reviewer lease: nobody else may decide while another reviewer holds the case.
+      reviewPolicy.assertNotAssignedToOther(vCase, req.user._id);
+      // Four-eyes: whoever created the case or uploaded its documents cannot give the final VERIFY.
+      const uploaderIds = await Document.distinct('uploadedBy', { caseId: vCase._id });
+      const fourEyes = reviewPolicy.fourEyesViolation({ action: mapping.label, reviewerId: req.user._id, vCase, documentUploaderIds: uploaderIds });
+      if (fourEyes) {
+        const err = new Error('Four-eyes rule: a different reviewer must verify a case you created or uploaded documents to. You can still escalate or return it for correction.');
+        err.statusCode = 403;
+        err.code = fourEyes;
+        throw err;
+      }
+
       // Compute fresh current snapshot inside the per-case lock
       const currentSnapshot = await buildCaseReconciliationSnapshot({
         vCase,
@@ -1099,7 +1121,11 @@ const submitReview = asyncHandler(async (req, res) => {
         {
           $set: {
             status: mapping.newStatus,
-            reviewRequired: mapping.reviewRequired
+            reviewRequired: mapping.reviewRequired,
+            // A recorded decision ends the reviewer lease.
+            assignedTo: null,
+            assignedAt: null,
+            assignmentExpiresAt: null
           }
         },
         { new: true }
