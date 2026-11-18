@@ -65,3 +65,7 @@ backend/evaluation/results/*
 e2e/node_modules/
 e2e/playwright-report/
 e2e/test-results/
+
+# Audit exports (contain audit metadata; store off-site, never commit)
+audit-exports/
+e2e/showcase/

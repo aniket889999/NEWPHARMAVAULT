@@ -21,7 +21,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const FINISHED_CASE_STATUSES = Object.freeze(['VERIFIED', 'REJECTED', 'CLOSED', 'FAILED']);
-const OPEN_CLAIM_STATUSES = Object.freeze(['SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED', 'APPROVED', 'PARTIALLY_APPROVED']);
+const OPEN_CLAIM_STATUSES = Object.freeze(['SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED', 'APPROVED', 'PARTIALLY_APPROVED', 'APPEALED']);
 const DAY_MS = 86_400_000;
 
 function readPolicy(env = process.env) {
@@ -63,19 +63,36 @@ function removeCaseFiles(storageRoot, caseId) {
 }
 
 /**
- * Runs one retention pass. dryRun=true only counts.
+ * Removes stored files and derived evidence of one case and marks it purged.
+ * Shared by the retention pass and patient erasure requests.
  */
-async function runRetention({ dryRun = true, now = Date.now(), env = process.env, logger = console } = {}) {
+async function purgeCaseContent(caseId, { now = Date.now(), env = process.env } = {}) {
   const VerificationCase = require('../../models/verificationCaseModel');
-  const Claim = require('../../models/claimModel');
   const Document = require('../../models/documentModel');
   const ExtractedField = require('../../models/extractedFieldModel');
   const ConsistencyCheck = require('../../models/consistencyCheckModel');
   const RiskSignal = require('../../models/riskSignalModel');
   const EvidenceItem = require('../../models/evidenceItemModel');
+  const { getDocumentStorageRoot } = require('../../config/documentStorage');
+  const filter = { caseId };
+  await Promise.all([
+    Document.deleteMany(filter), ExtractedField.deleteMany(filter), ConsistencyCheck.deleteMany(filter),
+    RiskSignal.deleteMany(filter), EvidenceItem.deleteMany(filter)
+  ]);
+  const fileRemoved = removeCaseFiles(getDocumentStorageRoot(env), caseId);
+  // updateOne with timestamps:false keeps updatedAt, so the case is not "fresh" again.
+  await VerificationCase.updateOne({ _id: caseId }, { $set: { purgedAt: new Date(now) } }, { timestamps: false });
+  return { fileRemoved };
+}
+
+/**
+ * Runs one retention pass. dryRun=true only counts.
+ */
+async function runRetention({ dryRun = true, now = Date.now(), env = process.env, logger = console } = {}) {
+  const VerificationCase = require('../../models/verificationCaseModel');
+  const Claim = require('../../models/claimModel');
   const Notification = require('../../models/notificationModel');
   const auditLoggerService = require('../trustRag/auditLoggerService');
-  const { getDocumentStorageRoot } = require('../../config/documentStorage');
 
   const policy = readPolicy(env);
   const { caseCutoff, notificationCutoff } = cutoffs(policy, now);
@@ -88,20 +105,12 @@ async function runRetention({ dryRun = true, now = Date.now(), env = process.env
   }).select('_id status updatedAt purgedAt createdBy').limit(policy.batchSize).lean();
   report.casesConsidered = candidates.length;
 
-  const storageRoot = getDocumentStorageRoot(env);
   for (const vCase of candidates) {
     const claims = await Claim.find({ caseId: vCase._id }).select('status updatedAt').lean();
     if (!isCaseEligible(vCase, claims, caseCutoff)) continue;
     if (dryRun) { report.casesPurged += 1; continue; }
 
-    const filter = { caseId: vCase._id };
-    await Promise.all([
-      Document.deleteMany(filter), ExtractedField.deleteMany(filter), ConsistencyCheck.deleteMany(filter),
-      RiskSignal.deleteMany(filter), EvidenceItem.deleteMany(filter)
-    ]);
-    if (removeCaseFiles(storageRoot, vCase._id)) report.filesRemoved += 1;
-    // updateOne with timestamps:false keeps updatedAt, so the case is not "fresh" again.
-    await VerificationCase.updateOne({ _id: vCase._id }, { $set: { purgedAt: new Date(now) } }, { timestamps: false });
+    if ((await purgeCaseContent(vCase._id, { now, env })).fileRemoved) report.filesRemoved += 1;
     await auditLoggerService.logEvent({
       caseId: vCase._id, actorId: vCase.createdBy, actorRole: 'system_retention', action: 'RETENTION_CASE_CONTENT_PURGED',
       targetType: 'VerificationCase', targetId: vCase._id, metadata: { caseDays: policy.caseDays }
@@ -142,4 +151,4 @@ function startRetentionSchedule({ env = process.env } = {}) {
   return { stop: () => { clearTimeout(first); clearInterval(timer); } };
 }
 
-module.exports = { FINISHED_CASE_STATUSES, OPEN_CLAIM_STATUSES, readPolicy, cutoffs, isCaseEligible, removeCaseFiles, runRetention, startRetentionSchedule };
+module.exports = { FINISHED_CASE_STATUSES, OPEN_CLAIM_STATUSES, readPolicy, cutoffs, isCaseEligible, removeCaseFiles, purgeCaseContent, runRetention, startRetentionSchedule };

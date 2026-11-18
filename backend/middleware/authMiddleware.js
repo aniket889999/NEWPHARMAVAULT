@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('./asyncHandler');
 const User = require('../models/userModel');
+const { needsMfaSetup, mfaSetupPathAllowed } = require('../services/platform/accountSecurity');
 const { WEB_AUDIENCE, WEB_TTL_SECONDS, NATIVE_TTL_SECONDS, readBrowserCookie, verifyBrowserMutation, clearBrowserSession } = require('../config/browserSession');
 
 const protect = asyncHandler(async (req, res, next) => {
@@ -23,12 +24,16 @@ const protect = asyncHandler(async (req, res, next) => {
     }
     try { req.user = await User.findById(decoded.id).select('-password +sessionVersion'); }
     catch { throw Object.assign(new Error('Authentication is temporarily unavailable.'), { statusCode: 503 }); }
-    if (!req.user || (decoded.ver ?? 0) !== (req.user.sessionVersion || 0)) {
+    if (!req.user || req.user.active === false || (decoded.ver ?? 0) !== (req.user.sessionVersion || 0)) {
       if (cookie) clearBrowserSession(res);
       res.status(401);
       throw new Error('Not authorized, session revoked');
     }
     req.authTransport = cookie ? 'cookie' : 'bearer';
+    // MFA_REQUIRED_FOR_STAFF: staff without MFA may only reach profile, logout and MFA setup.
+    if (needsMfaSetup(req.user) && !mfaSetupPathAllowed(req.originalUrl)) {
+      return res.status(403).json({ code: 'MFA_SETUP_REQUIRED', message: 'Two-factor authentication must be turned on for this account before you continue.' });
+    }
     // Do not catch and turn downstream database/controller errors into a 401.
     return next();
   }

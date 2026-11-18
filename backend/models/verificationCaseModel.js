@@ -59,6 +59,11 @@ const verificationCaseSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    // Reviewer lease: who is working on the case and until when (see services/review/reviewPolicy.js).
+    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+    assignedAt: { type: Date, default: null },
+    assignmentExpiresAt: { type: Date, default: null },
+    reopenCount: { type: Number, default: 0, min: 0 },
     // Set by the retention job when document content and derived evidence were removed.
     purgedAt: {
       type: Date,

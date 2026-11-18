@@ -1,7 +1,9 @@
 import React from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import DemoNotice from '../components/common/DemoNotice';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/notifications/NotificationBell';
+import LanguageSwitch from '../components/common/LanguageSwitch';
 import { 
   Home, 
   Pill, 
@@ -222,6 +224,7 @@ const PatientLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-4">
+            <LanguageSwitch />
             <NotificationBell />
             <div className="flex items-center space-x-2 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-medium text-emerald-700">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -248,6 +251,7 @@ const PatientLayout: React.FC = () => {
 
         {/* Main Content Workspace */}
         <main className="flex-1 overflow-y-auto bg-slate-50">
+          <DemoNotice />
           <Outlet />
         </main>
       </div>

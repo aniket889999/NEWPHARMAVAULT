@@ -169,6 +169,8 @@ export const verificationApi = {
       reasonCode: string;
       notes: string;
       evidenceItemIds?: string[];
+      /** Single-pharmacist stores only: the uploader confirms they checked the originals. */
+      selfVerifyConfirmed?: boolean;
     }
   ): Promise<ReviewDecision> {
     const { data } = await apiClient.post<ReviewDecision>(`/v1/cases/${caseId}/reviews`, payload);

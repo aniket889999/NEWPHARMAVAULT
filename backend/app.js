@@ -1,3 +1,4 @@
+const { requestContext, metricsHandler } = require('./middleware/requestContext');
 const express = require('express');
 const cors = require('cors');
 
@@ -52,22 +53,24 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(rejectQuerySelectors);
 
-// Metadata-only request logging. Never record URLs, bodies, authorization
-// headers, OCR text, filenames, or identifiers that could be sensitive.
-app.use((req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    if (process.env.NODE_ENV !== 'test') {
-      console.log(`[${new Date().toISOString()}] ${req.method} ${res.statusCode} - ${duration}ms`);
-    }
-  });
-  next();
-});
+// Request id + metadata-only access log (route pattern, no query/body/headers/identifiers) + metrics.
+app.use(requestContext);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'PharmaVault API is running.' });
 });
+
+// Prometheus metrics; disabled (404) unless METRICS_TOKEN is set.
+app.get('/api/metrics', metricsHandler(async () => {
+  if (!isDatabaseReady()) return { database_ready: 0 };
+  const VerificationCase = require('./models/verificationCaseModel');
+  const Claim = require('./models/claimModel');
+  const [reviewQueue, openClaims] = await Promise.all([
+    VerificationCase.countDocuments({ status: 'NEEDS_REVIEW' }),
+    Claim.countDocuments({ status: { $in: ['SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED', 'APPEALED'] } })
+  ]);
+  return { database_ready: 1, review_queue_cases: reviewQueue, open_claims: openClaims };
+}));
 
 app.get('/api/ready', (req, res) => {
   const ready = isDatabaseReady();
@@ -109,6 +112,12 @@ if (process.env.E2E_SETUP_ENABLED === 'true' && process.env.NODE_ENV !== 'produc
 
 // Claims module (claimant ↔ insurer), pharmacy claim status and notifications
 app.use('/api/v1', protect, tenantMiddleware, claimsRoutes);
+// Reviewer workflow: case assignment lease and reopen (decisions stay in trustRagRoutes)
+app.use('/api/v1', protect, tenantMiddleware, require('./routes/reviewWorkflowRoutes'));
+// Audit log integrity check (read-only)
+app.use('/api/v1', protect, tenantMiddleware, require('./routes/auditRoutes'));
+// Data-principal rights: export my data, erasure requests
+app.use('/api/v1', protect, tenantMiddleware, require('./routes/dataRightsRoutes'));
 app.use('/api/v1', protect, tenantMiddleware, trustRagRoutes);
 
 app.use(notFound);

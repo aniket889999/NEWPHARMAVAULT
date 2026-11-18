@@ -13,7 +13,9 @@ const notificationSchema = new mongoose.Schema(
       inApp: { type: String, enum: ['DELIVERED'], default: 'DELIVERED' },
       email: { type: String, enum: ['NOT_CONFIGURED', 'QUEUED', 'SENT', 'FAILED'], default: 'NOT_CONFIGURED' },
       emailAttempts: { type: Number, default: 0 },
-      emailLastError: { type: String, default: null, maxlength: 200 }
+      emailLastError: { type: String, default: null, maxlength: 200 },
+      text: { type: String, enum: ['NOT_SENT', 'SENT', 'FAILED'], default: 'NOT_SENT' },
+      textAttempts: { type: Number, default: 0 }
     }
   },
   { timestamps: true }

@@ -42,6 +42,10 @@ apiClient.interceptors.response.use(
       if (/\/users\/(?:login|register|profile|logout)$/.test(error.config?.url || '')) return Promise.reject(error);
       notifySessionExpired();
     }
+    // Staff account without MFA while MFA_REQUIRED_FOR_STAFF is on: refresh the profile so RoleRoute sends the person to setup.
+    if (error.response?.status === 403 && error.response?.data?.code === 'MFA_SETUP_REQUIRED' && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('pharmavault:mfa-setup-required'));
+    }
     return Promise.reject(error);
   }
 );

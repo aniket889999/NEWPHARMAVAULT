@@ -63,7 +63,7 @@ import PharmacyClaims from './pages/pharmacy/PharmacyClaims';
 import SecuritySettings from './pages/account/SecuritySettings';
 import TeamAccess from './pages/account/TeamAccess';
 import PayerLayout from './layouts/PayerLayout';
-import ReviewerLayout from './layouts/ReviewerLayout';
+import CasesShell from './layouts/CasesShell';
 import PayerDashboard from './pages/payer/PayerDashboard';
 import PayerClaimsQueue from './pages/payer/PayerClaimsQueue';
 import PayerClaimWorkspace from './pages/payer/PayerClaimWorkspace';
@@ -144,7 +144,8 @@ const AppRoutes: React.FC = () => {
       <Route
         element={
           <RoleRoute allowedRoles={['patient', 'pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
-            <ReviewerLayout />
+            {/* Patients keep the patient portal layout; staff get the Reviewer Workstation. */}
+            <CasesShell />
           </RoleRoute>
         }
       >

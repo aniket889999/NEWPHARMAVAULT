@@ -1,91 +1,127 @@
 # PharmaVault TrustRAG
 
-> **version-3.0:** version-2.0 UI + v2-01 backend + claims/insurer portal, MFA, notifications. Setup, demo accounts and known gaps: [docs/version-3.0/README.md](docs/version-3.0/README.md).
+Evidence-grounded prescription, pharmacy-invoice and health-claim verification with human review, an insurer portal and a cited Evidence Chat.
 
-[![Offline checkpoint checks](https://github.com/aniket889999/NEWPHARMAVAULT/actions/workflows/checkpoints.yml/badge.svg?branch=main)](https://github.com/aniket889999/NEWPHARMAVAULT/actions/workflows/checkpoints.yml)
+> **Final-year major project · academic prototype.** Synthetic data only. Not for clinical use or real patient data.
 
-## Current engineering checkpoints
+[![Claims & platform](https://github.com/aniket889999/NEWPHARMAVAULT/actions/workflows/claims-platform.yml/badge.svg)](https://github.com/aniket889999/NEWPHARMAVAULT/actions/workflows/claims-platform.yml)
+[![End-to-end](https://github.com/aniket889999/NEWPHARMAVAULT/actions/workflows/e2e.yml/badge.svg)](https://github.com/aniket889999/NEWPHARMAVAULT/actions/workflows/e2e.yml)
 
-Sessions 1–2 are accepted **offline**: up to three source-linked medicine items per document, explainable prescription/invoice matching and conservative quantity conversion. The clean-checkout regression contains 263 passing development checks. See [published checkpoint status](docs/CHECKPOINT_STATUS.md) for exact scopes, frozen contracts and reproducible commands.
+## The problem
 
-Session 3 case-page, grouping and human-review integration is **PARTIAL** until the backend, real database/OCR and browser workflow are independently accepted. Sessions 4–5 and held-out product evaluation have not started. The badge measures bounded offline checks, not full-app, clinical or production readiness.
+Health claims for medicines need someone to check that the prescription, the pharmacy invoice and the claim agree: same medicine, strength, form and quantity. That check is manual, slow and hard to audit. PharmaVault automates the evidence gathering and leaves every decision to a human.
 
-**This integration WIP branch is not accepted.** It contains the proposed Session 3 backend and client plus four independently reproduced failures. In particular, contradictory supporting claim-page metadata still permits document verification. See the [independent review and corrective handoff](docs/integration-v2/SESSION_3_INDEPENDENT_REVIEW.md). The separate Session 3 contract-review workflow reports real HTTP/DB failures; the offline badge above does not override it. No merge or production use yet.
+## How it works
 
-## Project Description
-An academic final-year engineering prototype for evidence-grounded prescription, pharmacy-invoice and health-claim verification with human review.
+```mermaid
+flowchart LR
+  subgraph Portals
+    P[Claimant portal]
+    PH[Pharmacy / pharmacist workstation]
+    I[Insurer portal<br/>separate tenant]
+    A[Admin]
+  end
+  P -- upload Rx + invoice --> API
+  PH -- review --> API
+  I -- consented access only --> API
+  A --> API
+  subgraph API[Node.js / Express API]
+    AUTH[Cookie sessions · MFA · RBAC · tenant scoping · CSRF]
+    OCR[Local OCR<br/>Tesseract + PDF render]
+    REC[Medicine resolution &<br/>item-by-item reconciliation]
+    RISK[Consistency checks &<br/>risk signals]
+    RAG[TrustRAG Evidence Chat<br/>BM25 + local reranker + case retrieval]
+    HITL[Human review<br/>snapshot-bound, four-eyes]
+    CLM[Claims · consent grants ·<br/>queries · appeals]
+    AUD[Hash-chained audit log]
+  end
+  API --> DB[(MongoDB)]
+  OCR --> REC --> RISK --> HITL --> CLM
+  RAG -. cites exact fields/pages .-> HITL
+```
 
-Core workflow: **Create case → secure upload → local OCR → human correction → medicine identity resolution → controlled evidence retrieval → consistency/risk checks → authorized human review → explainable result → draft structured export.**
+1. **Claimant** creates a case and uploads a prescription and invoice.
+2. **Local OCR** extracts fields; low-confidence fields are corrected by the user.
+3. Medicines are **resolved and reconciled** item by item (strength, form, release type, quantity/pack). Mismatches raise **risk signals** — review prompts, not fraud verdicts.
+4. **Evidence Chat (TrustRAG)** answers questions about the case with citations to exact fields and pages, and marks answers **stale** when a cited field is later corrected.
+5. A **pharmacist** verifies, returns or escalates. The decision is bound to a snapshot of the evidence and audited. The person who uploaded cannot verify (four-eyes), unless a one-pharmacist store has opted in with explicit confirmation.
+6. The claimant **submits a claim to an insurer** with explicit, revocable consent. The insurer reviews, raises queries and records a human decision; the claimant may **appeal once**, decided by a different insurer user.
 
-Older inventory, shopping, chatbot and research-dashboard modules remain preserved but are outside the current TrustRAG MVP. They are not evidence that the core workflow has passed acceptance.
+**AI never diagnoses, prescribes or approves/rejects a claim. Humans decide; every decision has a note and is audited.**
 
-**DISCLAIMER**: This system is a research prototype and is **NOT** intended for clinical decision-making, real patient data handling, or medical use.
+## What is in the product
 
-## Current Architecture
-- **Frontend**: React-based SPA built with Vite, TypeScript, and TailwindCSS. Uses Zustand for state management and React Router for navigation.
-- **Backend**: Node.js and Express.js server providing RESTful APIs. It integrates with MongoDB (via Mongoose) and includes various services like prescription parsing and language detection.
-- **Document intelligence**: Local Tesseract English OCR; local PDF rendering. The current domain resolves one medicine per case against a small academic catalogue, not a national medicine registry.
-- **Evidence and explanations**: Deterministic checks and controlled local sources. Optional server-side Gemini summaries require two explicit opt-in flags and are disabled by default. No browser/mobile Gemini key. This is not unrestricted live web retrieval.
-- **iPhone App**: A native SwiftUI + VisionKit scanner lives in [`ios/PharmaVault`](ios/PharmaVault). It uses HTTPS-only configuration, Keychain token storage and in-memory document scans.
+| Area | Highlights |
+| --- | --- |
+| Verification | OCR + correction, item reconciliation, risk signals, snapshot-bound review, assignment lease, reopen, four-eyes |
+| Evidence Chat | Case-bound retrieval with exact citations, signed freshness (stale on correction), approved public sources for general questions |
+| Claims & insurer | Separate insurer tenant, consent grants, queries, partial approval, appeals, draft FHIR R4 export (NHCX-aligned), simulated settlement |
+| Security | HttpOnly cookie sessions, CSRF, RBAC + tenant isolation, TOTP MFA with QR + recovery codes, per-source login lockout, staff deactivate/role/sign-out |
+| Audit & privacy | Tamper-evident hash-chained audit log, data download (readable + JSON), erasure requests, retention, encryption at rest |
+| Usability | English / हिन्दी, opt-in SMS/WhatsApp alerts, in-app confirmations |
+| Operations | Request IDs, JSON logs, Prometheus metrics, backups/restore scripts, runbook |
 
-## Prerequisites
-- Node.js 22.15+ (the installed PDF rendering dependencies are not compatible with the old Node 18/20 setup)
-- MongoDB instance (local or Atlas)
-- Git
+Screens that use simulated or sample data (doctor consult, nearby stock, health tracker, reminders, authenticity, ledger, analytics, billing) show a **"Demo feature"** label in the app.
 
-## Frontend Setup
-1. Navigate to the project root: `cd /path/to/pharmavault`
-2. Install locked dependencies: `npm ci`
-3. Copy `.env.example` to a local `.env` and verify `VITE_API_URL` points to the backend.
-4. Start the development server: `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`
+## Evaluation (measured, with denominators)
 
-## Backend Setup
-1. Navigate to the backend directory: `cd backend`
-2. Install locked dependencies: `npm ci`.
-3. Copy `.env.example` to a local `.env`; configure MongoDB and fresh server-only secrets. Never use previously exposed keys. Startup currently requires `GEMINI_API_KEY` even when TrustRAG's explanation flags are false; keep legacy AI screens out of an offline demo.
-4. Ensure MongoDB is running. Provision English `eng.traineddata` locally in `backend/tessdata/` or the configured local OCR folder; language data is not committed and must not be fetched at request time.
-5. Explicitly seed the academic catalogue, if needed, with `npm run seed:catalogue` from the root. This writes reference records; do not use the destructive legacy `data:import` command for a mentor demo.
-6. Start with `npm start` (default example port 5001). Verify `/api/health` and `/api/ready` before opening `http://localhost:5173/cases`.
+| What | Result | Scope |
+| --- | --- | --- |
+| Wrong-medicine source selection (held-out) | **9/16 → 0/16** with item-scoped retrieval | 16 synthetic held-out scenarios, frozen before scoring |
+| Requested-field recall@4 (held-out) | 16/30 (53.3%) for all variants | Item scope fixed attribution but did not raise recall |
+| Stale answer after cited correction | **16/16 detected, 0/16 false stale** on unrelated edits (whole-case invalidation: 16/16 false stale) | Signed content dependencies |
+| Automated tests | Backend unit + real-MongoDB integration, contract parity, protected regressions, Playwright end-to-end (2 full claim journeys incl. appeal) — green in CI | Synthetic data |
 
-Use only synthetic/de-identified demonstration documents. Staff/reviewer accounts require authorized provisioning and organization membership; public signup cannot grant staff privileges.
+Details: [research results](docs/rag-v2/SESSION_5_RESEARCH_RESULTS.md) · [integration audit](docs/PROJECT_INTEGRATION_AUDIT.md) · [version-3.0 notes](docs/version-3.0/README.md).
 
-## Required Environment Variables
-Create a `.env` file in the root directory for frontend variables and `backend/.env` for backend variables containing:
+## Run it locally
 
-**Frontend**
-- `VITE_API_URL`
+Needs Node.js 22 and Git.
 
-**Backend**
-- `MONGO_URI`
-- `JWT_SECRET`
-- `GEMINI_API_KEY`
-- `PORT` (Optional)
-- `FRONTEND_URL` (Optional)
+```bash
+git clone https://github.com/aniket889999/NEWPHARMAVAULT.git && cd NEWPHARMAVAULT
+npm install && npm --prefix backend install
+# create backend/.env from backend/.env.example (MONGO_URI, JWT_SECRET, MFA_ENCRYPTION_KEY, GEMINI_API_KEY=local-not-used)
+npm --prefix backend run mongo:local          # terminal 1, keep open
+npm --prefix backend run seed:demo            # terminal 2
+npm --prefix backend run seed:showcase
+npm run dev:all                               # open http://localhost:5173
+```
 
-See `.env.example` and `backend/.env.example` for reference. **Never commit actual `.env` files.**
+Demo accounts (password `password123`, all fictional):
 
-## Deployment and privacy boundary
+| Role | Email |
+| --- | --- |
+| Claimant — Ananya Verma | `ananya.verma@claimant.example` |
+| Insurer reviewer — Sahyog Health Assurance (Demo) | `rohit.mehta@sahyog-health.example` |
+| Insurer admin (appeals) | `kavya.iyer@sahyog-health.example` |
+| Patient / pharmacy / staff (generic) | `patient@test.com`, `pharmacy@test.com`, see the login page |
 
-Production-oriented safeguards and a single-node academic deployment example are documented in [`docs/PRODUCTION_PRIVACY.md`](docs/PRODUCTION_PRIVACY.md). This project remains an academic MVP: it is not approved for clinical use, real patient data, claim adjudication, or live NHCX/CDSCO integration.
+## Stack
 
-## Development Commands
-From the project root:
-- `npm run dev` - Start frontend Vite server
-- `npm run build:frontend` - Build frontend for production
-- `npm run lint:frontend` - Run ESLint on frontend
-- `npm run check:ts` - Run TypeScript type checking
-- `npm run check:backend:syntax` - Check backend JS syntax
+React 18 · TypeScript · Vite · Tailwind · Zustand · Node 22 · Express · MongoDB/Mongoose · Tesseract.js · OpenAPI 3.1 + JSON Schema contracts · node:test + Supertest · Playwright · GitHub Actions · Docker.
 
-## Current Prototype Limitations
-- **Real acceptance is not green:** U5's real local image workflows currently return zero extracted fields because the provider has not requested Tesseract 7 structured blocks. Gemini's U3 assignment covers this regression. Do not interpret passing mocked tests as OCR accuracy.
-- PDF safety/coverage/cache controls and shared preview storage integration remain under U3; the current processing limit is three pages. Omitted pages must not be treated as analyzed.
-- Native SwiftUI source and pure policy checks exist; full Xcode build, camera/Keychain and physical-device upload tests are pending.
-- Container runtime validation, browser golden workflow, multiple-medicine reconciliation and formal FHIR validation are pending. Draft FHIR export is **not** certified NHCX integration.
-- Legacy evaluation JSON is an illustrative fixture, not measured TrustRAG benchmark results.
-- Existing keys (JWT, Gemini) must be rotated immediately if deploying, because they may have appeared in earlier Git history.
-- AI requests are now securely managed server-side, with rate limiting and authentication required.
-- No identifiable patient data should be used during development.
-- Many features rely on mock data or lack robust error handling.
-- The system is not production-ready or HIPAA-compliant.
+## Limitations (honest)
 
-See [upgrade checkpoints](docs/UPGRADE_CHECKPOINTS.md), [U4/U5 evidence](docs/U4_U5_HANDOFF.md), [Gemini U3 instructions](docs/U3_GEMINI_PROMPT.md) and [repository publication notes](docs/REPOSITORY_PUBLICATION.md).
+- **OCR accuracy is not yet measured** on a labelled set; Tesseract is weak on handwriting and non-English text; PDFs are limited to 3 pages.
+- **Chat recall is modest** (53% on a small synthetic held-out set) and answer faithfulness is not human-rated yet.
+- Medicine matching uses an academic catalogue, not a national drug registry.
+- Insurer settlement and NHCX connectivity are simulated; FHIR export is a draft.
+- Hindi is a first draft (needs native review) and covers claimant and security screens only.
+- Not deployed to a public server; no external penetration test or legal review; no real-user trials yet.
+- Several legacy screens are demos (labelled in the app).
+
+## Future work
+
+1. Labelled OCR benchmark (field-level precision/recall) and handwriting/Hindi OCR.
+2. Hybrid retrieval (BM25 + embeddings) with item-scoped re-ranking; larger independently authored test set and faithfulness rating.
+3. Browser test of the full pharmacist upload → verify flow; load, security-scan and accessibility tests in CI.
+4. Staging deployment with HTTPS, restore drill, and a small pilot with pharmacists and claimants.
+5. Real insurer integration (NHCX sandbox) and drug-registry mapping.
+
+## Team
+
+- **Aniket Panchal** — Evidence Chat / TrustRAG, OCR and reconciliation, research evaluation, iOS client.
+- **Samarth Agarwal** — Claims and insurer portal, reviewer workflow, security (MFA, audit chain, lockout), privacy rights, operations and CI.
+
+Engineering history and session handoffs are kept under [`docs/`](docs/) for traceability.

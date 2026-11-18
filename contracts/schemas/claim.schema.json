@@ -5,66 +5,175 @@
   "description": "Insurance claim built on a pharmacist-verified case. Claimant and insurer view. Every decision is made by a human insurer reviewer.",
   "type": "object",
   "$defs": {
-    "objectId": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "objectId": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{24}$"
+    },
     "status": {
       "type": "string",
-      "enum": ["SUBMITTED", "UNDER_PAYER_REVIEW", "QUERY_RAISED", "APPROVED", "PARTIALLY_APPROVED", "REJECTED", "SETTLED", "WITHDRAWN"]
+      "enum": [
+        "SUBMITTED",
+        "UNDER_PAYER_REVIEW",
+        "QUERY_RAISED",
+        "APPROVED",
+        "PARTIALLY_APPROVED",
+        "REJECTED",
+        "SETTLED",
+        "WITHDRAWN",
+        "APPEALED"
+      ]
     },
-    "money": { "type": "number", "minimum": 0, "multipleOf": 0.01 }
+    "money": {
+      "type": "number",
+      "minimum": 0,
+      "multipleOf": 0.01
+    }
   },
   "properties": {
-    "id": { "$ref": "#/$defs/objectId" },
-    "claimReference": { "type": "string", "pattern": "^CLM-[0-9]{8}-[A-Z0-9]{1,8}$" },
-    "caseId": { "$ref": "#/$defs/objectId" },
-    "status": { "$ref": "#/$defs/status" },
-    "policyNumber": { "type": "string", "pattern": "^[A-Za-z0-9-]{4,64}$", "description": "Synthetic policy identifier only." },
-    "claimedAmount": { "$ref": "#/$defs/money", "exclusiveMinimum": 0 },
-    "currency": { "const": "INR" },
-    "payerOrganizationId": { "$ref": "#/$defs/objectId" },
-    "payerName": { "type": "string" },
+    "id": {
+      "$ref": "#/$defs/objectId"
+    },
+    "claimReference": {
+      "type": "string",
+      "pattern": "^CLM-[0-9]{8}-[A-Z0-9]{1,8}$"
+    },
+    "caseId": {
+      "$ref": "#/$defs/objectId"
+    },
+    "status": {
+      "$ref": "#/$defs/status",
+      "description": "APPEALED: claimant appealed a REJECTED or PARTIALLY_APPROVED decision (once); a different insurer reviewer decides it."
+    },
+    "policyNumber": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9-]{4,64}$",
+      "description": "Synthetic policy identifier only."
+    },
+    "claimedAmount": {
+      "$ref": "#/$defs/money",
+      "exclusiveMinimum": 0
+    },
+    "currency": {
+      "const": "INR"
+    },
+    "payerOrganizationId": {
+      "$ref": "#/$defs/objectId"
+    },
+    "payerName": {
+      "type": "string"
+    },
     "queries": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "id": { "$ref": "#/$defs/objectId" },
-          "question": { "type": "string", "minLength": 5, "maxLength": 2000 },
-          "askedAt": { "type": "string", "format": "date-time" },
-          "answer": { "type": ["string", "null"], "maxLength": 2000 },
-          "answeredAt": { "type": ["string", "null"], "format": "date-time" }
+          "id": {
+            "$ref": "#/$defs/objectId"
+          },
+          "question": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 2000
+          },
+          "askedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "answer": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000
+          },
+          "answeredAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
         },
-        "required": ["id", "question", "askedAt", "answer", "answeredAt"],
+        "required": [
+          "id",
+          "question",
+          "askedAt",
+          "answer",
+          "answeredAt"
+        ],
         "additionalProperties": false
       }
     },
     "decision": {
       "oneOf": [
-        { "type": "null" },
+        {
+          "type": "null"
+        },
         {
           "type": "object",
           "properties": {
-            "decision": { "type": "string", "enum": ["APPROVED", "PARTIALLY_APPROVED", "REJECTED"] },
-            "approvedAmount": { "$ref": "#/$defs/money" },
-            "reasonCode": { "type": ["string", "null"] },
-            "note": { "type": "string", "minLength": 10, "maxLength": 2000 },
-            "decidedAt": { "type": "string", "format": "date-time" }
+            "decision": {
+              "type": "string",
+              "enum": [
+                "APPROVED",
+                "PARTIALLY_APPROVED",
+                "REJECTED"
+              ]
+            },
+            "approvedAmount": {
+              "$ref": "#/$defs/money"
+            },
+            "reasonCode": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "note": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 2000
+            },
+            "decidedAt": {
+              "type": "string",
+              "format": "date-time"
+            }
           },
-          "required": ["decision", "approvedAmount", "reasonCode", "note", "decidedAt"],
+          "required": [
+            "decision",
+            "approvedAmount",
+            "reasonCode",
+            "note",
+            "decidedAt"
+          ],
           "additionalProperties": false
         }
       ]
     },
     "settlement": {
       "oneOf": [
-        { "type": "null" },
+        {
+          "type": "null"
+        },
         {
           "type": "object",
           "properties": {
-            "reference": { "type": "string" },
-            "settledAt": { "type": "string", "format": "date-time" },
-            "simulated": { "const": true }
+            "reference": {
+              "type": "string"
+            },
+            "settledAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "simulated": {
+              "const": true
+            }
           },
-          "required": ["reference", "settledAt", "simulated"],
+          "required": [
+            "reference",
+            "settledAt",
+            "simulated"
+          ],
           "additionalProperties": false
         }
       ]
@@ -74,17 +183,126 @@
       "items": {
         "type": "object",
         "properties": {
-          "status": { "$ref": "#/$defs/status" },
-          "at": { "type": "string", "format": "date-time" },
-          "byRole": { "type": "string" }
+          "status": {
+            "$ref": "#/$defs/status"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "byRole": {
+            "type": "string"
+          }
         },
-        "required": ["status", "at", "byRole"],
+        "required": [
+          "status",
+          "at",
+          "byRole"
+        ],
         "additionalProperties": false
       }
     },
-    "createdAt": { "type": "string", "format": "date-time" },
-    "updatedAt": { "type": "string", "format": "date-time" }
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "appeal": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 2000
+            },
+            "appealedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "previousDecision": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "decision": {
+                      "type": "string",
+                      "enum": [
+                        "APPROVED",
+                        "PARTIALLY_APPROVED",
+                        "REJECTED"
+                      ]
+                    },
+                    "approvedAmount": {
+                      "$ref": "#/$defs/money"
+                    },
+                    "reasonCode": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "note": {
+                      "type": "string"
+                    },
+                    "decidedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "decision",
+                    "approvedAmount",
+                    "reasonCode",
+                    "note",
+                    "decidedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": [
+            "count",
+            "reason",
+            "appealedAt",
+            "previousDecision"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
   },
-  "required": ["id", "claimReference", "caseId", "status", "policyNumber", "claimedAmount", "currency", "payerOrganizationId", "queries", "decision", "settlement", "history", "createdAt", "updatedAt"],
+  "required": [
+    "id",
+    "claimReference",
+    "caseId",
+    "status",
+    "policyNumber",
+    "claimedAmount",
+    "currency",
+    "payerOrganizationId",
+    "queries",
+    "decision",
+    "settlement",
+    "history",
+    "createdAt",
+    "updatedAt"
+  ],
   "additionalProperties": false
 }

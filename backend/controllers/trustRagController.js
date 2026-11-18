@@ -26,10 +26,14 @@ const {
 } = require('../services/trustRag/caseReconciliationService');
 const {
   FINALIZED_CASE_STATUSES,
-  withCaseMutationGuard,
   assertCaseMutableForEvidence,
   bumpCaseEvidenceRevision
 } = require('../services/trustRag/caseEvidenceMutationService');
+// Adds a MongoDB lease (CASE_LOCK_BACKEND=mongo) around the frozen in-process guard.
+const reviewPolicy = require('../services/review/reviewPolicy');
+const accountSecurity = require('../services/platform/accountSecurity');
+const User = require('../models/userModel');
+const { withCaseMutationGuard } = require('../services/platform/caseGuard');
 
 function sendControlledError(res, err) {
   const statusCode = err.statusCode || 500;
@@ -896,10 +900,19 @@ const getReviewQueue = asyncHandler(async (req, res) => {
     filter.organizationId = req.tenantContext.organizationId;
   }
 
-  const queue = await VerificationCase.find(filter)
-    .populate('createdBy', 'name email role')
-    .sort('-updatedAt');
-
+  // Server-side paging and filters; the body stays an array (totals in X-Total-Count).
+  const paging = reviewPolicy.parseQueueQuery(req.query);
+  const pagedFilter = reviewPolicy.queueFilter(filter, paging, req.user._id);
+  const [queue, total] = await Promise.all([
+    VerificationCase.find(pagedFilter)
+      .populate('createdBy', 'name email role')
+      .populate('assignedTo', 'name role')
+      .sort(paging.sort === 'newest' ? '-updatedAt' : 'updatedAt')
+      .skip((paging.page - 1) * paging.limit)
+      .limit(paging.limit),
+    VerificationCase.countDocuments(pagedFilter)
+  ]);
+  reviewPolicy.setPagingHeaders(res, { page: paging.page, limit: paging.limit, total });
   res.status(200).json(queue);
 });
 
@@ -929,7 +942,8 @@ const submitReview = asyncHandler(async (req, res) => {
     'decision',
     'reasonCode',
     'notes',
-    'evidenceItemIds'
+    'evidenceItemIds',
+    'selfVerifyConfirmed'
   ]);
   for (const key of Object.keys(req.body)) {
     if (!allowedReviewKeys.has(key)) {
@@ -1055,6 +1069,38 @@ const submitReview = asyncHandler(async (req, res) => {
         }
       }
 
+      // Reviewer lease: nobody else may decide while another reviewer holds the case.
+      reviewPolicy.assertNotAssignedToOther(vCase, req.user._id);
+      // Four-eyes: whoever created the case or uploaded its documents cannot give the final VERIFY.
+      const uploaderIds = await Document.distinct('uploadedBy', { caseId: vCase._id });
+      const fourEyesViolation = reviewPolicy.fourEyesViolation({ action: mapping.label, reviewerId: req.user._id, vCase, documentUploaderIds: uploaderIds });
+      const reviewOrg = fourEyesViolation ? await Organization.findById(vCase.organizationId).select('reviewPolicy').lean() : null;
+      const fourEyes = reviewPolicy.resolveFourEyes(fourEyesViolation, {
+        orgAllowsSingleReviewer: Boolean(reviewOrg?.reviewPolicy?.allowSingleReviewerVerify),
+        confirmed: req.body.selfVerifyConfirmed === true
+      });
+      if (fourEyes.code) {
+        const err = new Error(fourEyes.code === 'FOUR_EYES_CONFIRMATION_REQUIRED'
+          ? 'You uploaded or created this case. Your organization allows single-pharmacist verification: confirm that you personally checked the original documents.'
+          : 'Four-eyes rule: a different reviewer must verify a case you created or uploaded documents to. You can still escalate or return it for correction.');
+        err.statusCode = 403;
+        err.code = fourEyes.code;
+        throw err;
+      }
+      if (fourEyes.override) {
+        await auditLoggerService.logEvent({ caseId: vCase._id, actorId: req.user._id, actorRole: req.user.role, action: 'FOUR_EYES_SELF_VERIFY_CONFIRMED', targetType: 'VerificationCase', targetId: vCase._id, metadata: { violation: fourEyesViolation } });
+      }
+      // Professional credential: when REVIEW_CREDENTIAL_REQUIRED=true a VERIFY needs an admin-confirmed registration.
+      if (mapping.label === 'VERIFY' && accountSecurity.credentialRequiredFor(req.user.role)) {
+        const reviewer = await User.findById(req.user._id).select('professional').lean();
+        if (!accountSecurity.hasVerifiedCredential(reviewer)) {
+          const err = new Error('Your professional registration must be confirmed by an organization admin before you can verify cases.');
+          err.statusCode = 403;
+          err.code = 'REVIEWER_CREDENTIAL_REQUIRED';
+          throw err;
+        }
+      }
+
       // Compute fresh current snapshot inside the per-case lock
       const currentSnapshot = await buildCaseReconciliationSnapshot({
         vCase,
@@ -1098,7 +1144,11 @@ const submitReview = asyncHandler(async (req, res) => {
         {
           $set: {
             status: mapping.newStatus,
-            reviewRequired: mapping.reviewRequired
+            reviewRequired: mapping.reviewRequired,
+            // A recorded decision ends the reviewer lease.
+            assignedTo: null,
+            assignedAt: null,
+            assignmentExpiresAt: null
           }
         },
         { new: true }

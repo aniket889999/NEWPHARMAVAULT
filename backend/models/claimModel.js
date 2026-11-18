@@ -55,6 +55,20 @@ const claimSchema = new mongoose.Schema(
       simulated: { type: Boolean, default: true }
     },
     history: { type: [historySchema], default: [] },
+    appeal: {
+      count: { type: Number, default: 0, min: 0 },
+      reason: { type: String, default: null, maxlength: 2000 },
+      appealedAt: { type: Date, default: null },
+      // The decision being appealed; a different insurer reviewer must decide the appeal.
+      previousDecision: {
+        decision: { type: String, default: null },
+        approvedAmount: { type: Number, default: null },
+        reasonCode: { type: String, default: null },
+        note: { type: String, default: null },
+        decidedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+        decidedAt: { type: Date, default: null }
+      }
+    },
     reviewStartedAt: { type: Date, default: null }
   },
   { timestamps: true }
@@ -63,7 +77,7 @@ const claimSchema = new mongoose.Schema(
 // One open claim per case per payer.
 claimSchema.index(
   { caseId: 1, payerOrganizationId: 1 },
-  { unique: true, partialFilterExpression: { status: { $in: ['SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED'] } } }
+  { unique: true, partialFilterExpression: { status: { $in: ['SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED', 'APPEALED'] } } }
 );
 
 module.exports = mongoose.models.Claim || mongoose.model('Claim', claimSchema);
