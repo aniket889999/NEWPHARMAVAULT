@@ -61,7 +61,7 @@ flowchart LR
 | Usability | English / हिन्दी, opt-in SMS/WhatsApp alerts, in-app confirmations |
 | Operations | Request IDs, JSON logs, Prometheus metrics, backups/restore scripts, runbook |
 
-Screens that use simulated or sample data (doctor consult, nearby stock, health tracker, reminders, authenticity, ledger, analytics, billing) show a **"Demo feature"** label in the app.
+Supporting modules (doctor consult, nearby availability, health tracker, reminders, authenticity check, ledger, analytics, billing) run on the platform's own seeded synthetic data; they are not connected to external providers (doctors, live pharmacy stock, CDSCO, payment gateways).
 
 ## Evaluation (measured, with denominators)
 
@@ -109,7 +109,7 @@ React 18 · TypeScript · Vite · Tailwind · Zustand · Node 22 · Express · M
 - Insurer settlement and NHCX connectivity are simulated; FHIR export is a draft.
 - Hindi is a first draft (needs native review) and covers claimant and security screens only.
 - Not deployed to a public server; no external penetration test or legal review; no real-user trials yet.
-- Several legacy screens are demos (labelled in the app).
+- Supporting modules use seeded synthetic data and are not connected to external providers.
 
 ## Future work
 

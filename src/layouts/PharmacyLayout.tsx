@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import DemoNotice from '../components/common/DemoNotice';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/notifications/NotificationBell';
 import { 
@@ -237,7 +236,6 @@ const PharmacyLayout: React.FC = () => {
 
         {/* Main Content Workspace */}
         <main className="flex-1 overflow-y-auto bg-slate-50">
-          <DemoNotice />
           <Outlet />
         </main>
       </div>
