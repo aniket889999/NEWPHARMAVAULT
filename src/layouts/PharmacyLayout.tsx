@@ -9,13 +9,11 @@ import {
   LogOut, 
   Database, 
   Clock, 
-  AlertTriangle, 
-  ShieldCheck, 
+  AlertTriangle,  
   Receipt,
   FileSignature, 
   ChevronRight,
-  ExternalLink,
-  Award
+  ExternalLink
 } from 'lucide-react';
 
 const PharmacyLayout: React.FC = () => {
@@ -175,19 +173,6 @@ const PharmacyLayout: React.FC = () => {
 
           <div className="flex items-center space-x-4">
             <NotificationBell />
-            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700">
-              <Award className="w-3.5 h-3.5 text-emerald-600" />
-              <span>NABH Certified (demo value)</span>
-            </div>
-
-            <Link
-              to="/pharmacy/cases"
-              className="text-xs font-medium text-slate-600 hover:text-blue-700 flex items-center space-x-1"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-              <span className="hidden sm:inline">Verification Cases</span>
-            </Link>
-
             <Link
               to="/"
               className="text-xs font-medium text-slate-500 hover:text-slate-800 flex items-center space-x-1"
