@@ -134,7 +134,7 @@ const NearbyMedicines: React.FC = () => {
   });
 
   const handleReserve = (pharm: Pharmacy) => {
-    toast(`Online reservation is not available yet. ${pharm.name} has ${pharm.medicineStock} unit(s) in stock — use Directions or call the pharmacy to hold it.`);
+    toast(`Online reservation is not available yet, so no reservation or SMS was sent. ${pharm.name} has ${pharm.medicineStock} unit(s) in stock — use Directions or call the pharmacy to hold it.`);
   };
 
   const handleGetDirections = (pharm: Pharmacy) => {
