@@ -30,7 +30,7 @@ npm run check:ts
 npm run build:frontend
 npm run check:backend:syntax
 npm run validate:contract && npm run validate:schemas
-node --test backend/tests/claimsPlatformPure.test.js backend/tests/platformLocksPure.test.js backend/tests/claimsContractParity.test.js backend/tests/storageEncryptionRetentionPure.test.js backend/tests/reviewPolicyPure.test.js backend/tests/accountSecurityPure.test.js backend/tests/auditChainPure.test.js backend/tests/opsPure.test.js backend/tests/opsPure.test.js
+node --test backend/tests/claimsPlatformPure.test.js backend/tests/platformLocksPure.test.js backend/tests/claimsContractParity.test.js backend/tests/storageEncryptionRetentionPure.test.js backend/tests/reviewPolicyPure.test.js backend/tests/accountSecurityPure.test.js backend/tests/auditChainPure.test.js backend/tests/opsPure.test.js
 NODE_ENV=test node --test --test-concurrency=1 backend/tests/claimsWorkflowIntegration.test.js backend/tests/reviewWorkflowIntegration.test.js backend/tests/accountSecurityIntegration.test.js backend/tests/auditChainIntegration.test.js backend/tests/dataRightsIntegration.test.js   # MongoDB
 npm --prefix backend test            # needs MongoDB; tests only use *_test databases (testDatabaseGuard)
 npm run test:integration-ui
