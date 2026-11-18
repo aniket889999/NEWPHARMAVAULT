@@ -45,7 +45,8 @@ function latestDueAt(reminder, now = new Date(), offsetMin = DEFAULT_OFFSET_MIN)
 }
 
 function isDue(reminder, now = new Date(), offsetMin = DEFAULT_OFFSET_MIN) {
-  if (reminder.status !== 'active') return null;
+  // A dose marked 'taken' becomes due again at the next scheduled time.
+  if (!['active', 'taken'].includes(reminder.status)) return null;
   const due = latestDueAt(reminder, now, offsetMin);
   if (!due) return null;
   if (now.getTime() - due.getTime() > LATE_WINDOW_MIN * 60_000) return null;
@@ -57,14 +58,14 @@ async function runOnce(now = new Date(), env = process.env) {
   const Reminder = require('../../models/reminderModel');
   const { notifyUsers } = require('../claims/notificationService');
   const offset = Number.isInteger(Number(env.REMINDER_UTC_OFFSET_MINUTES)) ? Number(env.REMINDER_UTC_OFFSET_MINUTES) : DEFAULT_OFFSET_MIN;
-  const candidates = await Reminder.find({ status: 'active' }).select('user reminderTime frequency lastSentAt createdAt status').limit(5000).lean();
+  const candidates = await Reminder.find({ status: { $in: ['active', 'taken'] } }).select('user reminderTime frequency lastSentAt createdAt status').limit(5000).lean();
   let sent = 0;
   for (const reminder of candidates) {
     const due = isDue(reminder, now, offset);
     if (!due) continue;
     const claimed = await Reminder.updateOne(
-      { _id: reminder._id, status: 'active', $or: [{ lastSentAt: null }, { lastSentAt: { $exists: false } }, { lastSentAt: { $lt: due } }] },
-      { $set: { lastSentAt: now } }
+      { _id: reminder._id, status: { $in: ['active', 'taken'] }, $or: [{ lastSentAt: null }, { lastSentAt: { $exists: false } }, { lastSentAt: { $lt: due } }] },
+      { $set: { lastSentAt: now, status: 'active' } }
     );
     if (claimed.modifiedCount !== 1) continue;
     await notifyUsers([reminder.user], {

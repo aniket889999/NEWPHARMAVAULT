@@ -10,12 +10,8 @@ import {
   Database, 
   Clock, 
   AlertTriangle, 
-  Building2, 
   ShieldCheck, 
-  Inbox,
-  MessageSquare,
   Receipt,
-  KeyRound,
   FileSignature, 
   ChevronRight,
   ExternalLink,
@@ -116,24 +112,9 @@ const PharmacyLayout: React.FC = () => {
           {/* Section: TrustRAG Verification */}
           <div>
             <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Verification & Ledger
+              Claims & Ledger
             </p>
             <div className="space-y-1">
-              <Link to="/pharmacy/cases" className={navItemClass('/pharmacy/cases')}>
-                <ShieldCheck className="w-4 h-4 mr-2.5 text-teal-600" />
-                <span>Verification Cases</span>
-              </Link>
-
-              <Link to="/pharmacy/assistant" className={navItemClass('/pharmacy/assistant')}>
-                <MessageSquare className="w-4 h-4 mr-2.5 text-teal-600" />
-                <span>Evidence Chat · TrustRAG</span>
-              </Link>
-
-              <Link to="/pharmacy/review-queue" className={navItemClass('/pharmacy/review-queue')}>
-                <Inbox className="w-4 h-4 mr-2.5 text-amber-600" />
-                <span>Reviewer Queue</span>
-              </Link>
-
               <Link to="/pharmacy/claims" className={navItemClass('/pharmacy/claims')}>
                 <Receipt className="w-4 h-4 mr-2.5 text-blue-600" />
                 <span>Insurance Claims</span>
@@ -146,23 +127,6 @@ const PharmacyLayout: React.FC = () => {
             </div>
           </div>
 
-          {/* Section: Organization */}
-          <div>
-            <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Management
-            </p>
-            <div className="space-y-1">
-              <Link to="/pharmacy/organization-settings" className={navItemClass('/pharmacy/organization-settings')}>
-                <Building2 className="w-4 h-4 mr-2.5 text-slate-500" />
-                <span>Branch Settings</span>
-              </Link>
-
-              <Link to="/pharmacy/security" className={navItemClass('/pharmacy/security')}>
-                <KeyRound className="w-4 h-4 mr-2.5 text-slate-500" />
-                <span>Security & MFA</span>
-              </Link>
-            </div>
-          </div>
         </nav>
 
         {/* Sidebar Footer User Info */}

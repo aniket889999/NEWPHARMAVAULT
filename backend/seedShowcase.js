@@ -55,25 +55,34 @@ async function upsertUser({ email, name, role, organizationId }) {
         address: { street: '4th Floor, Demo Towers', city: 'Pune', state: 'Maharashtra', zip: '411001', country: 'India' }
       });
     }
-    // Nearby medicines: map positions for the demo branch and two more synthetic pharmacies
-    // with their own inventory (fictional names, Bengaluru coordinates).
-    await Branch.updateMany({ name: 'Demo Dispensary - Central Bengaluru Hub' }, { $set: { coordinates: { lat: 12.9716, lng: 77.5946 }, location: 'MG Road, Bengaluru' } });
+    // Nearby medicines (Pune): map positions for the demo branch and synthetic pharmacies with
+    // their own inventory. Fictional store names; real Pune area coordinates.
+    await Branch.updateMany({ name: 'Demo Dispensary - Central Bengaluru Hub' }, { $set: { coordinates: { lat: 18.5150, lng: 73.8780 }, location: 'MG Road, Camp, Pune (demo hub)' } });
     const inOneYear = new Date(Date.now() + 365 * 86_400_000);
+    const DOLO = 'Dolo 650mg Tablet', AZEE = 'Azithromycin 500mg (Azee 500)', CTZ = 'Cetirizine 10mg Tablet', PAN = 'Pantoprazole 40mg Tablet', AMOX = 'Amoxicillin 500mg Capsule';
     const pharmacies = [
-      { org: 'Shree Sai Medicals (Demo)', branch: 'Shree Sai Medicals - Indiranagar', location: '100 Feet Road, Indiranagar, Bengaluru', lat: 12.9784, lng: 77.6408, license: 'KA-DEMO-21B-1001',
-        stock: [['Dolo 650mg Tablet', 120, 31, 'Micro Labs Limited', 'B-DLO-650'], ['Azithromycin 500mg (Azee 500)', 18, 118, 'Cipla Limited', 'B-AZE-500'], ['Cetirizine 10mg Tablet', 60, 22, 'Dr. Reddy\'s Laboratories', 'B-CTZ-010']] },
-      { org: 'CareWell Pharmacy (Demo)', branch: 'CareWell Pharmacy - Koramangala', location: '80 Feet Road, Koramangala, Bengaluru', lat: 12.9352, lng: 77.6245, license: 'KA-DEMO-21B-1002',
-        stock: [['Dolo 650mg Tablet', 6, 29, 'Micro Labs Limited', 'B-DLO-650'], ['Pantoprazole 40mg Tablet', 40, 95, 'Alkem Laboratories', 'B-PAN-402']] }
+      { org: 'Shree Sai Medicals (Demo)', branch: 'Shree Sai Medicals - Shivajinagar', location: 'FC Road, Shivajinagar, Pune', lat: 18.5308, lng: 73.8475, license: 'MH-DEMO-21B-2001',
+        stock: [[DOLO, 120, 31, 'Micro Labs Limited', 'B-DLO-650', false], [AZEE, 18, 118, 'Cipla Limited', 'B-AZE-500', true], [CTZ, 60, 22, "Dr. Reddy's Laboratories", 'B-CTZ-010', false]] },
+      { org: 'Sanjeevani Medical Store (Demo)', branch: 'Sanjeevani Medical Store - Deccan', location: 'JM Road, Deccan Gymkhana, Pune', lat: 18.5167, lng: 73.8411, license: 'MH-DEMO-21B-2002',
+        stock: [[DOLO, 45, 30, 'Micro Labs Limited', 'B-DLO-650', false], [AMOX, 30, 72, 'Alkem Laboratories', 'B-AMX-500', true]] },
+      { org: 'CareWell Pharmacy (Demo)', branch: 'CareWell Pharmacy - Kothrud', location: 'Karve Road, Kothrud, Pune', lat: 18.5074, lng: 73.8077, license: 'MH-DEMO-21B-2003',
+        stock: [[DOLO, 6, 29, 'Micro Labs Limited', 'B-DLO-650', false], [PAN, 40, 95, 'Alkem Laboratories', 'B-PAN-402', false]] },
+      { org: 'LifeLine Chemists (Demo)', branch: 'LifeLine Chemists - Koregaon Park', location: 'North Main Road, Koregaon Park, Pune', lat: 18.5362, lng: 73.8940, license: 'MH-DEMO-21B-2004',
+        stock: [[DOLO, 80, 32, 'Micro Labs Limited', 'B-DLO-650', false], [CTZ, 25, 24, "Dr. Reddy's Laboratories", 'B-CTZ-010', false]] },
+      { org: 'Arogya Pharmacy (Demo)', branch: 'Arogya Pharmacy - Aundh', location: 'ITI Road, Aundh, Pune', lat: 18.5590, lng: 73.8070, license: 'MH-DEMO-21B-2005',
+        stock: [[DOLO, 200, 28, 'Micro Labs Limited', 'B-DLO-650', false], [AMOX, 12, 70, 'Alkem Laboratories', 'B-AMX-500', true]] },
+      { org: 'NewCare Medicos (Demo)', branch: 'NewCare Medicos - Hadapsar', location: 'Solapur Road, Hadapsar, Pune', lat: 18.5089, lng: 73.9260, license: 'MH-DEMO-21B-2006',
+        stock: [[DOLO, 15, 33, 'Micro Labs Limited', 'B-DLO-650', false]] }
     ];
     for (const p of pharmacies) {
       let org = await Organization.findOne({ name: p.org });
       if (!org) org = await Organization.create({ name: p.org, owner: owner._id, kind: 'pharmacy', plan: 'Starter', status: 'active', contactEmail: 'store@pharmacy.example' });
       let branch = await Branch.findOne({ organizationId: org._id, name: p.branch });
       if (!branch) branch = await Branch.create({ organizationId: org._id, name: p.branch, licenseNumber: p.license, location: p.location, coordinates: { lat: p.lat, lng: p.lng } });
-      for (const [name, stock, price, manufacturer, batchNumber] of p.stock) {
+      for (const [name, stock, price, manufacturer, batchNumber, prescriptionRequired] of p.stock) {
         await Medicine.updateOne(
           { name, branchId: branch._id },
-          { $set: { name, category: 'General', description: `${name} (synthetic inventory)`, price, stock, manufacturer, prescriptionRequired: false, expiryDate: inOneYear, batchNumber, organizationId: org._id, branchId: branch._id } },
+          { $set: { name, category: 'General', description: `${name} (synthetic inventory)`, price, stock, manufacturer, prescriptionRequired, expiryDate: inOneYear, batchNumber, organizationId: org._id, branchId: branch._id } },
           { upsert: true }
         );
       }

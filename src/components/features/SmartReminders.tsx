@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Clock, Calendar, CheckCircle2, AlertCircle, Plus, Mail, Trash2, PlayCircle, Info } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const SmartReminders: React.FC = () => {
+  const { user } = useAuth();
   const [reminders, setReminders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -19,44 +21,10 @@ const SmartReminders: React.FC = () => {
   const fetchReminders = async () => {
     try {
       const { data } = await apiClient.get('/reminders/my-reminders');
-      if (data && data.length > 0) {
-        setReminders(data);
-      } else {
-        // Fallback demo reminders for presentation
-        setReminders([
-          {
-            _id: 'rem-demo-1',
-            medicineName: 'Dolo 650mg',
-            dosage: '1 Tablet',
-            reminderTime: '21:00',
-            frequency: 'daily',
-            email: 'patient@test.com',
-            status: 'active'
-          },
-          {
-            _id: 'rem-demo-2',
-            medicineName: 'Pantoprazole 40mg',
-            dosage: '1 Capsule (Before breakfast)',
-            reminderTime: '08:00',
-            frequency: 'daily',
-            email: 'patient@test.com',
-            status: 'taken'
-          }
-        ]);
-      }
+      setReminders(Array.isArray(data) ? data : []);
     } catch (error) {
-      // Fallback demo reminders
-      setReminders([
-        {
-          _id: 'rem-demo-1',
-          medicineName: 'Dolo 650mg',
-          dosage: '1 Tablet',
-          reminderTime: '21:00',
-          frequency: 'daily',
-          email: 'patient@test.com',
-          status: 'active'
-        }
-      ]);
+      setReminders([]);
+      toast.error('Could not load your reminders. Check that the server is running.');
     } finally {
       setLoading(false);
     }
@@ -69,38 +37,34 @@ const SmartReminders: React.FC = () => {
   const handleCreateReminder = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post('/reminders/create', formData);
-      toast.success('Reminder created and confirmation email sent!');
+      await apiClient.post('/reminders/create', { ...formData, email: formData.email || user?.email || '' });
+      toast.success('Reminder created. You will get a notification at the set time.');
       setShowAddModal(false);
       setFormData({ medicineName: '', dosage: '', reminderTime: '', frequency: 'daily', email: '' });
       fetchReminders();
-    } catch (error) {
-      // Optimistic demo addition
-      const newRem = {
-        _id: 'rem-' + Date.now(),
-        ...formData,
-        status: 'active'
-      };
-      setReminders(prev => [newRem, ...prev]);
-      setShowAddModal(false);
-      toast.success('Reminder added to schedule');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'The reminder could not be saved.');
     }
   };
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
       await apiClient.put(`/reminders/${id}`, { status: newStatus });
-    } catch (error) {}
-    setReminders(prev => prev.map(r => r._id === id ? { ...r, status: newStatus } : r));
+      setReminders(prev => prev.map(r => r._id === id ? { ...r, status: newStatus } : r));
+    } catch (error) {
+      toast.error('Could not update the reminder.');
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this reminder?')) return;
     try {
       await apiClient.delete(`/reminders/${id}`);
-    } catch (error) {}
-    setReminders(prev => prev.filter(r => r._id !== id));
-    toast.success('Reminder deleted');
+      setReminders(prev => prev.filter(r => r._id !== id));
+      toast.success('Reminder deleted');
+    } catch (error) {
+      toast.error('Could not delete the reminder.');
+    }
   };
 
   const handleSendTestEmail = async (reminder: any) => {
@@ -113,7 +77,7 @@ const SmartReminders: React.FC = () => {
       });
       toast.success('Reminder email sent successfully', { id: 'test-email' });
     } catch (error) {
-      toast.success('Reminder notification simulated for demo', { id: 'test-email' });
+      toast.error('Test email could not be sent (email is not configured on this server). In-app notifications still work.', { id: 'test-email' });
     }
   };
 
@@ -127,21 +91,21 @@ const SmartReminders: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-300 rounded-full tracking-wider">
-                Coming Soon • Beta Preview
+                Live • In-app alerts
               </span>
-              <span className="text-xs text-slate-400 font-mono">Q1 2027 Clinical Rollout</span>
+              <span className="text-xs text-slate-400 font-mono">Checked every minute (IST)</span>
             </div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               Smart Medication Reminders & Adherence Hub
             </h1>
             <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
-              Automated multi-channel dosing alerts (WhatsApp, SMS, and Smart Pillbox integration) are currently in active beta testing. All saved dosage schedules and demo simulation controls below remain fully accessible for preview.
+              Set a time for each dose. At that time you get a notification in the bell (and email or SMS when they are configured). A dose marked as taken comes back the next day.
             </p>
           </div>
 
           <div className="flex items-center space-x-2">
             <span className="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800">
-              Feature in Beta
+              Active
             </span>
           </div>
         </div>
@@ -153,7 +117,7 @@ const SmartReminders: React.FC = () => {
         <div className="text-xs">
           <p className="font-bold">Automated Medication Adherence System</p>
           <p className="text-teal-700 mt-0.5">
-            Configure dosage times for automated multi-channel alerts. You can test notification delivery via the "Simulate Alert" button.
+            Reminders are sent by the server even when this page is closed. Times are India time (IST).
           </p>
         </div>
       </div>
@@ -239,7 +203,7 @@ const SmartReminders: React.FC = () => {
                     className="px-2.5 py-1 text-[11px] font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-md hover:bg-teal-100 flex items-center transition-colors"
                   >
                     <PlayCircle className="w-3 h-3 mr-1" />
-                    <span>Simulate Alert</span>
+                    <span>Send Test Email</span>
                   </button>
                   
                   <button 

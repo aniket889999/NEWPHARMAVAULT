@@ -5,52 +5,19 @@ import { Link } from 'react-router-dom';
 
 const PatientOrders: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const { data } = await apiClient.get('/orders/myorders');
-        if (data && data.length > 0) {
-          setOrders(data);
-        } else {
-          // Demo realistic orders fallback for demo presentation
-          setOrders([
-            {
-              _id: 'PV-ORD-9821',
-              createdAt: new Date().toISOString(),
-              totalPrice: 245.50,
-              status: 'Delivered',
-              orderItems: [
-                { name: 'Dolo 650mg (Micro Labs)', qty: 2, price: 30.50, batch: 'B-DLO-650' },
-                { name: 'Pantoprazole 40mg (Alkem)', qty: 1, price: 155.00, batch: 'B-PAN-040' },
-                { name: 'Paracetamol 500mg (GSK)', qty: 2, price: 14.75, batch: 'B-CRO-101' }
-              ]
-            },
-            {
-              _id: 'PV-ORD-9740',
-              createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-              totalPrice: 119.00,
-              status: 'Delivered',
-              orderItems: [
-                { name: 'Azithromycin 500mg (Cipla)', qty: 1, price: 119.00, batch: 'B-AZE-500' }
-              ]
-            }
-          ]);
-        }
+        setOrders(Array.isArray(data) ? data : []);
       } catch (error) {
-        // Fallback for offline demo
-        setOrders([
-          {
-            _id: 'PV-ORD-9821',
-            createdAt: new Date().toISOString(),
-            totalPrice: 245.50,
-            status: 'Delivered',
-            orderItems: [
-              { name: 'Dolo 650mg (Micro Labs)', qty: 2, price: 30.50, batch: 'B-DLO-650' },
-              { name: 'Pantoprazole 40mg (Alkem)', qty: 1, price: 155.00, batch: 'B-PAN-040' }
-            ]
-          }
-        ]);
+        setOrders([]);
+        setFailed(true);
+      } finally {
+        setLoading(false);
       }
     };
     fetchOrders();

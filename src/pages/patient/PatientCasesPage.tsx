@@ -34,15 +34,11 @@ export const PatientCasesPage: React.FC = () => {
     try {
       setIsLoading(true);
       const data = await verificationApi.getCases();
-      if (data && data.length > 0) {
-        setCases(data);
-      } else {
-        // Fallback realistic demo audit cases
-        setCases(sampleDemoCases);
-      }
+      setCases(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error('Failed to fetch verification cases:', err);
-      setCases(sampleDemoCases);
+      setCases([]);
+      toast.error('Could not load your cases. Check that the server is running.');
     } finally {
       setIsLoading(false);
     }
@@ -63,24 +59,8 @@ export const PatientCasesPage: React.FC = () => {
       toast.success('Verification case created successfully');
       setShowNewModal(false);
       setCases(prev => [created, ...prev]);
-    } catch (error) {
-      // Create local case for demo
-      const mockCase: VerificationCase = {
-        id: 'case-' + Date.now(),
-        caseReference: `CASE-2024-${Math.floor(1000 + Math.random() * 9000)}`,
-        organizationId: 'org_demo_1',
-        createdBy: 'Demo Patient',
-        subjectReference: newSubject,
-        status: 'DOCUMENTS_PENDING',
-        reviewRequired: true,
-        schemaVersion: '2.0.0',
-        documentIds: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      setCases(prev => [mockCase, ...prev]);
-      setShowNewModal(false);
-      toast.success('New verification case initiated');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'The case could not be created.');
     } finally {
       setCreatingCase(false);
     }
@@ -504,47 +484,5 @@ export const PatientCasesPage: React.FC = () => {
   );
 };
 
-// Realistic mock data for demo verification cases
-const sampleDemoCases: VerificationCase[] = [
-  {
-    id: 'case-demo-1',
-    caseReference: 'CASE-2024-8921',
-    organizationId: 'org_main_01',
-    createdBy: 'Demo Patient',
-    subjectReference: 'Monsoon Fever Prescription & Pharmacy Invoice',
-    status: 'VERIFIED',
-    reviewRequired: false,
-    schemaVersion: '2.0.0',
-    documentIds: ['doc-rx-01', 'doc-inv-01'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'case-demo-2',
-    caseReference: 'CASE-2024-8845',
-    organizationId: 'org_main_01',
-    createdBy: 'Demo Patient',
-    subjectReference: 'Bacterial Throat Infection Therapy (Azithromycin)',
-    status: 'VERIFIED',
-    reviewRequired: false,
-    schemaVersion: '2.0.0',
-    documentIds: ['doc-rx-02'],
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 2).toISOString()
-  },
-  {
-    id: 'case-demo-3',
-    caseReference: 'CASE-2024-8712',
-    organizationId: 'org_main_01',
-    createdBy: 'Demo Patient',
-    subjectReference: 'Gastroenterology Claim & Tablet Bill',
-    status: 'NEEDS_REVIEW',
-    reviewRequired: true,
-    schemaVersion: '2.0.0',
-    documentIds: ['doc-rx-03', 'doc-inv-03'],
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 5).toISOString()
-  }
-];
 
 export default PatientCasesPage;

@@ -26,19 +26,20 @@ test('authenticity check page shows the ledger result', async ({ page }) => {
 });
 
 test('nearby medicines lists real pharmacy stock, nearest first', async ({ page, request }) => {
-  const res = await request.get(`${API}/pharmacy/nearby?medicine=Dolo&lat=12.9716&lng=77.5946`, { headers: await bearer(request) });
+  const res = await request.get(`${API}/pharmacy/nearby?medicine=Dolo&lat=18.5204&lng=73.8567`, { headers: await bearer(request) });
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   const names = body.data.map((p: { name: string }) => p.name);
-  expect(names).toContain('Shree Sai Medicals - Indiranagar');
-  expect(names).toContain('CareWell Pharmacy - Koramangala');
+  expect(body.data.length).toBe(5);
+  expect(names).toContain('Shree Sai Medicals - Shivajinagar');
+  expect(names).not.toContain('NewCare Medicos - Hadapsar');
   expect(body.data[0].distance).toBeLessThanOrEqual(body.data[body.data.length - 1].distance);
   expect(body.data.every((p: { medicineStock: number }) => p.medicineStock > 0)).toBeTruthy();
 
   await signIn(page, { tab: 'patient', email: 'ananya.verma@claimant.example' });
   await page.waitForURL('**/patient/dashboard');
   await page.goto('/patient/nearby-medicines?medicine=Dolo');
-  await expect(page.getByText('Shree Sai Medicals - Indiranagar').first()).toBeVisible();
+  await expect(page.getByText('Shree Sai Medicals - Shivajinagar').first()).toBeVisible();
   await expect(page.getByText(/units available/).first()).toBeVisible();
   await page.screenshot({ path: 'showcase/20-nearby-medicines.png', fullPage: true });
 });

@@ -40,15 +40,11 @@ const Inventory: React.FC = () => {
     try {
       setLoading(true);
       const { data } = await apiClient.get('/medicines');
-      if (Array.isArray(data) && data.length > 0) {
-        setMedicines(data);
-      } else {
-        // Fallback demo data
-        setMedicines(fallbackMedicines);
-      }
+      setMedicines(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      setMedicines(fallbackMedicines);
+      setMedicines([]);
+      toast.error('Could not load inventory. Check that the server is running.');
     } finally {
       setLoading(false);
     }
@@ -454,55 +450,5 @@ const Inventory: React.FC = () => {
   );
 };
 
-const fallbackMedicines = [
-  {
-    _id: 'med_1',
-    name: 'Dolo 650mg Tablet',
-    category: 'Analgesics & Antipyretics',
-    description: 'First line paracetamol formulation for acute fever, viral headaches.',
-    price: 30.50,
-    stock: 450,
-    manufacturer: 'Micro Labs Limited',
-    prescriptionRequired: false,
-    batchNumber: 'B-DLO-650',
-    expiryDate: new Date('2028-05-10').toISOString()
-  },
-  {
-    _id: 'med_2',
-    name: 'Azithromycin 500mg (Azee 500)',
-    category: 'Antibiotics & Antimicrobials',
-    description: 'Broad-spectrum macrolide antibiotic for upper and lower respiratory infections.',
-    price: 119.00,
-    stock: 120,
-    manufacturer: 'Cipla Limited',
-    prescriptionRequired: true,
-    batchNumber: 'B-AZE-500',
-    expiryDate: new Date('2027-11-17').toISOString()
-  },
-  {
-    _id: 'med_3',
-    name: 'Amoxicillin + Clavulanic Acid 625mg (Augmentin)',
-    category: 'Antibiotics & Antimicrobials',
-    description: 'Potentiated penicillin antibiotic effective against beta-lactamase producing strains.',
-    price: 185.00,
-    stock: 18,
-    manufacturer: 'GlaxoSmithKline (GSK)',
-    prescriptionRequired: true,
-    batchNumber: 'B-AUG-625',
-    expiryDate: new Date('2027-07-15').toISOString()
-  },
-  {
-    _id: 'med_4',
-    name: 'Benadryl Cough Relief Syrup (100ml)',
-    category: 'Respiratory & Cold',
-    description: 'Diphenhydramine formulation for dry cough relief.',
-    price: 125.00,
-    stock: 22,
-    manufacturer: 'Johnson & Johnson Ltd',
-    prescriptionRequired: false,
-    batchNumber: 'B-BND-110',
-    expiryDate: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString()
-  }
-];
 
 export default Inventory;

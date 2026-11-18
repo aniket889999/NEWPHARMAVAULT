@@ -65,7 +65,9 @@ const getNearbyPharmacies = asyncHandler(async (req, res) => {
         searchedMedicine: medicine
       };
     })
-    .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+    // The nearest N pharmacies (default 5, max 20).
+    .slice(0, Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 5, 1), 20));
 
   res.json({ success: true, count: results.length, source: 'PharmaVault pharmacy inventory', data: results });
 });
