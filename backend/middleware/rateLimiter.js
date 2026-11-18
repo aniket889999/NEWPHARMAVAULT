@@ -10,7 +10,8 @@ const parseLimit = (val, defaultVal) => {
 };
 
 const windowMs = parseLimit(process.env.RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000);
-const authMax = parseLimit(process.env.RATE_LIMIT_AUTH_MAX, 10);
+const defaultAuthMax = process.env.NODE_ENV === 'production' ? 10 : 200;
+const authMax = parseLimit(process.env.RATE_LIMIT_AUTH_MAX, defaultAuthMax);
 const aiMax = parseLimit(process.env.RATE_LIMIT_AI_MAX, 30);
 
 // Stricter limiter for auth (login/register)

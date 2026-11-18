@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth, MfaRequiredError } from '../../context/AuthContext';
-import { ShieldCheck, User, Store, Mail, Lock, CheckCircle2, ChevronLeft, LogIn } from 'lucide-react';
+import { ShieldCheck, User, Store, Mail, Lock, CheckCircle2, ChevronLeft, Building2, LogIn } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { portalHome, STAFF_PORTALS } from '../../features/navigation/portalPolicy';
+import { portalHome, portalTitle, STAFF_PORTALS } from '../../features/navigation/portalPolicy';
+
+const DEMO_CREDENTIALS: Record<string, { name: string; email: string }> = {
+  patient: { name: 'Demo Patient', email: 'patient@test.com' },
+  pharmacy: { name: 'Demo Pharmacy Hub', email: 'pharmacy@test.com' },
+  claims_reviewer: { name: 'Clinical Claims Reviewer', email: 'reviewer@test.com' },
+  pharmacist: { name: 'Demo Pharmacist', email: 'pharmacist@test.com' },
+  org_admin: { name: 'Demo Organization Admin', email: 'orgadmin@test.com' },
+  super_admin: { name: 'Demo System Admin', email: 'admin@test.com' },
+  research_evaluator: { name: 'Demo Research Evaluator', email: 'research@test.com' },
+  payer_reviewer: { name: 'Demo Insurer Reviewer', email: 'insurer@test.com' },
+  payer_admin: { name: 'Demo Insurer Admin', email: 'insureradmin@test.com' },
+};
 
 const AuthPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,8 +30,6 @@ const AuthPage: React.FC = () => {
   const { login, signup, isLoading } = useAuth();
   
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   // Reviewer tab covers every provisioned staff role; backend login requires an exact role match.
@@ -27,10 +37,14 @@ const AuthPage: React.FC = () => {
     const requested = searchParams.get('staffRole');
     return STAFF_PORTALS.some((p) => p.role === requested) ? (requested as string) : 'claims_reviewer';
   });
-  const [otp, setOtp] = useState('');
-  const [needsOtp, setNeedsOtp] = useState(false);
+
   const loginRole = activeRole === 'claims_reviewer' ? staffRole : activeRole;
   const canSelfRegister = activeRole === 'patient';
+
+  const [email, setEmail] = useState(() => DEMO_CREDENTIALS[loginRole]?.email || '');
+  const [password, setPassword] = useState('password123');
+  const [otp, setOtp] = useState('');
+  const [needsOtp, setNeedsOtp] = useState(false);
 
   // Sync state if url param changes
   useEffect(() => {
@@ -38,13 +52,31 @@ const AuthPage: React.FC = () => {
     if (role === 'pharmacy' || role === 'claims_reviewer' || role === 'patient') {
       setActiveRole(role);
     }
+    const requestedStaffRole = searchParams.get('staffRole');
+    if (requestedStaffRole && STAFF_PORTALS.some((p) => p.role === requestedStaffRole)) {
+      setStaffRole(requestedStaffRole);
+      setEmail(DEMO_CREDENTIALS[requestedStaffRole]?.email || '');
+    } else if (role && role !== 'claims_reviewer') {
+      setEmail(DEMO_CREDENTIALS[role]?.email || '');
+    }
   }, [searchParams]);
 
   // Handle switching tabs
   const handleRoleChange = (role: 'patient' | 'pharmacy' | 'claims_reviewer') => {
     setActiveRole(role);
     if (role !== 'patient') setIsLogin(true);
-    setSearchParams({ role });
+    const targetRole = role === 'claims_reviewer' ? staffRole : role;
+    setEmail(DEMO_CREDENTIALS[targetRole]?.email || '');
+    setPassword('password123');
+    setSearchParams(role === 'claims_reviewer' ? { role, staffRole } : { role });
+    setError('');
+  };
+
+  const handleStaffRoleChange = (newStaffRole: string) => {
+    setStaffRole(newStaffRole);
+    setEmail(DEMO_CREDENTIALS[newStaffRole]?.email || '');
+    setPassword('password123');
+    setSearchParams({ role: 'claims_reviewer', staffRole: newStaffRole });
     setError('');
   };
 
@@ -79,31 +111,19 @@ const AuthPage: React.FC = () => {
   // Instant 1-Click Demo Login handler
   const handleQuickDemoLogin = async (demoRole: 'patient' | 'pharmacy' | 'claims_reviewer') => {
     setError('');
-    // Seeded synthetic accounts (npm --prefix backend run seed:demo). Reviewer tab follows the staff role picker.
-    const staffDemo: Record<string, string> = {
-      claims_reviewer: 'reviewer@test.com',
-      pharmacist: 'pharmacist@test.com',
-      org_admin: 'orgadmin@test.com',
-      payer_reviewer: 'insurer@test.com',
-      payer_admin: 'insureradmin@test.com'
-    };
-    const effectiveRole = demoRole === 'claims_reviewer' && staffDemo[staffRole] ? staffRole : demoRole;
-    const demoEmail = demoRole === 'patient'
-      ? 'patient@test.com'
-      : demoRole === 'pharmacy'
-      ? 'pharmacy@test.com'
-      : staffDemo[effectiveRole];
+    const effectiveRole = demoRole === 'claims_reviewer' ? staffRole : demoRole;
+    const targetDemo = DEMO_CREDENTIALS[effectiveRole] || DEMO_CREDENTIALS[demoRole];
+    const demoEmail = targetDemo.email;
     const demoPass = 'password123';
 
     try {
       await login(demoEmail, demoPass, effectiveRole);
-      toast.success(`Signed in as ${effectiveRole.replace(/_/g, ' ')} (Demo)`);
+      toast.success(`Signed in as ${targetDemo.name} (Demo)`);
       navigate(portalHome(effectiveRole));
     } catch (err: any) {
-      // In case user doesn't exist, fill fields and let them submit
       setEmail(demoEmail);
       setPassword(demoPass);
-      setName(demoRole === 'patient' ? 'Demo Patient' : demoRole === 'pharmacy' ? 'Demo Pharmacy Hub' : 'Demo Reviewer');
+      setName(targetDemo.name);
       setError('Auto-filled credentials. Please click Sign In.');
     }
   };
@@ -117,8 +137,8 @@ const AuthPage: React.FC = () => {
       accentColor: 'text-teal-700',
       btnColor: 'bg-teal-600 hover:bg-teal-700 text-white',
       icon: User,
-      demoName: 'Demo Patient',
-      demoEmail: 'patient@test.com'
+      demoName: DEMO_CREDENTIALS.patient.name,
+      demoEmail: DEMO_CREDENTIALS.patient.email
     },
     pharmacy: {
       title: 'Pharmacy Hub',
@@ -127,18 +147,26 @@ const AuthPage: React.FC = () => {
       accentColor: 'text-blue-700',
       btnColor: 'bg-blue-700 hover:bg-blue-800 text-white',
       icon: Store,
-      demoName: 'Demo Pharmacy Hub',
-      demoEmail: 'pharmacy@test.com'
+      demoName: DEMO_CREDENTIALS.pharmacy.name,
+      demoEmail: DEMO_CREDENTIALS.pharmacy.email
     },
     claims_reviewer: {
-      title: 'Reviewer Portal',
-      subtitle: 'TrustRAG verification queue & discrepancy adjudication',
-      badgeColor: 'bg-slate-100 text-slate-800 border-slate-300',
-      accentColor: 'text-slate-800',
-      btnColor: 'bg-slate-800 hover:bg-slate-900 text-white',
-      icon: ShieldCheck,
-      demoName: 'Clinical Claims Reviewer',
-      demoEmail: 'reviewer@test.com'
+      title: portalTitle(staffRole),
+      subtitle: ['payer_reviewer', 'payer_admin'].includes(staffRole)
+        ? 'Insurer claims adjudication, coverage & settlement workstation'
+        : 'TrustRAG verification queue & discrepancy adjudication',
+      badgeColor: ['payer_reviewer', 'payer_admin'].includes(staffRole)
+        ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+        : 'bg-slate-100 text-slate-800 border-slate-300',
+      accentColor: ['payer_reviewer', 'payer_admin'].includes(staffRole)
+        ? 'text-indigo-800'
+        : 'text-slate-800',
+      btnColor: ['payer_reviewer', 'payer_admin'].includes(staffRole)
+        ? 'bg-indigo-700 hover:bg-indigo-800 text-white'
+        : 'bg-slate-800 hover:bg-slate-900 text-white',
+      icon: ['payer_reviewer', 'payer_admin'].includes(staffRole) ? Building2 : ShieldCheck,
+      demoName: DEMO_CREDENTIALS[staffRole]?.name || 'Clinical Claims Reviewer',
+      demoEmail: DEMO_CREDENTIALS[staffRole]?.email || 'reviewer@test.com'
     }
   }[activeRole];
 
@@ -271,7 +299,7 @@ const AuthPage: React.FC = () => {
                 <select
                   id="staff-role"
                   value={staffRole}
-                  onChange={(e) => setStaffRole(e.target.value)}
+                  onChange={(e) => handleStaffRoleChange(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600"
                 >
                   {STAFF_PORTALS.map((option) => (

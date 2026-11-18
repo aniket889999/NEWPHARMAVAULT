@@ -104,7 +104,9 @@ const seedPharmacyHub = async () => {
     const staffAccounts = [
       { email: 'reviewer@test.com', name: 'Clinical Claims Reviewer', role: 'claims_reviewer' },
       { email: 'pharmacist@test.com', name: 'Demo Pharmacist', role: 'pharmacist' },
-      { email: 'orgadmin@test.com', name: 'Demo Organization Admin', role: 'org_admin' }
+      { email: 'orgadmin@test.com', name: 'Demo Organization Admin', role: 'org_admin' },
+      { email: 'admin@test.com', name: 'Demo System Admin', role: 'super_admin' },
+      { email: 'research@test.com', name: 'Demo Research Evaluator', role: 'research_evaluator' }
     ];
     for (const account of staffAccounts) {
       let staff = await User.findOne({ email: account.email });
