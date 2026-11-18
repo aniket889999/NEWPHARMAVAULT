@@ -7,7 +7,8 @@ import {
   Activity, 
   CheckCircle2, 
   ArrowRight, 
-  Lock
+  Lock,
+  Building2
 } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
@@ -130,10 +131,10 @@ export const LandingPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* 1. Patient Portal */}
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group">
-              <div className="p-7">
+              <div className="p-6">
                 <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700 mb-5 group-hover:bg-teal-600 group-hover:text-white transition-colors">
                   <User className="w-6 h-6" />
                 </div>
@@ -141,7 +142,7 @@ export const LandingPage: React.FC = () => {
                   Care & Medication
                 </div>
                 <h4 className="text-xl font-bold text-slate-900 mb-2">Patient Portal</h4>
-                <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                <p className="text-xs text-slate-600 leading-relaxed mb-6">
                   Verify medicine authenticity, upload prescriptions for OCR parsing, set smart medication reminders, and consult healthcare professionals.
                 </p>
 
@@ -165,10 +166,10 @@ export const LandingPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-7 pt-0">
+              <div className="p-6 pt-0">
                 <button
                   onClick={() => navigate('/login?role=patient')}
-                  className="w-full py-2.5 px-4 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium text-sm flex items-center justify-center space-x-2 transition-colors"
+                  className="w-full py-2.5 px-4 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium text-xs flex items-center justify-center space-x-2 transition-colors"
                 >
                   <span>Enter Patient Portal</span>
                   <ArrowRight className="w-4 h-4" />
@@ -178,7 +179,7 @@ export const LandingPage: React.FC = () => {
 
             {/* 2. Pharmacy Portal */}
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group">
-              <div className="p-7">
+              <div className="p-6">
                 <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 mb-5 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <Store className="w-6 h-6" />
                 </div>
@@ -186,7 +187,7 @@ export const LandingPage: React.FC = () => {
                   Dispensary Operations
                 </div>
                 <h4 className="text-xl font-bold text-slate-900 mb-2">Pharmacy Hub</h4>
-                <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                <p className="text-xs text-slate-600 leading-relaxed mb-6">
                   Manage dispensary stock, monitor expiration horizons, review incoming customer prescriptions, and trace registered medicine batches.
                 </p>
 
@@ -210,10 +211,10 @@ export const LandingPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-7 pt-0">
+              <div className="p-6 pt-0">
                 <button
                   onClick={() => navigate('/login?role=pharmacy')}
-                  className="w-full py-2.5 px-4 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-medium text-sm flex items-center justify-center space-x-2 transition-colors"
+                  className="w-full py-2.5 px-4 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-medium text-xs flex items-center justify-center space-x-2 transition-colors"
                 >
                   <span>Enter Pharmacy Portal</span>
                   <ArrowRight className="w-4 h-4" />
@@ -223,7 +224,7 @@ export const LandingPage: React.FC = () => {
 
             {/* 3. Reviewer Portal */}
             <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group">
-              <div className="p-7">
+              <div className="p-6">
                 <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 mb-5 group-hover:bg-slate-800 group-hover:text-white transition-colors">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
@@ -231,7 +232,7 @@ export const LandingPage: React.FC = () => {
                   Clinical Verification
                 </div>
                 <h4 className="text-xl font-bold text-slate-900 mb-2">Reviewer Portal</h4>
-                <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                <p className="text-xs text-slate-600 leading-relaxed mb-6">
                   TrustRAG verification workstation for cross-document reconciliation, evidence lineage validation, and authorized human sign-off.
                 </p>
 
@@ -255,12 +256,57 @@ export const LandingPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-7 pt-0">
+              <div className="p-6 pt-0">
                 <button
                   onClick={() => navigate('/login?role=claims_reviewer')}
-                  className="w-full py-2.5 px-4 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-medium text-sm flex items-center justify-center space-x-2 transition-colors"
+                  className="w-full py-2.5 px-4 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-medium text-xs flex items-center justify-center space-x-2 transition-colors"
                 >
                   <span>Enter Reviewer Portal</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* 4. Insurer Portal */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group">
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 mb-5 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <div className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-800 border border-indigo-100 mb-2">
+                  Payer & TPA
+                </div>
+                <h4 className="text-xl font-bold text-slate-900 mb-2">Insurer Portal</h4>
+                <p className="text-xs text-slate-600 leading-relaxed mb-6">
+                  Consent-governed claims adjudication, policy compliance checks, discrepancy fraud detection, and FHIR R4 interoperability.
+                </p>
+
+                <div className="space-y-2 border-t border-slate-100 pt-4 text-xs text-slate-600">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                    <span>90-Day patient consent scope</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                    <span>Cross-document risk signals</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                    <span>Claimant clarification queries</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                    <span>FHIR R4 Bundle validation</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 pt-0">
+                <button
+                  onClick={() => navigate('/login?role=claims_reviewer&staffRole=payer_reviewer')}
+                  className="w-full py-2.5 px-4 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white font-medium text-sm flex items-center justify-center space-x-2 transition-colors"
+                >
+                  <span>Enter Insurer Portal</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
