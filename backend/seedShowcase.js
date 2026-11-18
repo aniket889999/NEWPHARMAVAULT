@@ -19,6 +19,7 @@ const User = require('./models/userModel');
 const Organization = require('./models/organizationModel');
 const Branch = require('./models/branchModel');
 const Medicine = require('./models/medicineModel');
+const VerificationCase = require('./models/verificationCaseModel');
 
 const INSURER_NAME = 'Sahyog Health Assurance (Demo)';
 const PASSWORD = 'password123';
@@ -30,6 +31,8 @@ async function upsertUser({ email, name, role, organizationId }) {
   user.role = role;
   user.organizationId = organizationId || undefined;
   user.active = true;
+  // Clear any sign-in lockout left from earlier failed attempts.
+  user.login = { failedCount: 0, lockedUntil: null, sources: [] };
   await user.save();
   return user;
 }
@@ -80,6 +83,22 @@ async function upsertUser({ email, name, role, organizationId }) {
     const reviewer = await upsertUser({ email: 'rohit.mehta@sahyog-health.example', name: 'Rohit Mehta', role: 'payer_reviewer', organizationId: insurer._id });
     const admin = await upsertUser({ email: 'kavya.iyer@sahyog-health.example', name: 'Kavya Iyer', role: 'payer_admin', organizationId: insurer._id });
 
+    // Ananya needs pharmacist-verified cases to submit claims in a live demo.
+    const pharmacyOrg = await Organization.findOne({ name: 'Demo Health Pharmacy Network (synthetic)' });
+    const pharmacyBranch = pharmacyOrg ? await Branch.findOne({ organizationId: pharmacyOrg._id }) : null;
+    const showcaseCases = [
+      { caseReference: 'PV-DEMO-ANANYA-001', subjectReference: 'Ananya Verma · Dolo 650 + Azithromycin 500 (synthetic)', status: 'VERIFIED' },
+      { caseReference: 'PV-DEMO-ANANYA-002', subjectReference: 'Ananya Verma · Pantoprazole 40 (synthetic)', status: 'VERIFIED' },
+      { caseReference: 'PV-DEMO-ANANYA-003', subjectReference: 'Ananya Verma · Cetirizine 10 (synthetic)', status: 'NEEDS_REVIEW' }
+    ];
+    for (const c of showcaseCases) {
+      await VerificationCase.updateOne(
+        { caseReference: c.caseReference },
+        { $setOnInsert: { ...c, reviewRequired: c.status !== 'VERIFIED', organizationId: pharmacyOrg?._id, branchId: pharmacyBranch?._id, createdBy: claimant._id } },
+        { upsert: true }
+      );
+    }
+
     console.log(JSON.stringify({
       insurer: { id: String(insurer._id), name: insurer.name },
       accounts: [
@@ -88,6 +107,7 @@ async function upsertUser({ email, name, role, organizationId }) {
         { role: 'insurer admin (appeals)', name: admin.name, email: admin.email }
       ],
       password: PASSWORD,
+      cases: showcaseCases.map((c) => `${c.caseReference} (${c.status})`),
       note: 'Synthetic showcase data only. Fictional people and company.'
     }, null, 2));
   } finally {

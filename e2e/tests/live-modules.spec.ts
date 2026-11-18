@@ -58,3 +58,13 @@ test('smart reminder is delivered as a notification at its time', async ({ reque
     return ((await list.json()).items || []).some((n: { type: string }) => n.type === 'MEDICINE_REMINDER');
   }, { timeout: 120_000, intervals: [5_000] }).toBeTruthy();
 });
+
+test('claimant can sign in through the login page and has seeded verified cases to claim', async ({ page }) => {
+  await signIn(page, { tab: 'patient', email: 'ananya.verma@claimant.example' });
+  await page.waitForURL('**/patient/dashboard');
+  await page.goto('/patient/claims');
+  await page.getByRole('button', { name: 'New Claim' }).click();
+  const caseSelect = page.getByLabel('Verified Case *');
+  await expect(caseSelect.locator('option', { hasText: 'PV-DEMO-ANANYA-001' })).toHaveCount(1);
+  await expect(caseSelect.locator('option', { hasText: 'PV-DEMO-ANANYA-003' })).toHaveCount(0);
+});
