@@ -26,7 +26,12 @@ function readBrowserCookie(req) {
 }
 
 function cookieOptions() {
-  return { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/' };
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    path: '/'
+  };
 }
 function setBrowserSession(res, token) {
   res.cookie(cookieName(), token, { ...cookieOptions(), maxAge: WEB_TTL_SECONDS * 1000 });

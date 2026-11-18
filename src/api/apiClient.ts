@@ -1,10 +1,19 @@
 import axios from 'axios';
 import { notifySessionExpired } from '../features/navigation/sessionProfile';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+function resolveApiUrl(): string {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return `${window.location.protocol}//${host}:5001/api`;
+    }
+  }
+  return envUrl || 'http://127.0.0.1:5001/api';
+}
 
 const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: resolveApiUrl(),
   withCredentials: true,
 });
 
@@ -12,6 +21,12 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     config.headers['X-PharmaVault-Client'] = 'web';
+    if (typeof window !== 'undefined' && window.location) {
+      const host = window.location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1') {
+        config.baseURL = `${window.location.protocol}//${host}:5001/api`;
+      }
+    }
     return config;
   },
   (error) => Promise.reject(error)

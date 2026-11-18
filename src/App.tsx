@@ -109,7 +109,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/pharmacy"
         element={
-          <RoleRoute allowedRole="pharmacy">
+          <RoleRoute allowedRoles={['pharmacy', 'pharmacist', 'org_admin', 'super_admin']}>
             <PharmacyLayout />
           </RoleRoute>
         }

@@ -19,7 +19,7 @@ process.once('SIGINT', () => close().then(() => process.exit(0)));
 process.once('SIGTERM', () => close().then(() => process.exit(0)));
 try {
   server = await createServer({ root, configFile: false, cacheDir: cache, plugins: [react()], optimizeDeps: { exclude: ['lucide-react'] },
-    server: { host: '127.0.0.1', port: 5173, strictPort: true } });
+    server: { host: '0.0.0.0', port: 5173, strictPort: true } });
   await server.listen(); server.printUrls();
 } catch {
   console.error('Local frontend could not start. Check installed frontend dependencies and port 5173.');
