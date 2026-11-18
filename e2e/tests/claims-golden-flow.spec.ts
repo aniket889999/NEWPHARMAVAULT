@@ -86,7 +86,7 @@ test.describe.serial('Claims golden flow (claimant ↔ insurer)', () => {
     await page.getByLabel('Decision note (shared with claimant)').fill('Policy covers up to 300 for this medicine per claim.');
     await page.getByRole('button', { name: 'Record Decision' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Record Decision' }).click();
-    await expect(page.getByText('Decision recorded')).toBeVisible();
+    await expect(page.getByText('Decision recorded').first()).toBeVisible();
     await page.context().close();
   });
 

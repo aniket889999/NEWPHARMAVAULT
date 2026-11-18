@@ -101,7 +101,7 @@ test.describe.serial('Showcase: Ananya Verma ↔ Sahyog Health Assurance (Demo)'
     await page.getByRole('button', { name: 'Record Decision' }).click();
     await shot(page, 'insurer-confirm-dialog');
     await page.getByRole('alertdialog').getByRole('button', { name: 'Record Decision' }).click();
-    await expect(page.getByText('Decision recorded')).toBeVisible();
+    await expect(page.getByText('Decision recorded').first()).toBeVisible();
     await shot(page, 'insurer-partial-approval');
     await page.context().close();
   });
@@ -130,7 +130,7 @@ test.describe.serial('Showcase: Ananya Verma ↔ Sahyog Health Assurance (Demo)'
     await page.getByLabel('Decision note (shared with claimant)').fill('Appeal accepted: schedule limit confirmed at ₹1,500. Full amount approved.');
     await page.getByRole('button', { name: 'Record Decision' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Record Decision' }).click();
-    await expect(page.getByText('Decision recorded')).toBeVisible();
+    await expect(page.getByText('Decision recorded').first()).toBeVisible();
     await shot(page, 'insurer-appeal-approved');
     await page.context().close();
   });

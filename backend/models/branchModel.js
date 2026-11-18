@@ -12,6 +12,11 @@ const branchSchema = new mongoose.Schema({
     required: true
   },
   location: String,
+  // Map position used by "Nearby medicines" (optional; branches without it are not listed).
+  coordinates: {
+    lat: { type: Number, min: -90, max: 90 },
+    lng: { type: Number, min: -180, max: 180 }
+  },
   licenseNumber: {
     type: String,
     required: true

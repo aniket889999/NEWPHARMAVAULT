@@ -3,6 +3,7 @@ const asyncHandler = require('../middleware/asyncHandler');
 const crypto = require('crypto');
 
 // Utility function to calculate SHA-256 hash
+const { blockHash } = require('../utils/ledgerHash');
 const calculateHash = (data) => {
   return crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
 };
@@ -36,7 +37,7 @@ const registerBatch = asyncHandler(async (req, res) => {
     timestamp: new Date().toISOString()
   };
 
-  const blockchainHash = calculateHash(blockData);
+  const blockchainHash = blockHash(blockData);
 
   const newBlock = new BlockchainLedger({
     ...blockData,
@@ -103,23 +104,8 @@ const verifyBatch = asyncHandler(async (req, res) => {
     block.verificationAttempts += 1;
     await block.save();
 
-    // Verify hash integrity mathematically
-    const blockData = {
-      medicineName: block.medicineName,
-      genericName: block.genericName,
-      batchNumber: block.batchNumber,
-      manufacturer: block.manufacturer,
-      manufacturingDate: block.manufacturingDate ? block.manufacturingDate.toISOString() : undefined,
-      expiryDate: block.expiryDate.toISOString(),
-      distributor: block.distributor,
-      pharmacyName: block.pharmacyName,
-      pharmacyLocation: block.pharmacyLocation,
-      supplyChainStage: block.supplyChainStage,
-      previousHash: block.previousHash,
-      timestamp: block.timestamp.toISOString()
-    };
-    
-    const recalculatedHash = calculateHash(blockData);
+    // Verify hash integrity with the same canonical payload used when the block was written.
+    const recalculatedHash = blockHash(block);
     const hashIntact = recalculatedHash === block.blockchainHash;
 
     const timeline = [

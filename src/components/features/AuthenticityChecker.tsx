@@ -88,34 +88,6 @@ const AuthenticityChecker: React.FC = () => {
     setScanResult(null);
     setCdscoData(null);
 
-    // If it's the known fake batch, generate immediate high-risk alert
-    if (batchId === 'B-FAKE-999') {
-      setTimeout(() => {
-        setScanResult({
-          status: 'tampered',
-          title: 'Counterfeit / Tampered Batch Detected',
-          message: 'This batch code does not exist in the CDSCO official manufacturer registry or blockchain ledger.',
-          score: 12,
-          data: {
-            batchNumber: 'B-FAKE-999',
-            manufacturer: 'Unregistered Entity',
-            verificationHash: 'INVALID_OR_MISSING_SIGNATURE',
-            ledgerTimestamp: 'N/A'
-          },
-          riskAnalysis: {
-            riskLevel: 'High',
-            suspicionScore: 92,
-            reasons: [
-              'Batch signature missing from official pharmaceutical ledger',
-              'Manufacturer name does not match license registry',
-              'Tamper-evident packaging QR mismatch'
-            ]
-          }
-        });
-        setIsProcessing(false);
-      }, 500);
-      return;
-    }
 
     try {
       // Cookie session is sent by apiClient (withCredentials). No token in localStorage.
@@ -321,7 +293,7 @@ const AuthenticityChecker: React.FC = () => {
                   : 'bg-rose-50 text-rose-700 border-rose-200'
               }`}>
                 <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                CDSCO Regulatory Status: {cdscoData.status} ({cdscoData.licenseNumber || 'Verified'})
+                Regulatory reference: {cdscoData.status}{cdscoData.licenseNumber ? ` (${cdscoData.licenseNumber})` : ''}
               </span>
             )}
 

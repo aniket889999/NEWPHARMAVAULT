@@ -518,7 +518,7 @@ const seedPharmacyHub = async () => {
 
     for (const item of ledgerData) {
       const blockContent = { ...item, previousHash: prevHash, timestamp: new Date().toISOString() };
-      const currentHash = calculateHash(blockContent);
+      const currentHash = require('./utils/ledgerHash').blockHash(blockContent);
       await BlockchainLedger.create({
         ...blockContent,
         blockchainHash: currentHash,
