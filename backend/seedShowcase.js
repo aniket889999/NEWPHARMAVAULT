@@ -20,6 +20,8 @@ const Organization = require('./models/organizationModel');
 const Branch = require('./models/branchModel');
 const Medicine = require('./models/medicineModel');
 const VerificationCase = require('./models/verificationCaseModel');
+const Prescription = require('./models/prescriptionModel');
+const Order = require('./models/orderModel');
 
 const INSURER_NAME = 'Sahyog Health Assurance (Demo)';
 const PASSWORD = 'password123';
@@ -106,6 +108,39 @@ async function upsertUser({ email, name, role, organizationId }) {
         { $setOnInsert: { ...c, reviewRequired: c.status !== 'VERIFIED', organizationId: pharmacyOrg?._id, branchId: pharmacyBranch?._id, createdBy: claimant._id } },
         { upsert: true }
       );
+    }
+
+    // Pharmacy order flow: tie the hub's sample prescriptions and orders to the demo pharmacy,
+    // and give each pending prescription a waiting order so the pharmacist can approve/clarify/reject it.
+    if (pharmacyOrg) {
+      await Prescription.updateMany({ organizationId: { $exists: false } }, { $set: { organizationId: pharmacyOrg._id } });
+      await Order.updateMany({ pharmacyOrganizationId: { $exists: false } }, { $set: { pharmacyOrganizationId: pharmacyOrg._id, branchId: pharmacyBranch?._id } });
+      const pending = await Prescription.find({ organizationId: pharmacyOrg._id, status: 'Pending Review', orderId: { $exists: false } });
+      for (const rx of pending) {
+        const items = [];
+        for (const d of rx.detectedMedicines || []) {
+          const word = String(d.medicineName || '').split(/\s+/)[0];
+          if (!word) continue;
+          const med = await Medicine.findOne({ organizationId: pharmacyOrg._id, name: { $regex: word.replace(/[.*+?^${}()|[\]\\]/g, ''), $options: 'i' } });
+          if (med) items.push({ name: med.name, qty: 1, price: med.price, medicine: med._id, prescriptionRequired: Boolean(med.prescriptionRequired) });
+        }
+        if (!items.length) continue;
+        const order = await Order.create({ user: rx.user, orderItems: items, totalPrice: items.reduce((t, i) => t + i.price, 0), pharmacyOrganizationId: pharmacyOrg._id, branchId: pharmacyBranch?._id, requiresPrescription: true, prescription: rx._id, status: 'Awaiting Pharmacist' });
+        await Prescription.updateOne({ _id: rx._id }, { $set: { orderId: order._id } });
+      }
+    }
+
+    // Ananya has a saved prescription (not yet ordered) so she can buy a prescription-only medicine in the demo.
+    if (!(await Prescription.exists({ user: claimant._id }))) {
+      await Prescription.create({
+        user: claimant._id, doctorName: 'Dr. Ramesh Kulkarni, MD', patientName: 'Ananya Verma', prescriptionDate: new Date().toISOString().slice(0, 10), overallConfidence: 0.92,
+        extractedText: 'Rx: Cap Amoxicillin 500mg 1-0-1 x 3 days after food. Tab Dolo 650mg SOS for fever. Dr. Ramesh Kulkarni MD (synthetic)',
+        detectedMedicines: [
+          { medicineName: 'Amoxicillin 500mg Capsule', genericName: 'Amoxicillin', dosage: '1 capsule', frequency: '1-0-1', duration: '3 days', instructions: 'After food', confidence: 0.93 },
+          { medicineName: 'Dolo 650mg Tablet', genericName: 'Paracetamol', dosage: '1 tablet', frequency: 'SOS', duration: 'As needed for fever', instructions: 'Max 4 tablets a day', confidence: 0.95 }
+        ],
+        status: 'Pending Review'
+      });
     }
 
     console.log(JSON.stringify({

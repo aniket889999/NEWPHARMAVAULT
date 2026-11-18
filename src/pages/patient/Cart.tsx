@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCartStore } from '../../stores/cartStore';
 import { useNavigate, Link } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
@@ -8,7 +8,6 @@ import {
   ShoppingCart, 
   Plus, 
   Minus, 
-  CheckCircle2, 
   Package
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -17,56 +16,39 @@ const Cart: React.FC = () => {
   const { items, updateQty, removeItem, clearCart, totalPrice } = useCartStore();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [applyingInsurance, setApplyingInsurance] = useState(false);
-  const [insuranceData, setInsuranceData] = useState<any>(null);
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [prescriptionId, setPrescriptionId] = useState('');
+
+  useEffect(() => {
+    apiClient.get('/prescriptions/my-prescriptions')
+      .then(({ data }) => {
+        const list = Array.isArray(data) ? data : [];
+        setPrescriptions(list);
+        if (list[0]?._id) setPrescriptionId(list[0]._id);
+      })
+      .catch(() => setPrescriptions([]));
+  }, []);
 
   const handleCheckout = async () => {
     if (items.length === 0) return;
     setIsSubmitting(true);
     try {
-      const orderItems = items.map(i => ({ name: i.name, qty: i.qty, price: i.price, medicine: i.id }));
-      const finalPrice = insuranceData ? totalPrice() - insuranceData.totalDiscountAmount : totalPrice();
-      await apiClient.post('/orders', { orderItems, totalPrice: finalPrice });
+      // Prices and stock are checked by the server; one order is created per pharmacy.
+      const orderItems = items.map(i => ({ medicine: i.id, qty: i.qty }));
+      const { data } = await apiClient.post('/orders', { orderItems, prescriptionId: prescriptionId || undefined });
+      const count = data?.orders?.length || 1;
       clearCart();
-      toast.success('Dispensary order placed successfully!');
+      toast.success(count > 1 ? `${count} orders placed (one per pharmacy).` : 'Order placed with the pharmacy.');
       navigate('/patient/orders');
-    } catch (error) {
-      // Fallback local placement for demo
-      clearCart();
-      toast.success('Dispensary order confirmed (Demo Placement)');
-      navigate('/patient/orders');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'The order could not be placed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleApplyInsurance = async () => {
-    setApplyingInsurance(true);
-    try {
-      const payload = {
-        providerName: 'HDFC Ergo Demo Health Cover',
-        policyNumber: 'POL-123456',
-        medicines: items.map(i => ({ medicine: i.id, name: i.name, price: i.price, qty: i.qty }))
-      };
-      const { data } = await apiClient.post('/regulatory/insurance-check', payload);
-      setInsuranceData(data);
-      if (data.totalDiscountAmount > 0) {
-        toast.success(`Insurance verified! Copay discount ₹${data.totalDiscountAmount.toFixed(2)} applied`);
-      } else {
-        setInsuranceData({ totalDiscountAmount: 30.00 });
-        toast.success('Insurance verified! 15% prescription coverage applied');
-      }
-    } catch(err) {
-      setInsuranceData({ totalDiscountAmount: 25.00 });
-      toast.success('Simulated Insurance claim applied (-₹25.00)');
-    } finally {
-      setApplyingInsurance(false);
-    }
-  };
-
   const rawTotal = totalPrice();
-  const discount = insuranceData?.totalDiscountAmount || 0;
-  const netTotal = Math.max(0, rawTotal - discount);
+  const netTotal = rawTotal;
 
   if (items.length === 0) {
     return (
@@ -110,7 +92,7 @@ const Cart: React.FC = () => {
             <span className="text-xs text-slate-400">Licensed Pharmacy Partner</span>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Prescription Order & Dispensary Cart</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Review verified items, adjust unit packages, and simulate insurance co-pay coverage.</p>
+          <p className="text-xs text-slate-500 mt-0.5">Review items and quantities, then place your order with the pharmacy.</p>
         </div>
 
         <div className="flex items-center space-x-2 text-xs text-slate-500 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl">
@@ -211,34 +193,20 @@ const Cart: React.FC = () => {
                 <span className="font-mono text-slate-600">Included</span>
               </div>
 
-              {discount > 0 && (
-                <div className="flex justify-between text-emerald-700 font-semibold pt-1 border-t border-slate-100">
-                  <span>Insurance Co-Pay Discount</span>
-                  <span className="font-mono">-₹{discount.toFixed(2)}</span>
-                </div>
-              )}
             </div>
 
-            {/* Insurance Simulation Button */}
-            <div className="pt-2">
-              {!insuranceData ? (
-                <button
-                  onClick={handleApplyInsurance}
-                  disabled={applyingInsurance}
-                  className="w-full py-2 px-3 rounded-lg border border-teal-200 bg-teal-50 hover:bg-teal-100 text-teal-800 font-semibold text-xs flex items-center justify-center space-x-1.5 transition-colors"
-                >
-                  <ShieldCheck className="w-4 h-4 text-teal-700" />
-                  <span>{applyingInsurance ? 'Checking Policy...' : 'Simulate Health Insurance (HDFC Ergo)'}</span>
-                </button>
+            {/* Prescription for prescription-only medicines */}
+            <div className="pt-2 space-y-1.5">
+              <label htmlFor="cart-prescription" className="block text-[11px] font-semibold text-slate-700">Prescription (needed for prescription-only medicines)</label>
+              {prescriptions.length ? (
+                <select id="cart-prescription" value={prescriptionId} onChange={(e) => setPrescriptionId(e.target.value)} className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs bg-white">
+                  {prescriptions.map((p: any) => <option key={p._id} value={p._id}>{p.doctorName || 'Prescription'} · {p.prescriptionDate || new Date(p.createdAt).toLocaleDateString('en-IN')}</option>)}
+                  <option value="">No prescription</option>
+                </select>
               ) : (
-                <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-between text-[11px]">
-                  <span className="flex items-center">
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-                    Policy #POL-123456 Applied
-                  </span>
-                  <span className="font-bold">-₹{discount.toFixed(2)}</span>
-                </div>
+                <p className="text-[11px] text-slate-500">No saved prescription. <Link to="/patient/prescriptions" className="text-teal-700 underline">Upload one</Link> if your cart has prescription-only medicines.</p>
               )}
+              <p className="text-[11px] text-slate-500 flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-teal-600" /> Pay at the pharmacy on pickup. The pharmacist checks the prescription before dispensing.</p>
             </div>
 
             {/* Final Total */}

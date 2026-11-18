@@ -28,19 +28,26 @@ const MedicineList: React.FC<MedicineListProps> = ({
       try {
         setLoading(true);
         const response = await apiClient.get('/medicines');
-        if (response.data && response.data.length > 0) {
-          const mapped = response.data.map((med: any) => ({
-            ...med,
-            id: med._id,
-            inStock: med.stock > 0,
-            imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
-          }));
-          setMedicines(mapped);
-        } else {
-          setMedicines(sampleCatalogue);
+        const all = Array.isArray(response.data) ? response.data : [];
+        // The same medicine is stocked by several pharmacies: show it once (the item with most stock),
+        // with how many pharmacies have it. Recalled or expired batches are left out.
+        const byName = new Map<string, any>();
+        for (const med of all) {
+          if (med.recalled || (med.expiryDate && new Date(med.expiryDate) < new Date())) continue;
+          const key = String(med.name).toLowerCase();
+          const entry = byName.get(key);
+          const count = (entry?.pharmacyCount || 0) + (med.stock > 0 ? 1 : 0);
+          if (!entry || (med.stock || 0) > (entry.stock || 0)) byName.set(key, { ...med, pharmacyCount: count });
+          else entry.pharmacyCount = count;
         }
+        setMedicines([...byName.values()].map((med: any) => ({
+          ...med,
+          id: med._id,
+          inStock: med.stock > 0,
+          imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
+        })));
       } catch (err: any) {
-        setMedicines(sampleCatalogue);
+        setMedicines([]);
       } finally {
         setLoading(false);
       }
@@ -155,55 +162,5 @@ const MedicineList: React.FC<MedicineListProps> = ({
   );
 };
 
-const sampleCatalogue = [
-  {
-    id: 'med_crocin_500',
-    name: 'Paracetamol 500mg (Crocin)',
-    category: 'Analgesic',
-    description: 'Antipyretic and analgesic for fever and mild to moderate bodily discomfort.',
-    price: 15.00,
-    stock: 500,
-    manufacturer: 'GSK Pharmaceuticals',
-    prescriptionRequired: false,
-    batchNumber: 'B-CRO-101',
-    imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
-  },
-  {
-    id: 'med_dolo_650',
-    name: 'Dolo 650mg',
-    category: 'Analgesic',
-    description: 'First line antipyretic for high fever, viral infections, and muscle aches.',
-    price: 30.50,
-    stock: 800,
-    manufacturer: 'Micro Labs',
-    prescriptionRequired: false,
-    batchNumber: 'B-DLO-650',
-    imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
-  },
-  {
-    id: 'med_azee_500',
-    name: 'Azithromycin 500mg (Azee)',
-    category: 'Antibiotic',
-    description: 'Macrolide antibiotic prescribed for bacterial respiratory and throat infections.',
-    price: 119.00,
-    stock: 120,
-    manufacturer: 'Cipla',
-    prescriptionRequired: true,
-    batchNumber: 'B-AZE-500',
-    imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
-  },
-  {
-    id: 'med_pan_40',
-    name: 'Pantoprazole 40mg (Pan 40)',
-    category: 'Gastrointestinal',
-    description: 'Proton pump inhibitor used to treat gastric acid reflux and prevent ulcers.',
-    price: 155.00,
-    stock: 200,
-    manufacturer: 'Alkem Laboratories',
-    prescriptionRequired: true,
-    batchNumber: 'B-PAN-040',
-    imageUrl: 'https://images.pexels.com/photos/159211/headache-pain-pills-medication-159211.jpeg'
-  }
-];
 
 export default MedicineList;

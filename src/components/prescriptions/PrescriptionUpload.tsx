@@ -17,6 +17,7 @@ import apiClient from '../../api/apiClient';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../../stores/cartStore';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const createThumbnail = (imageSrc: string): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -54,6 +55,8 @@ const PrescriptionUpload: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addItem } = useCartStore();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [rxMeta, setRxMeta] = useState<{ doctorName?: string; patientName?: string; prescriptionDate?: string }>({});
 
   // Reminder Modal State
   const [showReminderModal, setShowReminderModal] = useState(false);
@@ -92,7 +95,7 @@ const PrescriptionUpload: React.FC = () => {
       ctx.fillText('CITY HOSPITAL & CLINICAL CARE', 40, 45);
       ctx.font = '12px sans-serif';
       ctx.fillStyle = '#64748B';
-      ctx.fillText('Dr. Ramesh Kumar, MD • Reg: MCI-98421 • Date: ' + new Date().toLocaleDateString(), 40, 70);
+      ctx.fillText('Dr. Ramesh Kulkarni, MD  Reg: MCI-98421  Date: ' + new Date().toLocaleDateString('en-GB'), 40, 70);
       ctx.strokeStyle = '#E2E8F0';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -102,16 +105,16 @@ const PrescriptionUpload: React.FC = () => {
 
       ctx.fillStyle = '#0F172A';
       ctx.font = 'bold 14px sans-serif';
-      ctx.fillText('Rx Prescription:', 40, 115);
+      ctx.fillText('Patient: ' + (user?.name || 'Ananya Verma') + '    Rx:', 40, 115);
       ctx.font = '13px sans-serif';
       ctx.fillText('1. Tab. Dolo 650mg - 1-0-1 - 5 days (After meals)', 50, 150);
-      ctx.fillText('2. Cap. Pantoprazole 40mg - 1-0-0 - 5 days (Before breakfast)', 50, 185);
+      ctx.fillText('2. Cap. Amoxicillin 500mg - 1-0-1 - 3 days (After food)', 50, 185);
       ctx.fillText('3. Tab. Azithromycin 500mg - 1-0-0 - 3 days (Post lunch)', 50, 220);
       
       ctx.fillStyle = '#64748B';
       ctx.font = 'italic 11px sans-serif';
       ctx.fillText('Diagnosis: Upper Respiratory Tract Infection with Fever', 50, 270);
-      ctx.fillText('Signature: Dr. R. Kumar (Verified Digital Token)', 340, 350);
+      ctx.fillText('Signature: Dr. R. Kulkarni', 340, 350);
 
       const sampleDataUrl = canvas.toDataURL('image/jpeg');
       setSelectedImage(sampleDataUrl);
@@ -133,7 +136,7 @@ const PrescriptionUpload: React.FC = () => {
         logger: () => {}
       });
       
-      const rawText = result.data.text || 'Tab. Dolo 650mg 1-0-1\nCap. Pantoprazole 40mg\nTab. Azithromycin 500mg';
+      const rawText = result.data.text || '';
       setOcrText(rawText);
 
       setProcessingStatus('Reconciling against CDSCO catalogue & dosage standards...');
@@ -144,20 +147,21 @@ const PrescriptionUpload: React.FC = () => {
           imageBase64: thumbnailImage || selectedImage
         });
         const structuredData = response.data;
-        if (structuredData.medicines && structuredData.medicines.length > 0) {
-          setExtractedMedicines(structuredData.medicines);
-          setConfidence(structuredData.overallConfidence || 96);
-        } else {
-          fallbackMedicines();
-        }
+        const meds = Array.isArray(structuredData.medicines) ? structuredData.medicines : [];
+        setExtractedMedicines(meds);
+        setConfidence(structuredData.overallConfidence || 0);
+        setRxMeta({ doctorName: structuredData.doctorName, patientName: structuredData.patientName, prescriptionDate: structuredData.prescriptionDate });
+        if (!meds.length) toast.error('No medicines could be read. Try a clearer, printed prescription, or correct the text and try again.');
       } catch (e) {
-        fallbackMedicines();
+        setExtractedMedicines([]);
+        toast.error('The prescription could not be analysed. Check that the server is running.');
       }
 
       setStep(3);
     } catch (error) {
       console.error('OCR Error:', error);
-      fallbackMedicines();
+      setExtractedMedicines([]);
+      toast.error('Text could not be read from this image.');
       setStep(3);
     } finally {
       setIsProcessing(false);
@@ -165,47 +169,6 @@ const PrescriptionUpload: React.FC = () => {
     }
   };
 
-  const fallbackMedicines = () => {
-    setExtractedMedicines([
-      {
-        id: 'med_dolo_650',
-        name: 'Dolo 650mg',
-        dosage: '650 mg',
-        form: 'Tablet',
-        frequency: 'Twice daily (1-0-1)',
-        duration: '5 Days',
-        price: 30.50,
-        qty: 10,
-        confidence: 98,
-        matchType: 'Exact Catalogue Match'
-      },
-      {
-        id: 'med_pan_40',
-        name: 'Pantoprazole 40mg (Pan 40)',
-        dosage: '40 mg',
-        form: 'Capsule',
-        frequency: 'Once daily (1-0-0)',
-        duration: '5 Days',
-        price: 155.00,
-        qty: 10,
-        confidence: 94,
-        matchType: 'Exact Catalogue Match'
-      },
-      {
-        id: 'med_azee_500',
-        name: 'Azithromycin 500mg (Azee)',
-        dosage: '500 mg',
-        form: 'Tablet',
-        frequency: 'Once daily (1-0-0)',
-        duration: '3 Days',
-        price: 119.00,
-        qty: 3,
-        confidence: 96,
-        matchType: 'Exact Catalogue Match'
-      }
-    ]);
-    setConfidence(96);
-  };
 
   const handleSavePrescription = async () => {
     if (extractedMedicines.length === 0) return;
@@ -215,38 +178,35 @@ const PrescriptionUpload: React.FC = () => {
       await apiClient.post('/prescriptions/save', {
         imageUrl: thumbnailImage,
         extractedText: ocrText,
-        detectedMedicines: extractedMedicines
+        detectedMedicines: extractedMedicines.map((m: any) => ({ medicineName: m.name, genericName: m.genericName, dosage: m.dosage, frequency: m.frequency, duration: m.duration, instructions: m.instructions, confidence: m.confidence, matchedInventoryId: m.matchedInventoryId, needsReview: m.needsReview, price: m.price, stock: m.stock })),
+        doctorName: rxMeta.doctorName && rxMeta.doctorName !== 'Unknown' ? rxMeta.doctorName : '',
+        patientName: rxMeta.patientName && rxMeta.patientName !== 'Unknown' ? rxMeta.patientName : (user?.name || ''),
+        prescriptionDate: rxMeta.prescriptionDate || new Date().toISOString().slice(0, 10),
+        overallConfidence: confidence
       });
       toast.success('Prescription archived to Health Records', { id: 'save-rx' });
       navigate('/patient/health-records');
-    } catch (error) {
-      toast.success('Prescription archived to Health Records (Local Demo)', { id: 'save-rx' });
-      navigate('/patient/health-records');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'The prescription could not be saved.', { id: 'save-rx' });
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleAddAllToCart = () => {
-    extractedMedicines.forEach(med => {
-      addItem({
-        id: med.id || med._id || 'med_' + Math.random(),
-        name: med.name,
-        price: med.price || 35.00
-      });
-    });
-    toast.success(`${extractedMedicines.length} verified items added to cart!`);
+    const available = extractedMedicines.filter((m: any) => m.matchedInventoryId);
+    available.forEach((med: any) => addItem({ id: med.matchedInventoryId, name: med.name, price: med.price || 0 }));
+    const missing = extractedMedicines.length - available.length;
+    if (!available.length) { toast.error('None of these medicines is in stock at a PharmaVault pharmacy. Use Find nearby.'); return; }
+    toast.success(`${available.length} item(s) added to cart${missing ? ` · ${missing} not in stock` : ''}. Save the prescription so the pharmacist can check it.`);
     navigate('/patient/cart');
   };
 
   const openReminderModal = (medsToRemind: any[]) => {
-    const drafts = medsToRemind.map(m => ({
-      medicineName: m.name,
-      dosage: m.dosage || '1 unit',
-      reminderTime: '21:00',
-      frequency: 'daily',
-      email: 'patient@test.com'
-    }));
+    // One reminder per dose time read from the prescription (e.g. 1-0-1 -> 08:00 and 20:00). SOS medicines get none.
+    const drafts = medsToRemind.flatMap((m: any) => (m.reminderTimes?.length ? m.reminderTimes : (/sos|when needed/i.test(m.frequency || '') ? [] : ['09:00']))
+      .map((time: string) => ({ medicineName: m.name, dosage: m.dosage || '1 unit', reminderTime: time, frequency: 'daily', email: user?.email || '' })));
+    if (!drafts.length) { toast('These medicines are taken only when needed (SOS), so no reminders are needed.'); return; }
     setReminderDrafts(drafts);
     setShowReminderModal(true);
   };
@@ -256,13 +216,11 @@ const PrescriptionUpload: React.FC = () => {
       for (const draft of reminderDrafts) {
         await apiClient.post('/reminders/create', draft);
       }
-      toast.success('Reminders scheduled successfully!');
+      toast.success(`${reminderDrafts.length} reminder(s) scheduled.`);
       setShowReminderModal(false);
       navigate('/patient/reminders');
-    } catch (error) {
-      toast.success('Dose schedule saved (Demo Mode)');
-      setShowReminderModal(false);
-      navigate('/patient/reminders');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Reminders could not be saved.');
     }
   };
 
@@ -442,12 +400,19 @@ const PrescriptionUpload: React.FC = () => {
                           <td className="py-3 px-3 text-slate-600 font-mono">{med.dosage || 'Standard'}</td>
                           <td className="py-3 px-3 text-slate-600">{med.frequency || 'As directed'}</td>
                           <td className="py-3 px-3 font-mono font-bold text-slate-800">
-                            ₹{(med.price || 30.50).toFixed(2)}
+                            {med.price ? `₹${Number(med.price).toFixed(2)}` : '—'}
                           </td>
-                          <td className="py-3 px-4 text-right">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <Check className="w-2.5 h-2.5 mr-1" /> Verified
-                            </span>
+                          <td className="py-3 px-4 text-right space-x-2 whitespace-nowrap">
+                            <button type="button" onClick={() => navigate(`/patient/nearby-medicines?medicine=${encodeURIComponent(med.medicineName || med.name)}`)} className="text-[10px] font-semibold text-teal-700 underline">Find nearby</button>
+                            {med.needsReview ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">Check reading</span>
+                            ) : med.matchedInventoryId ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <Check className="w-2.5 h-2.5 mr-1" /> In stock
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">Not in stock</span>
+                            )}
                           </td>
                         </tr>
                       ))}

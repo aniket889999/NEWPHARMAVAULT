@@ -1,6 +1,27 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const hybridRetrievalService = require('./hybridRetrievalService');
 
+/** Adds catalogue price/stock and a cart-able inventory id for each locally read medicine. */
+async function attachInventory(structured) {
+  const Medicine = require('../models/medicineModel');
+  for (const med of structured.medicines) {
+    const word = String(med.medicineName || med.name || '').split(/\s+/)[0].replace(/[^A-Za-z0-9]/g, '');
+    if (word.length < 3) continue;
+    const found = await Medicine.find({ name: { $regex: word, $options: 'i' }, stock: { $gt: 0 }, recalled: { $ne: true }, expiryDate: { $gt: new Date() } })
+      .sort({ price: 1 }).limit(1).lean().catch(() => []);
+    if (found[0]) {
+      med.matchedInventoryId = String(found[0]._id);
+      med.price = found[0].price;
+      med.stock = found[0].stock;
+      med.prescriptionRequired = Boolean(found[0].prescriptionRequired);
+      med.matchType = 'Catalogue match';
+    } else {
+      med.matchType = 'Not in any pharmacy stock';
+    }
+  }
+  return structured;
+}
+
 class PrescriptionParserService {
   async parse(rawText, imageBase64) {
     let structuredData = {
@@ -12,8 +33,11 @@ class PrescriptionParserService {
       overallConfidence: 0
     };
 
+    // Private prescriptions are read locally. An external model is used only when explicitly allowed.
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return structuredData;
+    if (process.env.PRESCRIPTION_LLM_ENABLED !== 'true' || !apiKey) {
+      return attachInventory(require('./localPrescriptionParser').parse(rawText));
+    }
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
