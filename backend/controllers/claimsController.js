@@ -23,6 +23,7 @@ const sm = require('../services/claims/claimStateMachine');
 const { notifyUsers, notifyOrganizationRoles } = require('../services/claims/notificationService');
 const { buildClaimBundle } = require('../services/fhir/fhirBundleBuilder');
 const { validateBundle } = require('../services/fhir/fhirR4Validator');
+const { setPagingHeaders } = require('../services/review/reviewPolicy');
 
 const PAYER_ROLES = ['payer_reviewer', 'payer_admin'];
 const PHARMACY_STAFF = ['pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'branch_manager'];
@@ -57,6 +58,16 @@ function claimantView(claim) {
     decision: c.decision?.decision ? { decision: c.decision.decision, approvedAmount: c.decision.approvedAmount, reasonCode: c.decision.reasonCode, note: c.decision.note, decidedAt: c.decision.decidedAt } : null,
     settlement: c.settlement?.settledAt ? { reference: c.settlement.reference, settledAt: c.settlement.settledAt, simulated: true } : null,
     history: (c.history || []).map((h) => ({ status: h.status, at: h.at, byRole: h.byRole })),
+    appeal: c.appeal?.count
+      ? {
+          count: c.appeal.count,
+          reason: c.appeal.reason,
+          appealedAt: c.appeal.appealedAt,
+          previousDecision: c.appeal.previousDecision?.decision
+            ? { decision: c.appeal.previousDecision.decision, approvedAmount: c.appeal.previousDecision.approvedAmount, reasonCode: c.appeal.previousDecision.reasonCode, note: c.appeal.previousDecision.note, decidedAt: c.appeal.previousDecision.decidedAt }
+            : null
+        }
+      : null,
     createdAt: c.createdAt, updatedAt: c.updatedAt
   };
 }
@@ -209,12 +220,40 @@ const withdrawClaim = handle(async (req, res) => {
   res.json(claimantView(await updated.populate('payerOrganizationId', 'name')));
 });
 
+const appealClaim = handle(async (req, res) => {
+  const claim = await claimantClaim(req);
+  const reason = sm.validateAppeal({ status: claim.status, appealCount: claim.appeal?.count || 0, reason: req.body?.reason });
+  const grant = await CaseShareGrant.findById(claim.shareGrantId);
+  if (!grant || !grant.isActive()) throw sm.controlled(409, 'CONSENT_INACTIVE', 'Your data-sharing consent for this claim has expired or was revoked. Submit a new claim instead.');
+  const previous = claim.decision?.toObject ? claim.decision.toObject() : claim.decision;
+  const updated = await transition(claim._id, claim.status, 'APPEALED', req, {
+    set: {
+      'appeal.count': (claim.appeal?.count || 0) + 1,
+      'appeal.reason': reason,
+      'appeal.appealedAt': new Date(),
+      'appeal.previousDecision': previous,
+      decision: { decision: null, approvedAmount: null, reasonCode: null, note: null, decidedBy: null, decidedAt: null }
+    }
+  });
+  await notifyOrganizationRoles(claim.payerOrganizationId, PAYER_ROLES, { type: 'CLAIM_APPEALED', title: 'Claim appealed', body: `Claim ${claim.claimReference} was appealed. A different reviewer must decide it.`, link: `/payer/claims/${claim._id}` });
+  res.json(claimantView(await updated.populate('payerOrganizationId', 'name')));
+});
+
 // ───────────────────────── Insurer (payer) ─────────────────────────
 
 const payerListClaims = handle(async (req, res) => {
   const filter = { payerOrganizationId: req.tenantContext.organizationId };
   if (req.query.status && sm.CLAIM_STATUSES.includes(req.query.status)) filter.status = req.query.status;
-  const claims = await Claim.find(filter).populate('caseId', 'caseReference').sort('-createdAt').limit(200).lean();
+  if (typeof req.query.q === 'string' && req.query.q.trim()) {
+    filter.claimReference = new RegExp(`^${req.query.q.trim().slice(0, 40).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
+  }
+  const page = Math.min(Math.max(Number.parseInt(req.query.page, 10) || 1, 1), 10_000);
+  const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 50, 1), 100);
+  const [claims, total] = await Promise.all([
+    Claim.find(filter).populate('caseId', 'caseReference').sort(req.query.sort === 'newest' ? '-createdAt' : 'createdAt').skip((page - 1) * limit).limit(limit).lean(),
+    Claim.countDocuments(filter)
+  ]);
+  setPagingHeaders(res, { page, limit, total });
   res.json(claims.map((c) => ({
     id: String(c._id), claimReference: c.claimReference, caseReference: c.caseId?.caseReference, status: c.status,
     claimedAmount: c.claimedAmount, currency: c.currency, openQueries: (c.queries || []).filter((q) => !q.answer).length,
@@ -274,7 +313,8 @@ const payerDocumentContent = handle(async (req, res) => {
 const payerStartReview = handle(async (req, res) => {
   const claim = await payerClaim(req);
   await activeGrantFor(claim);
-  const updated = await transition(claim._id, 'SUBMITTED', 'UNDER_PAYER_REVIEW', req, { set: { reviewStartedAt: new Date() } });
+  const from = claim.status === 'APPEALED' ? 'APPEALED' : 'SUBMITTED';
+  const updated = await transition(claim._id, from, 'UNDER_PAYER_REVIEW', req, { set: { reviewStartedAt: new Date() } });
   await notifyUsers([claim.claimantId], { type: 'CLAIM_UNDER_REVIEW', title: 'Your claim is under review', body: `Claim ${claim.claimReference} is being reviewed by the insurer.`, link: '/patient/claims' });
   res.json(claimantView(updated));
 });
@@ -294,6 +334,10 @@ const payerRaiseQuery = handle(async (req, res) => {
 const payerDecide = handle(async (req, res) => {
   const claim = await payerClaim(req);
   await activeGrantFor(claim);
+  // Four-eyes on appeals: the reviewer who made the appealed decision cannot decide the appeal.
+  if (claim.appeal?.count && claim.appeal.previousDecision?.decidedBy && String(claim.appeal.previousDecision.decidedBy) === String(req.user._id)) {
+    throw sm.controlled(403, 'FOUR_EYES_APPEAL', 'A different insurer reviewer must decide this appeal.');
+  }
   const decision = sm.validateDecision(req.body || {}, claim.claimedAmount);
   const updated = await transition(claim._id, 'UNDER_PAYER_REVIEW', decision.decision, req, {
     set: { decision: { ...decision, decidedBy: req.user._id, decidedAt: new Date() } }
@@ -387,7 +431,7 @@ const markAllNotificationsRead = handle(async (req, res) => {
 module.exports = {
   PAYER_ROLES,
   PHARMACY_STAFF,
-  listPayers, listEligibleCases, submitClaim, listMyClaims, getMyClaim, answerQuery, withdrawClaim,
+  listPayers, listEligibleCases, submitClaim, listMyClaims, getMyClaim, answerQuery, withdrawClaim, appealClaim,
   payerListClaims, payerGetClaim, payerDocumentContent, payerStartReview, payerRaiseQuery, payerDecide, payerSettle, payerFhirBundle, payerAnalytics,
   pharmacyLinkedClaims,
   listNotifications, markNotificationRead, markAllNotificationsRead

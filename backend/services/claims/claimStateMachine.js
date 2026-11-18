@@ -16,11 +16,14 @@ const CLAIM_STATUSES = Object.freeze([
   'PARTIALLY_APPROVED',
   'REJECTED',
   'SETTLED',
-  'WITHDRAWN'
+  'WITHDRAWN',
+  'APPEALED'
 ]);
 
 const DECISION_STATUSES = Object.freeze(['APPROVED', 'PARTIALLY_APPROVED', 'REJECTED']);
-const TERMINAL_STATUSES = Object.freeze(['REJECTED', 'SETTLED', 'WITHDRAWN']);
+// REJECTED is final once the single appeal has been used (see isTerminal).
+const TERMINAL_STATUSES = Object.freeze(['SETTLED', 'WITHDRAWN']);
+const MAX_APPEALS = 1;
 
 const CLAIMANT_ROLES = Object.freeze(['patient']);
 const PAYER_ROLES = Object.freeze(['payer_reviewer', 'payer_admin']);
@@ -43,8 +46,13 @@ const TRANSITIONS = Object.freeze({
     WITHDRAWN: CLAIMANT_ROLES
   },
   APPROVED: { SETTLED: ['payer_admin'] },
-  PARTIALLY_APPROVED: { SETTLED: ['payer_admin'] },
-  REJECTED: {},
+  // The claimant may appeal a partial or negative decision once (see MAX_APPEALS).
+  PARTIALLY_APPROVED: { SETTLED: ['payer_admin'], APPEALED: CLAIMANT_ROLES },
+  REJECTED: { APPEALED: CLAIMANT_ROLES },
+  APPEALED: {
+    UNDER_PAYER_REVIEW: PAYER_ROLES,
+    WITHDRAWN: CLAIMANT_ROLES
+  },
   SETTLED: {},
   WITHDRAWN: {}
 });
@@ -134,8 +142,19 @@ function validateDecision({ decision, approvedAmount, reasonCode, note }, claime
   return { decision, approvedAmount: 0, reasonCode, note: cleanNote };
 }
 
-function isTerminal(status) {
+function isTerminal(status, appealCount = 0) {
+  if (status === 'REJECTED') return appealCount >= MAX_APPEALS;
   return TERMINAL_STATUSES.includes(status);
+}
+
+function validateAppeal({ status, appealCount = 0, reason }) {
+  if (!['REJECTED', 'PARTIALLY_APPROVED'].includes(status)) {
+    throw controlled(409, 'NOT_APPEALABLE', 'Only a rejected or partially approved claim can be appealed.');
+  }
+  if (appealCount >= MAX_APPEALS) throw controlled(409, 'APPEAL_ALREADY_USED', 'This claim has already been appealed once.');
+  const clean = typeof reason === 'string' ? reason.trim() : '';
+  if (clean.length < 20 || clean.length > 2000) throw controlled(400, 'APPEAL_REASON_REQUIRED', 'Explain the appeal in 20–2000 characters.');
+  return clean;
 }
 
 module.exports = {
@@ -152,5 +171,7 @@ module.exports = {
   validateAmount,
   validateDecision,
   isTerminal,
+  validateAppeal,
+  MAX_APPEALS,
   controlled
 };

@@ -47,7 +47,7 @@ test.describe.serial('Claims golden flow (claimant ↔ insurer)', () => {
     await signIn(page, { tab: 'claims_reviewer', staffRole: 'payer_reviewer', email: 'insurer@test.com' });
     await page.waitForURL('**/payer/dashboard');
     await page.goto('/payer/claims');
-    await page.getByPlaceholder('Claim or case reference').fill(claimReference);
+    await page.getByPlaceholder('Claim reference').fill(claimReference);
     await page.getByRole('row', { name: new RegExp(claimReference) }).getByRole('link', { name: 'Open' }).click();
 
     await expect(page.getByText('Consent valid until')).toBeVisible();
@@ -77,15 +77,15 @@ test.describe.serial('Claims golden flow (claimant ↔ insurer)', () => {
     await signIn(page, { tab: 'claims_reviewer', staffRole: 'payer_reviewer', email: 'insurer@test.com' });
     await page.waitForURL('**/payer/dashboard');
     await page.goto('/payer/claims');
-    await page.getByPlaceholder('Claim or case reference').fill(claimReference);
+    await page.getByPlaceholder('Claim reference').fill(claimReference);
     await page.getByRole('row', { name: new RegExp(claimReference) }).getByRole('link', { name: 'Open' }).click();
 
     await page.getByRole('button', { name: 'Partial' }).click();
     await page.getByLabel(/Approved amount/).fill('300');
     await page.getByLabel('Reason code').selectOption('QUANTITY_LIMIT');
     await page.getByLabel('Decision note (shared with claimant)').fill('Policy covers up to 300 for this medicine per claim.');
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Record Decision' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Record Decision' }).click();
     await expect(page.getByText('Decision recorded')).toBeVisible();
     await page.context().close();
   });

@@ -141,8 +141,8 @@ const verifyMedicine = asyncHandler(async (req, res) => {
     }
 
     return res.status(200).json({
-      status: 'verified', title: 'Authentic Medicine Verified',
-      message: 'This product batch is officially registered, verified, and safe to use.',
+      status: 'verified', title: 'Batch Record Found (demo database)',
+      message: 'The batch matches a record in the PharmaVault demonstration database. This is not an official registration check or a safety guarantee.',
       score: 100,
       data: { name: localMatch.name, batch: localMatch.batchNumber, manufacturer: localMatch.manufacturer, expiry: localMatch.expiryDate?.toISOString().split('T')[0], source: 'PharmaVault Internal DB' }
     });

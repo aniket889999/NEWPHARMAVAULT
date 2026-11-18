@@ -8,7 +8,8 @@ export type ClaimStatus =
   | 'PARTIALLY_APPROVED'
   | 'REJECTED'
   | 'SETTLED'
-  | 'WITHDRAWN';
+  | 'WITHDRAWN'
+  | 'APPEALED';
 
 export interface ClaimQuery { id: string; question: string; askedAt: string; answer: string | null; answeredAt: string | null }
 export interface ClaimDecision { decision: 'APPROVED' | 'PARTIALLY_APPROVED' | 'REJECTED'; approvedAmount: number; reasonCode: string | null; note: string; decidedAt: string }
@@ -27,6 +28,7 @@ export interface Claim {
   decision: ClaimDecision | null;
   settlement: { reference: string; settledAt: string; simulated: true } | null;
   history: { status: ClaimStatus; at: string; byRole: string }[];
+  appeal: null | { count: number; reason: string; appealedAt: string; previousDecision: ClaimDecision | null };
   createdAt: string;
   updatedAt: string;
 }
@@ -59,7 +61,8 @@ export const CLAIM_STATUS_LABEL: Record<ClaimStatus, string> = {
   PARTIALLY_APPROVED: 'Partially approved',
   REJECTED: 'Not approved',
   SETTLED: 'Settled (demo)',
-  WITHDRAWN: 'Withdrawn'
+  WITHDRAWN: 'Withdrawn',
+  APPEALED: 'Appealed'
 };
 
 export const CLAIM_STATUS_STYLE: Record<ClaimStatus, string> = {
@@ -70,7 +73,8 @@ export const CLAIM_STATUS_STYLE: Record<ClaimStatus, string> = {
   PARTIALLY_APPROVED: 'bg-teal-50 text-teal-800 border-teal-200',
   REJECTED: 'bg-rose-50 text-rose-700 border-rose-200',
   SETTLED: 'bg-slate-100 text-slate-700 border-slate-300',
-  WITHDRAWN: 'bg-slate-50 text-slate-500 border-slate-200'
+  WITHDRAWN: 'bg-slate-50 text-slate-500 border-slate-200',
+  APPEALED: 'bg-purple-50 text-purple-800 border-purple-200'
 };
 
 export const formatInr = (value: number | null | undefined) =>
@@ -89,9 +93,16 @@ export const claimsApi = {
   answerQuery: async (claimId: string, queryId: string, answer: string) =>
     (await apiClient.post<Claim>(`/v1/claims/${claimId}/queries/${queryId}/answer`, { answer })).data,
   withdraw: async (claimId: string) => (await apiClient.post<Claim>(`/v1/claims/${claimId}/withdraw`, {})).data,
+  appeal: async (claimId: string, reason: string) => (await apiClient.post<Claim>(`/v1/claims/${claimId}/appeal`, { reason })).data,
 
   // Insurer
-  payerQueue: async (status?: string) => (await apiClient.get<PayerQueueItem[]>('/v1/payer/claims', { params: status ? { status } : {} })).data,
+  /** Server-side paged insurer queue; totals come from X-Total-Count. */
+  payerQueue: async (params: { status?: string; q?: string; page?: number; limit?: number; sort?: 'oldest' | 'newest' } = {}) => {
+    const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== ''));
+    const res = await apiClient.get<PayerQueueItem[]>('/v1/payer/claims', { params: clean });
+    const total = Number(res.headers['x-total-count'] ?? res.data.length);
+    return { items: res.data, total: Number.isFinite(total) ? total : res.data.length };
+  },
   payerClaim: async (claimId: string) => (await apiClient.get<PayerClaimDetail>(`/v1/payer/claims/${claimId}`)).data,
   payerDocumentBlob: async (claimId: string, documentId: string) =>
     (await apiClient.get<Blob>(`/v1/payer/claims/${claimId}/documents/${documentId}/content`, { responseType: 'blob' })).data,
@@ -116,6 +127,7 @@ export const claimsApi = {
 
   // MFA
   mfaSetup: async () => (await apiClient.post<{ secret: string; otpauthUri: string }>('/users/mfa/setup', {})).data,
-  mfaEnable: async (code: string) => (await apiClient.post('/users/mfa/enable', { code })).data,
+  mfaEnable: async (code: string) => (await apiClient.post<{ recoveryCodes?: string[] }>('/users/mfa/enable', { code })).data,
+  mfaRecoveryCodes: async (code: string) => (await apiClient.post<{ recoveryCodes: string[] }>('/users/mfa/recovery-codes', { code })).data,
   mfaDisable: async (code: string) => (await apiClient.post('/users/mfa/disable', { code })).data
 };

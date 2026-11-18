@@ -354,13 +354,13 @@ const AuthPage: React.FC = () => {
                   id="otp"
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  pattern="\d{6}"
-                  maxLength={6}
+                  pattern="\d{6}|[A-Za-z0-9]{4}-[A-Za-z0-9]{4}"
+                  maxLength={9}
                   required
                   autoFocus
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  placeholder="6-digit code"
+                  onChange={(e) => setOtp(e.target.value.toUpperCase().replace(/[^0-9A-Z-]/g, ''))}
+                  placeholder="6-digit code or recovery code"
                   className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg font-mono tracking-widest focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600"
                 />
               </div>

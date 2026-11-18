@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { RefreshCw, ChevronRight, MessageSquare, Search } from 'lucide-react';
 import { claimsApi, PayerQueueItem, CLAIM_STATUS_LABEL, CLAIM_STATUS_STYLE, ClaimStatus, formatInr } from '../../api/claimsApi';
 
-const FILTERS: (ClaimStatus | 'ALL')[] = ['ALL', 'SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED', 'APPROVED', 'PARTIALLY_APPROVED', 'REJECTED', 'SETTLED', 'WITHDRAWN'];
+const FILTERS: (ClaimStatus | 'ALL')[] = ['ALL', 'SUBMITTED', 'APPEALED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED', 'APPROVED', 'PARTIALLY_APPROVED', 'REJECTED', 'SETTLED', 'WITHDRAWN'];
+const PAGE_SIZE = 25;
 const SLA_HOURS = 72;
 
 const PayerClaimsQueue: React.FC = () => {
@@ -13,11 +14,16 @@ const PayerClaimsQueue: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [search, setSearch] = useState('');
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const load = async () => {
     setLoading(true);
     try {
-      setItems(await claimsApi.payerQueue(status === 'ALL' ? undefined : status));
+      const result = await claimsApi.payerQueue({ status: status === 'ALL' ? undefined : status, q: q || undefined, page, limit: PAGE_SIZE, sort: 'oldest' });
+      setItems(result.items);
+      setTotal(result.total);
       setFailed(false);
     } catch {
       setFailed(true);
@@ -26,9 +32,16 @@ const PayerClaimsQueue: React.FC = () => {
     }
   };
 
-  useEffect(() => { void load(); }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, [status, q, page]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setPage(1); }, [status]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { setQ(search.trim()); setPage(1); }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-  const visible = items.filter((i) => !search || `${i.claimReference} ${i.caseReference || ''}`.toLowerCase().includes(search.toLowerCase()));
+  // Server returns the oldest claims first and already applies status/search filters.
+  const visible = items;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
@@ -40,7 +53,7 @@ const PayerClaimsQueue: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Claim or case reference" className="pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg w-56 focus:outline-none focus:ring-1 focus:ring-indigo-600" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Claim reference" className="pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg w-56 focus:outline-none focus:ring-1 focus:ring-indigo-600" />
           </div>
           <button onClick={load} className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-medium flex items-center gap-1.5 hover:bg-slate-50">
             <RefreshCw className="w-4 h-4" /> Refresh
@@ -68,8 +81,8 @@ const PayerClaimsQueue: React.FC = () => {
           <tbody className="divide-y divide-slate-100">
             {loading && <tr><td colSpan={6} className="py-8 text-center text-slate-400">Loading…</td></tr>}
             {!loading && visible.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-slate-500">No claims match this filter.</td></tr>}
-            {!loading && [...visible].sort((a, b) => b.ageHours - a.ageHours).map((item) => {
-              const open = ['SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED'].includes(item.status);
+            {!loading && visible.map((item) => {
+              const open = ['SUBMITTED', 'APPEALED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED'].includes(item.status);
               return (
                 <tr key={item.id} className="hover:bg-slate-50/60">
                   <td className="py-3.5 px-5 font-mono font-semibold text-slate-900">{item.claimReference}</td>
@@ -89,6 +102,17 @@ const PayerClaimsQueue: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {total > 0 && (
+        <div className="flex items-center justify-between text-xs text-slate-500">
+          <span>Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}</span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40">Previous</button>
+            <span className="font-semibold text-slate-700">Page {page} of {pageCount}</span>
+            <button onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={page >= pageCount} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40">Next</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

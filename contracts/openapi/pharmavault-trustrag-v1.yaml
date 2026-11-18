@@ -28,6 +28,36 @@ components:
       description: Production HTTPS-only HttpOnly SameSite=Strict host cookie; development uses pv_session. No browser token is returned in JSON.
 
   schemas:
+    DataRequest:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [ EXPORT, ERASURE ] }
+        status: { type: string, enum: [ OPEN, COMPLETED, BLOCKED, CANCELLED ] }
+        reason: { type: [ string, 'null' ] }
+        dueBy: { type: [ string, 'null' ], format: date-time }
+        createdAt: { type: string, format: date-time }
+        processedAt: { type: [ string, 'null' ], format: date-time }
+      required: [ id, type, status, createdAt ]
+    AuditChainVerification:
+      type: object
+      properties:
+        ok: { type: boolean }
+        checked: { type: integer, minimum: 0 }
+        fromSeq: { type: integer }
+        headSeq: { type: integer, minimum: 0 }
+        headHash: { type: [ string, 'null' ] }
+        legacyUnchained: { type: integer, minimum: 0, description: Events written before the chain existed (not covered) }
+        problem: { type: string, enum: [ MISSING_EVENT, PREV_HASH_MISMATCH, HASH_MISMATCH, HEAD_MISMATCH, AUDIT_CHAIN_KEY_MISSING, VERIFY_ERROR ] }
+        seq: { type: integer }
+        detail: { type: string }
+      required: [ ok, checked, headSeq, legacyUnchained ]
+    RecoveryCodes:
+      type: array
+      description: One-time MFA recovery codes, shown once. Stored server-side only as SHA-256 hashes.
+      minItems: 8
+      maxItems: 8
+      items: { type: string, pattern: '^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$' }
     ChatProviderReadiness:
       $ref: '../schemas/chat-provider-readiness.schema.json'
     VerificationCase:
@@ -52,6 +82,23 @@ components:
       $ref: '../schemas/case-share-grant.schema.json'
     Notification:
       $ref: '../schemas/notification.schema.json'
+    ReviewAssignment:
+      type: object
+      properties:
+        caseId: { type: string }
+        status: { type: string }
+        assignment:
+          oneOf:
+            - type: 'null'
+            - type: object
+              properties:
+                assignedTo: { type: string }
+                assignedToMe: { type: boolean }
+                assigneeName: { type: [ string, 'null' ] }
+                assignedAt: { type: string, format: date-time }
+                expiresAt: { type: string, format: date-time }
+              required: [ assignedTo, assignedToMe, assignedAt, expiresAt ]
+      required: [ caseId, status, assignment ]
     ClaimsError:
       type: object
       properties:
@@ -75,6 +122,11 @@ components:
         ageHours: { type: integer, minimum: 0 }
       required: [ id, claimReference, status, claimedAmount, currency, openQueries, createdAt, ageHours ]
   parameters:
+    StaffUserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[a-f0-9]{24}$' }
     ClaimId:
       name: claimId
       in: path
@@ -82,6 +134,38 @@ components:
       schema:
         type: string
         pattern: '^[0-9a-fA-F]{24}$'
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+    Sort:
+      name: sort
+      in: query
+      required: false
+      schema: { type: string, enum: [ oldest, newest ], default: oldest }
+    CaseId:
+      name: caseId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{24}$'
+  headers:
+    XTotalCount:
+      description: Total matching items across all pages
+      schema: { type: integer, minimum: 0 }
+    XPage:
+      description: Page returned (1-based)
+      schema: { type: integer, minimum: 1 }
+    XLimit:
+      description: Page size used
+      schema: { type: integer, minimum: 1, maximum: 100 }
   responses:
     ClaimsError:
       description: Claims error (400 validation, 403 role or consent, 404 not found or other tenant, 409 invalid transition or concurrent change)
@@ -1334,14 +1418,36 @@ paths:
 
   /review-queue:
     get:
-      summary: List cases requiring review
+      summary: List cases requiring review (tenant-scoped, paged, oldest first by default)
       operationId: getReviewQueue
       security:
         - bearerAuth: [ "claims_reviewer", "pharmacist", "org_admin" ]
         - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [ NEEDS_REVIEW, NEEDS_CORRECTION ] }
+        - name: assigned
+          in: query
+          required: false
+          description: me = cases I hold; unassigned = nobody holds an active lease; others = held by another reviewer
+          schema: { type: string, enum: [ me, unassigned, others ] }
+        - name: q
+          in: query
+          required: false
+          description: Case or subject reference prefix
+          schema: { type: string, maxLength: 64 }
       responses:
         '200':
-          description: Cases waiting for human review
+          description: One page of cases waiting for human review (array; totals in headers)
+          headers:
+            X-Total-Count: { $ref: '#/components/headers/XTotalCount' }
+            X-Page: { $ref: '#/components/headers/XPage' }
+            X-Limit: { $ref: '#/components/headers/XLimit' }
 
   /cases/{caseId}/reviews:
     get:
@@ -1397,6 +1503,9 @@ paths:
                   type: array
                   items:
                     type: string
+                selfVerifyConfirmed:
+                  type: boolean
+                  description: Only when the organization allows single-pharmacist verification and the reviewer uploaded or created the case (403 FOUR_EYES_CONFIRMATION_REQUIRED otherwise). Audited as FOUR_EYES_SELF_VERIFY_CONFIRMED.
               required: [ "snapshotToken", "reasonCode", "notes" ]
       responses:
         '201':
@@ -1408,11 +1517,11 @@ paths:
         '400':
           description: Validation error (missing/invalid snapshotToken, short notes, or unsupported decision)
         '403':
-          description: Forbidden role
+          description: Forbidden role, or four-eyes rule (FOUR_EYES_CASE_CREATOR / FOUR_EYES_DOCUMENT_UPLOADER) on VERIFY
         '404':
           description: Case not found or cross-tenant access denied
         '409':
-          description: Conflict (Stale snapshot token, review blocked by unresolved blockers, or case busy)
+          description: Conflict (stale snapshot token, unresolved blockers, case busy, or CASE_ASSIGNED_TO_OTHER)
 
   /cases/{caseId}/fhir-bundle:
     get:
@@ -1620,21 +1729,64 @@ paths:
         - bearerAuth: [ "payer_reviewer", "payer_admin" ]
         - cookieAuth: []
       parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
         - name: status
           in: query
           required: false
           schema:
             type: string
-            enum: [ SUBMITTED, UNDER_PAYER_REVIEW, QUERY_RAISED, APPROVED, PARTIALLY_APPROVED, REJECTED, SETTLED, WITHDRAWN ]
+            enum: [ SUBMITTED, UNDER_PAYER_REVIEW, QUERY_RAISED, APPROVED, PARTIALLY_APPROVED, REJECTED, SETTLED, WITHDRAWN, APPEALED ]
+        - name: q
+          in: query
+          required: false
+          description: Claim reference prefix
+          schema: { type: string, maxLength: 40 }
       responses:
         '200':
-          description: Queue items
+          description: One page of queue items (totals in headers)
+          headers:
+            X-Total-Count: { $ref: '#/components/headers/XTotalCount' }
+            X-Page: { $ref: '#/components/headers/XPage' }
+            X-Limit: { $ref: '#/components/headers/XLimit' }
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/PayerClaimSummary'
+
+  /claims/{claimId}/appeal:
+    post:
+      summary: Claimant appeals a REJECTED or PARTIALLY_APPROVED decision (once)
+      description: Requires an active consent grant. A different insurer reviewer must decide the appeal (403 FOUR_EYES_APPEAL otherwise).
+      operationId: appealClaim
+      security:
+        - bearerAuth: [ "patient" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason: { type: string, minLength: 20, maxLength: 2000 }
+              required: [ reason ]
+      responses:
+        '200':
+          description: Claim in APPEALED status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Claim' }
+        '400':
+          $ref: '#/components/responses/ClaimsError'
+        '409':
+          $ref: '#/components/responses/ClaimsError'
 
   /payer/analytics:
     get:
@@ -1768,7 +1920,7 @@ paths:
 
   /payer/claims/{claimId}/start-review:
     post:
-      summary: Insurer opens review (SUBMITTED -> UNDER_PAYER_REVIEW)
+      summary: Insurer opens review (SUBMITTED or APPEALED -> UNDER_PAYER_REVIEW)
       operationId: startPayerReview
       security:
         - bearerAuth: [ "payer_reviewer", "payer_admin" ]
@@ -1957,7 +2109,14 @@ paths:
               required: [ code ]
       responses:
         '200':
-          description: MFA enabled; a fresh session is issued
+          description: MFA enabled; a fresh session is issued. The one-time recovery codes are returned only in this response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mfaEnabled: { type: boolean }
+                  recoveryCodes: { $ref: '#/components/schemas/RecoveryCodes' }
         '400':
           description: Code did not match or setup not started
 
@@ -1982,3 +2141,444 @@ paths:
           description: MFA disabled
         '400':
           description: Code did not match or MFA not enabled
+        '403':
+          description: MFA is mandatory for this role (MFA_REQUIRED_FOR_STAFF)
+
+  /users/mfa/recovery-codes:
+    servers:
+      - url: /api
+    post:
+      summary: Replace the one-time recovery codes (needs a current authenticator code)
+      operationId: regenerateMfaRecoveryCodes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                code: { type: string, pattern: '^[0-9]{6}$' }
+              required: [ code ]
+      responses:
+        '200':
+          description: New codes; the previous set stops working
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recoveryCodes: { $ref: '#/components/schemas/RecoveryCodes' }
+                required: [ recoveryCodes ]
+        '400':
+          description: Code did not match or MFA not enabled
+
+  /users/organization/review-policy:
+    servers:
+      - url: /api
+    post:
+      summary: Pharmacy org admin allows or forbids single-pharmacist verification (audited)
+      operationId: updateReviewPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, properties: { allowSingleReviewerVerify: { type: boolean } }, required: [ allowSingleReviewerVerify ] }
+      responses:
+        '200':
+          description: Updated policy
+        '403':
+          description: Not a pharmacy organization admin
+
+  /users/me/text-alerts:
+    servers:
+      - url: /api
+    post:
+      summary: Opt in or out of SMS / WhatsApp alerts (texts never contain case content)
+      description: Turning off removes the stored number. Delivery needs NOTIFY_TEXT_ENABLED and a configured gateway. Audited.
+      operationId: updateTextAlerts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                enabled: { type: boolean }
+                phone: { type: string, maxLength: 20 }
+                channel: { type: string, enum: [ sms, whatsapp ] }
+              required: [ enabled ]
+      responses:
+        '200':
+          description: Saved (phone returned masked)
+        '400':
+          description: INVALID_PHONE
+
+  # ───────────── Audit log integrity (read-only; no edit/delete routes exist) ─────────────
+
+  /audit/chain/verify:
+    get:
+      summary: Recompute the tamper-evident audit hash chain and report the first break
+      description: super_admin or auditor only. Each event stores chainSeq, prevHash and hash (SHA-256, or HMAC-SHA-256 with AUDIT_CHAIN_KEY). The check itself is audited.
+      operationId: verifyAuditChain
+      parameters:
+        - name: fromSeq
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditChainVerification' }
+        '400':
+          description: Invalid fromSeq
+        '403':
+          description: Caller is not super_admin or auditor
+
+  # ───────────── Data-principal rights (export, erasure) ─────────────
+
+  /me/data-export:
+    get:
+      summary: Download the signed-in person's own data as JSON
+      description: Excludes storage keys, password hashes, MFA secrets and staff identities. Audited.
+      operationId: exportMyData
+      responses:
+        '200':
+          description: Personal data export (format pharmavault-personal-data-export/v1); with ?format=html a readable, printable summary
+          content:
+            application/json:
+              schema: { type: object, properties: { format: { type: string, const: pharmavault-personal-data-export/v1 } }, required: [ format ] }
+
+  /me/data-requests:
+    get:
+      summary: The signed-in person's export and erasure requests
+      operationId: listMyDataRequests
+      responses:
+        '200':
+          description: Requests, newest first
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/DataRequest' } }
+
+  /me/erasure-request:
+    post:
+      summary: Ask for erasure (patients). Completed by a platform administrator within 30 days.
+      operationId: requestErasure
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, properties: { reason: { type: string, maxLength: 1000 } } }
+      responses:
+        '201':
+          description: Request recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataRequest' }
+        '403':
+          description: ERASURE_PATIENT_ONLY
+        '409':
+          description: ERASURE_ALREADY_REQUESTED
+
+  /me/data-requests/{id}/cancel:
+    post:
+      summary: Cancel an open erasure request
+      operationId: cancelMyDataRequest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{24}$' }
+      responses:
+        '200':
+          description: Cancelled
+        '404':
+          description: No open request with that id
+
+  /privacy/data-requests:
+    get:
+      summary: Erasure request queue (super_admin)
+      operationId: listErasureRequests
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [ OPEN, COMPLETED, BLOCKED, CANCELLED ], default: OPEN }
+      responses:
+        '200':
+          description: Requests, oldest first
+        '403':
+          description: Not super_admin
+
+  /privacy/data-requests/{id}/complete:
+    post:
+      summary: Perform an erasure (super_admin)
+      description: Refused while the person has an open claim. Purges document content of their cases, revokes consent grants, deletes notifications, anonymises and deactivates the account. Claims, review decisions and audit events are kept.
+      operationId: completeErasure
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, properties: { note: { type: string, minLength: 10, maxLength: 2000 } }, required: [ note ] }
+      responses:
+        '200':
+          description: Completed with outcome counts
+        '400':
+          description: NOTE_REQUIRED
+        '403':
+          description: Not super_admin
+        '404':
+          description: DATA_REQUEST_NOT_FOUND
+        '409':
+          description: ERASURE_BLOCKED_OPEN_CLAIMS or DATA_REQUEST_CLOSED
+
+  # ───────────── Team & Access (staff administration) ─────────────
+
+  /users/staff/{userId}/deactivate:
+    servers:
+      - url: /api
+    post:
+      summary: Deactivate a staff account and revoke all its sessions
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: deactivateStaff
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
+
+  /users/staff/{userId}/reactivate:
+    servers:
+      - url: /api
+    post:
+      summary: Reactivate a staff account (also clears any lockout)
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: reactivateStaff
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
+
+  /users/staff/{userId}/role:
+    servers:
+      - url: /api
+    post:
+      summary: Change a staff role within the organization type; revokes sessions
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: changeStaffRole
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                role: { type: string, enum: [ pharmacist, pharmacy, claims_reviewer, org_admin, branch_manager, payer_reviewer, payer_admin ] }
+              required: [ role ]
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
+
+  /users/staff/{userId}/sign-out:
+    servers:
+      - url: /api
+    post:
+      summary: Sign a staff member out of every session (bumps sessionVersion)
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: forceSignOutStaff
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
+
+  /users/staff/{userId}/unlock:
+    servers:
+      - url: /api
+    post:
+      summary: Clear a sign-in lockout
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: unlockStaff
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
+
+  /users/staff/{userId}/credential:
+    servers:
+      - url: /api
+    post:
+      summary: Record an admin-confirmed professional registration (needed for VERIFY when REVIEW_CREDENTIAL_REQUIRED=true)
+      description: Organization admins (org_admin, payer_admin) act only on staff of their own organization; super_admin on any staff. Patients are never reachable. Audited.
+      operationId: confirmStaffCredential
+      parameters:
+        - $ref: '#/components/parameters/StaffUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                registrationNumber: { type: string, pattern: '^[A-Za-z0-9/-]{3,40}$' }
+                council: { type: string, minLength: 3, maxLength: 120 }
+                checkedVia: { type: string, minLength: 5, maxLength: 200, description: How the admin checked the registration }
+                validUntil: { type: string, format: date, description: Renewal date; after it VERIFY is blocked until re-confirmed }
+              required: [ registrationNumber, council, checkedVia ]
+      responses:
+        '200':
+          description: Updated staff summary
+        '400':
+          description: Invalid input or action on own account
+        '403':
+          description: Caller is not an organization administrator
+        '404':
+          description: Staff member not found in the caller's organization
+
+  # ───────────── Reviewer workflow (assignment lease, reopen) ─────────────
+
+  /review/cases/{caseId}/assignment:
+    get:
+      summary: Who holds the case right now
+      operationId: getReviewAssignment
+      security:
+        - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      responses:
+        '200':
+          description: Current assignment (null when free)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReviewAssignment' }
+        '404':
+          description: Case not found in your organization
+    post:
+      summary: Take (or renew) the case for a time-limited lease (REVIEW_ASSIGNMENT_MINUTES, default 30)
+      description: Fails with 409 CASE_ASSIGNED_TO_OTHER while another reviewer's lease is active. Org admins may pass force=true to reassign. Recording a decision ends the lease.
+      operationId: takeReviewAssignment
+      security:
+        - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                force: { type: boolean }
+      responses:
+        '200':
+          description: Assignment held by the caller
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReviewAssignment' }
+        '403':
+          description: Not a reviewer, or force without admin role
+        '409':
+          description: CASE_ASSIGNED_TO_OTHER or CASE_NOT_REVIEWABLE
+    delete:
+      summary: Release the case (holder, or an org admin)
+      operationId: releaseReviewAssignment
+      security:
+        - bearerAuth: [ "pharmacist", "pharmacy", "claims_reviewer", "org_admin", "super_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      responses:
+        '200':
+          description: Released
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReviewAssignment' }
+        '409':
+          description: NOT_ASSIGNED_TO_YOU
+
+  /review/cases/{caseId}/reopen:
+    post:
+      summary: Reopen a VERIFIED or REJECTED case for a new review (org admin, audited)
+      description: Moves the case to NEEDS_REVIEW and bumps the evidence revision so every earlier snapshotToken is stale. Refused while an insurance claim on the case is open.
+      operationId: reopenCase
+      security:
+        - bearerAuth: [ "org_admin", "super_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason: { type: string, minLength: 10, maxLength: 2000 }
+              required: [ reason ]
+      responses:
+        '200':
+          description: Case reopened
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  caseId: { type: string }
+                  status: { const: NEEDS_REVIEW }
+                  previousStatus: { type: string, enum: [ VERIFIED, REJECTED ] }
+                  reopenCount: { type: integer, minimum: 1 }
+                  evidenceRevision: { type: integer, minimum: 1 }
+                required: [ caseId, status, previousStatus, reopenCount, evidenceRevision ]
+        '400':
+          description: REOPEN_REASON_REQUIRED
+        '403':
+          description: FORBIDDEN_ROLE
+        '409':
+          description: CASE_NOT_REOPENABLE or CLAIM_IN_PROGRESS

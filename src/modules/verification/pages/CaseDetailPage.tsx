@@ -16,6 +16,7 @@ import { EvidenceCard } from '../components/EvidenceCard';
 import { ExtractedFieldsEditor } from '../components/ExtractedFieldsEditor';
 import { AuditTrailView } from '../components/AuditTrailView';
 import { ReviewActionModal } from '../components/ReviewActionModal';
+import { ReviewWorkflowPanel } from '../components/ReviewWorkflowPanel';
 import { DocumentEvidenceViewer } from '../components/DocumentEvidenceViewer';
 import { CaseReconciliationWorkspace } from '../integration/CaseReconciliationWorkspace';
 import { integrationApi } from '../integration/api';
@@ -302,6 +303,11 @@ export const CaseDetailPage: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Reviewer lease and admin reopen (staff only) */}
+        {isStaff && caseId && (
+          <ReviewWorkflowPanel caseId={caseId} caseStatus={vCase.status} onChanged={loadCaseData} />
+        )}
 
         {/* Header Block */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-2xs mb-6">

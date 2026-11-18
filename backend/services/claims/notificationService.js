@@ -46,6 +46,17 @@ async function notifyUsers(userIds, { type, title, body, link }) {
       if (email) deliverEmail(doc, email).catch(() => {});
     }
   }
+  // Opt-in SMS / WhatsApp for events the claimant must act on (no case content in the text).
+  const textMessaging = require('../platform/textMessaging');
+  if (textMessaging.TEXT_TEMPLATES[type] && textMessaging.textEnabled()) {
+    const users = await User.find({ _id: { $in: unique }, 'contact.textOptIn': true, 'contact.phone': { $ne: null } }).select('contact');
+    for (const u of users) {
+      const doc = docs.find((d) => String(d.userId) === String(u._id));
+      textMessaging.sendText({ to: u.contact.phone, channel: u.contact.channel || 'sms', text: textMessaging.TEXT_TEMPLATES[type] })
+        .then((r) => Notification.updateOne({ _id: doc._id }, { $set: { 'delivery.text': r.sent ? 'SENT' : 'FAILED', 'delivery.textAttempts': r.attempts } }))
+        .catch(() => {});
+    }
+  }
   return docs;
 }
 

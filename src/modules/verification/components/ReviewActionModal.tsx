@@ -32,6 +32,8 @@ export function ReviewActionModal({ caseId, caseReference, isOpen, onClose, onSu
   const [error, setError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const submitLock = useRef(false);
+  const [needsSelfConfirm, setNeedsSelfConfirm] = useState(false);
+  const [selfConfirmed, setSelfConfirmed] = useState(false);
 
   useEffect(() => {
     let current = true;
@@ -59,9 +61,16 @@ export function ReviewActionModal({ caseId, caseReference, isOpen, onClose, onSu
     submitLock.current = true; setSubmitting(true); setError(null);
     try {
       // Use the displayed snapshot, never a silently refreshed token before writing.
-      await verificationApi.submitReview(caseId, payload);
+      await verificationApi.submitReview(caseId, needsSelfConfirm && selfConfirmed ? { ...payload, selfVerifyConfirmed: true } : payload);
       toast.success('Human review recorded.'); onSuccess(); onClose();
     } catch (cause: unknown) {
+      const code = (cause as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      if (code === 'FOUR_EYES_CONFIRMATION_REQUIRED') {
+        // Single-pharmacist store: ask for the explicit confirmation instead of failing outright.
+        setNeedsSelfConfirm(true); setSelfConfirmed(false); setConfirming(false);
+        setError('You uploaded or created this case. Your pharmacy allows one pharmacist to verify it: tick the confirmation below, then submit again.');
+        return;
+      }
       setError(safeApiMessage(cause, 'The decision was not confirmed. Refresh and inspect the current case before retrying.'));
       setInvalidated(true); setInspected(false); setConfirming(false);
     } finally { submitLock.current = false; setSubmitting(false); }
@@ -82,7 +91,8 @@ export function ReviewActionModal({ caseId, caseReference, isOpen, onClose, onSu
         <label className="flex gap-2 text-xs text-slate-700"><input type="checkbox" checked={inspected} onChange={event => { setInspected(event.target.checked); setConfirming(false); }} />I inspected the source documents and the evidence for this displayed snapshot.</label>
       </fieldset>
       {confirming && <p className="text-sm font-semibold text-slate-800">Record “{currentOption.label}” against this evidence revision?</p>}
-      <div className="flex justify-end gap-2"><button type="button" onClick={onClose} disabled={submitting} className="border rounded-lg px-3 py-2 text-xs">Cancel</button><button type="button" disabled={!eligible || !payload || !inspected || submitting || loading} onClick={() => { if (confirming) void submit(); else setConfirming(true); }} className="bg-slate-900 text-white rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-40">{submitting ? 'Recording…' : confirming ? 'Record human decision' : 'Review and confirm'}</button></div>
+      {needsSelfConfirm && <label className="flex gap-2 items-start rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950"><input type="checkbox" checked={selfConfirmed} onChange={event => setSelfConfirmed(event.target.checked)} className="mt-0.5" /><span>I personally checked the original prescription and invoice. I understand this decision is recorded as a single-pharmacist verification.</span></label>}
+      <div className="flex justify-end gap-2"><button type="button" onClick={onClose} disabled={submitting} className="border rounded-lg px-3 py-2 text-xs">Cancel</button><button type="button" disabled={!eligible || !payload || !inspected || submitting || loading || (needsSelfConfirm && !selfConfirmed)} onClick={() => { if (confirming) void submit(); else setConfirming(true); }} className="bg-slate-900 text-white rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-40">{submitting ? 'Recording…' : confirming ? 'Record human decision' : 'Review and confirm'}</button></div>
     </section>
   </div>;
 }

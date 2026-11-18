@@ -15,7 +15,11 @@
     "mongo:local": "node scripts/runMongo.js",
     "seed:demo": "node seedDemo.js && node seedPharmacyHub.js",
     "retention:run": "node scripts/runRetention.js",
-    "documents:encrypt": "node scripts/encryptStoredDocuments.js"
+    "documents:encrypt": "node scripts/encryptStoredDocuments.js",
+    "audit:verify": "node scripts/verifyAuditChain.js",
+    "audit:export": "node scripts/exportAuditLog.js",
+    "indexes:sync": "node scripts/syncIndexes.js",
+    "seed:showcase": "node seedShowcase.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

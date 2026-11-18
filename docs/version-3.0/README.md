@@ -109,10 +109,9 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 **Claims / platform limits:**
 - Only pharmacist-**VERIFIED** cases can be claimed (escalated cases cannot).
 - Redis is **not** used; MongoDB provides the same lock/limit guarantees without new infrastructure. A Redis adapter can implement the same interface later.
-- MFA is optional, not enforced for staff (Team & Access shows who has it off); no recovery codes; setup uses a key + `otpauth://` link (no QR image library installed).
+- MFA is enforced for staff/insurer roles only when `MFA_REQUIRED_FOR_STAFF=true` (off by default for the local demo). 8 one-time recovery codes are issued on enable. Setup uses a key + `otpauth://` link (no QR image library installed).
 - Document encryption is off until `DOCUMENT_ENCRYPTION_KEY` is set; losing that key makes encrypted documents unreadable — store it like a database password and back it up.
-- Retention removes content only; there is no patient-initiated "delete my data" request flow yet, and purged cases do not show a special message in the case page.
-- Team & Access cannot deactivate or change roles of existing staff yet.
+- Retention removes content only; purged cases do not show a special message in the case page. Erasure requests are processed on the super_admin dashboard (`/admin/saas`, Data Deletion Requests).
 - Reviewer queue SLA target (24 h) and insurer SLA (72 h) are fixed constants, not configurable.
 - No OCR job queue (BullMQ); OCR still runs in the API process.
 - Claim submission uses a MongoDB transaction only on a replica set; on a standalone dev MongoDB it falls back to two sequential writes.
@@ -120,3 +119,39 @@ CI: `.github/workflows/claims-platform.yml` runs the claims tests and the strict
 - Settlement is simulated; no payment provider.
 - Insurer document preview shows the original file; OCR highlight boxes are only in the pharmacist case view.
 - Staging compose file is ready but nothing is deployed (needs a VM + domain).
+
+## 6. Reviewer launch hardening (branch `feature/B-reviewer-launch`)
+
+| Blocker | What exists now | Switch / where |
+| --- | --- | --- |
+| Multi-instance case lock | Case mutations use a MongoDB lease when `CASE_LOCK_BACKEND=mongo` | `services/platform/caseGuard.js` |
+| Four-eyes | Creator or document uploader of a case cannot VERIFY it (can still escalate / return) | `services/review/reviewPolicy.js` |
+| Assignment lease | Take / extend / release a case (30 min default, `REVIEW_ASSIGNMENT_MINUTES`); admins reassign; others cannot decide while it is held | `/api/v1/review/cases/:id/assignment` |
+| Reopen | Org admin reopens a VERIFIED/REJECTED case with a reason (blocked while a claim is open) | `/api/v1/review/cases/:id/reopen` |
+| Paged queues | Review queue and insurer queue page on the server (`X-Total-Count`) | `ReviewQueuePage.tsx`, `PayerClaimsQueue.tsx` |
+| Claim appeal | Claimant can appeal a rejected / partly approved decision once; a different insurer reviewer must decide | `POST /api/v1/claims/:id/appeal` |
+| Enforced MFA + recovery codes | `MFA_REQUIRED_FOR_STAFF=true` → staff without MFA only reach profile / MFA setup (403 `MFA_SETUP_REQUIRED`, UI redirects to Security). 8 hashed one-time recovery codes | `services/platform/accountSecurity.js` |
+| Login lockout | `LOGIN_MAX_FAILURES` (5) failures lock for `LOGIN_LOCK_MINUTES` (15); same generic error; admin unlock | `userController.authUser` |
+| Staff administration | Deactivate / reactivate, change role, sign out everywhere, unlock — same-organization only, never self, audited; role change and deactivation revoke sessions | Team & Access, `/api/users/staff/:id/*` |
+| Reviewer credential | `REVIEW_CREDENTIAL_REQUIRED=true` → VERIFY needs a registration number confirmed by an org admin | Team & Access → Registration |
+| Tamper-evident audit | Every new audit event is linked into one hash chain (SHA-256, or HMAC with `AUDIT_CHAIN_KEY`); model refuses updates/deletes; no edit/delete route. `GET /api/v1/audit/chain/verify` (super_admin, auditor), `npm --prefix backend run audit:verify`, daily write-once export `npm --prefix backend run audit:export -- --out <dir>` | `services/platform/auditChain.js` |
+| Data-principal rights | Anyone: *Download My Data* (JSON, no secrets). Patients: *Request Deletion* (30-day due date, cancellable). super_admin completes it: refused while a claim is open; purges documents, revokes consent, deletes notifications, anonymises and deactivates the account; claims/reviews/audit kept | Account Security page, `/api/v1/me/*`, `/api/v1/privacy/data-requests` |
+| Legal drafts | Privacy notice, terms, grievance process, production retention/encryption settings — **drafts, need counsel review** | `docs/legal/` |
+| Operations | Request id on every response; JSON access logs (`LOG_FORMAT=json`, default in production) with route patterns only; 5xx bodies carry `requestId`; Prometheus `/api/metrics` behind `METRICS_TOKEN`; `indexes:sync`; encrypted backup/restore scripts; runbook with alert rules; npm audit (critical) in CI; Playwright E2E on pull requests | `middleware/requestContext.js`, `ops/`, `.github/workflows/` |
+
+**Usability fixes (after the launch-blocker pass)**
+
+| Problem | Fix |
+| --- | --- |
+| One-pharmacist stores could not verify their own uploads | Team & Access → *Single-pharmacist store*: allowed after an explicit confirmation tick; audited as `FOUR_EYES_SELF_VERIFY_CONFIRMED` |
+| MFA setup needed a typed key | QR code on the Security page (dependency-free encoder, checked against a reference generator); key still shown as fallback |
+| Anyone knowing an email could lock that account | Lockout is per source address (hashed); the whole account locks only after `LOGIN_ACCOUNT_MAX_FAILURES` (50) |
+| Data download was raw JSON | *Download My Data (readable)* gives a plain-language page to print or save as PDF; JSON still available |
+| Browser pop-ups for confirmations | In-app confirmation dialog in the version-2.0 style (Team & Access, claims, insurer decision) |
+| English only | Language switch (English / हिन्दी) on the patient portal and Security page; claimant claims + security/privacy screens translated. **Hindi is a first draft — needs native-speaker review**; other screens still English |
+| Patients missed insurer questions | Opt-in SMS / WhatsApp alerts (no case content in texts) through a configurable gateway; off until `NOTIFY_TEXT_ENABLED` + gateway are set |
+| Registration typed in with no trace | Admin records how it was checked and an optional renewal date; expired registrations block VERIFY until re-confirmed |
+
+The admin confirms the registration manually (how it was checked is recorded); there is no live lookup against a pharmacy council register because councils publish no API.
+
+Audit chain notes: events written before this change are counted as `legacyUnchained` and not covered. Do not change `AUDIT_CHAIN_KEY` once set (old HMAC links would no longer verify). True write-once storage needs MongoDB roles without update/delete on `auditevents` plus off-site exports (e.g. an object-lock bucket) — that is an ops setting, not code.

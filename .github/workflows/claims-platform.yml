@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, 'version-**', 'feature/**']
   pull_request:
-    branches: [main]
+    branches: [main, 'version-**']
 
 permissions:
   contents: read
@@ -43,12 +43,16 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npm ci --prefix backend --ignore-scripts --no-audit --no-fund
       - name: Claims state machine, TOTP, FHIR validator, locks and shared rate limits (no database)
-        run: node --test backend/tests/claimsPlatformPure.test.js backend/tests/platformLocksPure.test.js backend/tests/claimsContractParity.test.js backend/tests/storageEncryptionRetentionPure.test.js backend/tests/testDatabaseGuard.test.js
+        run: node --test backend/tests/claimsPlatformPure.test.js backend/tests/platformLocksPure.test.js backend/tests/claimsContractParity.test.js backend/tests/storageEncryptionRetentionPure.test.js backend/tests/reviewPolicyPure.test.js backend/tests/accountSecurityPure.test.js backend/tests/auditChainPure.test.js backend/tests/opsPure.test.js backend/tests/textMessagingPure.test.js backend/tests/testDatabaseGuard.test.js
       - name: Claims HTTP workflow, consent, tenant isolation and MFA login (real MongoDB)
-        run: NODE_ENV=test node --test backend/tests/claimsWorkflowIntegration.test.js
+        run: NODE_ENV=test node --test --test-concurrency=1 backend/tests/claimsWorkflowIntegration.test.js backend/tests/reviewWorkflowIntegration.test.js backend/tests/accountSecurityIntegration.test.js backend/tests/auditChainIntegration.test.js backend/tests/dataRightsIntegration.test.js
       - name: OpenAPI and JSON Schema validation
         run: |
           npm run validate:contract
           npm run validate:schemas
       - name: Strict frontend build (portals, claims and insurer pages)
         run: npm run build:frontend
+      - name: Dependency vulnerability scan (production dependencies, fail on critical)
+        run: |
+          npm audit --omit=dev --audit-level=critical
+          npm audit --prefix backend --omit=dev --audit-level=critical

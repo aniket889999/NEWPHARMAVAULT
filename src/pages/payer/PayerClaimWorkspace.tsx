@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -17,6 +18,7 @@ const PayerClaimWorkspace: React.FC = () => {
   const [data, setData] = useState<PayerClaimDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmDialog, confirm] = useConfirm();
   const [question, setQuestion] = useState('');
   const [decision, setDecision] = useState<'APPROVED' | 'PARTIALLY_APPROVED' | 'REJECTED'>('APPROVED');
   const [approvedAmount, setApprovedAmount] = useState('');
@@ -79,13 +81,13 @@ const PayerClaimWorkspace: React.FC = () => {
     }
   };
 
-  const submitDecision = (e: React.FormEvent) => {
+  const submitDecision = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!claim) return;
     const body: { decision: string; approvedAmount?: number; reasonCode?: string; note: string } = { decision, note: note.trim() };
     if (decision === 'PARTIALLY_APPROVED') body.approvedAmount = Number(approvedAmount);
     if (decision !== 'APPROVED') body.reasonCode = reasonCode;
-    if (!window.confirm(`Record "${CLAIM_STATUS_LABEL[decision]}" for ${claim.claimReference}? This cannot be undone.`)) return;
+    if (!(await confirm({ title: `Record "${CLAIM_STATUS_LABEL[decision]}"?`, message: `This decision for ${claim.claimReference} is final and the claimant is notified. It cannot be undone (the claimant may appeal once).`, confirmLabel: 'Record Decision', tone: decision === 'REJECTED' ? 'danger' : 'primary' }))) return;
     void run(() => claimsApi.decide(claimId, body), 'Decision recorded');
   };
 
@@ -103,6 +105,7 @@ const PayerClaimWorkspace: React.FC = () => {
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+      {confirmDialog}
       <Link to="/payer/claims" className="text-xs text-slate-500 hover:text-slate-800 inline-flex items-center"><ChevronLeft className="w-4 h-4" /> Back to queue</Link>
 
       {/* Header */}
@@ -116,7 +119,7 @@ const PayerClaimWorkspace: React.FC = () => {
           <div className="flex flex-col items-end gap-2">
             <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${CLAIM_STATUS_STYLE[claim.status]}`}>{CLAIM_STATUS_LABEL[claim.status]}</span>
             <div className="flex gap-2">
-              {claim.status === 'SUBMITTED' && (
+              {(claim.status === 'SUBMITTED' || claim.status === 'APPEALED') && (
                 <button disabled={busy} onClick={() => run(() => claimsApi.startReview(claimId), 'Review started')} className="px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50">
                   <Play className="w-3.5 h-3.5" /> Start Review
                 </button>
@@ -237,6 +240,20 @@ const PayerClaimWorkspace: React.FC = () => {
             )}
           </section>
 
+          {claim.appeal && (
+            <section className="bg-purple-50 rounded-2xl border border-purple-200 p-5 text-xs space-y-1.5">
+              <h2 className="text-sm font-bold text-purple-900">Appeal from the claimant</h2>
+              <p className="text-slate-700">{claim.appeal.reason}</p>
+              {claim.appeal.previousDecision && (
+                <p className="text-slate-500">
+                  Appealed decision: {CLAIM_STATUS_LABEL[claim.appeal.previousDecision.decision]} · {formatInr(claim.appeal.previousDecision.approvedAmount)}
+                  {claim.appeal.previousDecision.reasonCode ? ` · ${pretty(claim.appeal.previousDecision.reasonCode)}` : ''}
+                </p>
+              )}
+              <p className="text-purple-800 font-semibold">A different reviewer from the one who made the original decision must decide this appeal.</p>
+            </section>
+          )}
+
           <section className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
             <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-1.5"><Gavel className="w-4 h-4 text-indigo-600" /> Claim Decision</h2>
             {claim.decision ? (
@@ -247,7 +264,7 @@ const PayerClaimWorkspace: React.FC = () => {
                 <p className="text-slate-400">{new Date(claim.decision.decidedAt).toLocaleString('en-IN')}</p>
               </div>
             ) : claim.status !== 'UNDER_PAYER_REVIEW' ? (
-              <p className="text-xs text-slate-500">{claim.status === 'SUBMITTED' ? 'Start the review to record a decision.' : claim.status === 'QUERY_RAISED' ? 'Waiting for the claimant to answer your query.' : 'No decision can be recorded in this state.'}</p>
+              <p className="text-xs text-slate-500">{claim.status === 'SUBMITTED' || claim.status === 'APPEALED' ? 'Start the review to record a decision.' : claim.status === 'QUERY_RAISED' ? 'Waiting for the claimant to answer your query.' : 'No decision can be recorded in this state.'}</p>
             ) : (
               <form onSubmit={submitDecision} className="space-y-3 text-xs">
                 <div className="grid grid-cols-3 gap-1.5">

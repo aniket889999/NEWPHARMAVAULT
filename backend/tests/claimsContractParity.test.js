@@ -8,7 +8,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..', '..');
-const routesSource = fs.readFileSync(path.join(root, 'backend/routes/claimsRoutes.js'), 'utf8');
+const routesSource = ['backend/routes/claimsRoutes.js', 'backend/routes/reviewWorkflowRoutes.js', 'backend/routes/auditRoutes.js', 'backend/routes/dataRightsRoutes.js']
+  .map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 const contract = fs.readFileSync(path.join(root, 'contracts/openapi/pharmavault-trustrag-v1.yaml'), 'utf8');
 
 function contractOperations() {
@@ -31,9 +32,9 @@ function routeOperations() {
 test('claims routes and OpenAPI contract describe the same operations', () => {
   const documented = contractOperations();
   const routes = routeOperations();
-  assert.ok(routes.length >= 19, 'expected the full claims route table');
+  assert.ok(routes.length >= 24, 'expected the full claims + review workflow route table');
   for (const op of routes) assert.ok(documented.has(op), `route not in contract: ${op}`);
-  const claimsDocumented = [...documented].filter((op) => /\s\/(claims|payer|notifications|pharmacy\/claims)/.test(op));
+  const claimsDocumented = [...documented].filter((op) => /\s\/(claims|payer|notifications|pharmacy\/claims|review\/|audit\/|me\/|privacy\/)/.test(op));
   for (const op of claimsDocumented) assert.ok(routes.includes(op), `contract operation has no route: ${op}`);
 });
 
@@ -42,7 +43,8 @@ test('contract registers the claims schemas and MFA endpoints', () => {
     assert.match(contract, new RegExp(`\\.\\./schemas/${name.replace('.', '\\.')}`));
     assert.ok(fs.existsSync(path.join(root, 'contracts/schemas', name)));
   }
-  for (const op of ['POST /users/mfa/setup', 'POST /users/mfa/enable', 'POST /users/mfa/disable']) {
+  for (const op of ['POST /users/mfa/setup', 'POST /users/mfa/enable', 'POST /users/mfa/disable', 'POST /users/mfa/recovery-codes',
+    ...['deactivate', 'reactivate', 'role', 'sign-out', 'unlock', 'credential'].map((a) => `POST /users/staff/{userId}/${a}`)]) {
     assert.ok(contractOperations().has(op), op);
   }
 });

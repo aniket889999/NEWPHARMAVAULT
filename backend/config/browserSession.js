@@ -29,7 +29,9 @@ function cookieOptions() {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    // Strict everywhere: the dev frontend (localhost:5173) and API (localhost:5001) are same-site,
+    // so Strict works locally as long as both use the same hostname (see apiClient baseURL).
+    sameSite: 'strict',
     path: '/'
   };
 }
