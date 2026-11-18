@@ -59,7 +59,7 @@ function requestContext(req, res, next) {
     metrics.inFlight -= 1;
     const ms = Number(process.hrtime.bigint() - start) / 1e6;
     record(req.method, res.statusCode, ms);
-    if (process.env.NODE_ENV === 'test') return;
+    if (process.env.NODE_ENV === 'test' || process.env.ACCESS_LOG === 'false') return;
     const entry = {
       ts: new Date().toISOString(), level: res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info',
       msg: 'request', reqId: id, method: req.method, route: routePattern(req.originalUrl), status: res.statusCode,

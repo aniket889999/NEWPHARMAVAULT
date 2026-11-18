@@ -1,5 +1,7 @@
 // Synthetic runtime smoke test. No MongoDB connection, real secret, document,
 // external LLM call or Tesseract language-data download is used.
+// stdout carries the machine-readable JSON report, so per-request access logs are switched off here.
+process.env.ACCESS_LOG = 'false';
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs');
