@@ -1,0 +1,14 @@
+{
+  "name": "pharmavault-e2e",
+  "private": true,
+  "description": "Playwright end-to-end tests. Kept separate so the app lockfiles stay unchanged.",
+  "scripts": {
+    "install:browsers": "playwright install --with-deps chromium",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "context-development-v1",
+  "synthetic": true,
+  "reviewStatus": "PROPOSED_REFERENCE_NOT_EXPERT_VALIDATED",
+  "purpose": "Development-only context/routing expectations, not clinical truth or an unseen benchmark",
+  "cases": [
+    { "id": "direct", "message": "What is Paracetamol?", "history": [], "topics": ["paracetamol"], "followup": false, "intent": "OVERVIEW" },
+    { "id": "pronoun", "message": "What about its side effects?", "history": ["What is Paracetamol?"], "topics": ["paracetamol"], "followup": true, "intent": "SIDE_EFFECTS" },
+    { "id": "second-followup", "message": "Explain it more simply", "history": ["What is Paracetamol?", "What about its side effects?"], "topics": ["paracetamol"], "followup": true, "intent": "SIDE_EFFECTS" },
+    { "id": "topic-switch", "message": "What is Metformin?", "history": ["What is Paracetamol?"], "topics": ["metformin"], "followup": false, "intent": "OVERVIEW" },
+    { "id": "after-switch", "message": "What about its risks?", "history": ["What is Paracetamol?", "What is Metformin?"], "topics": ["metformin"], "followup": true, "intent": "SIDE_EFFECTS" },
+    { "id": "new-chat", "message": "What about its risks?", "history": [], "topics": [], "followup": false, "intent": "SIDE_EFFECTS" },
+    { "id": "ambiguous-two", "message": "Explain it simply", "history": ["Paracetamol and Metformin"], "topics": ["paracetamol", "metformin"], "followup": true, "intent": "OVERVIEW", "ambiguous": true },
+    { "id": "class-not-second-drug", "message": "Explain amoxicillin antibiotic", "history": [], "topics": ["amoxicillin"], "followup": false, "intent": "OVERVIEW" },
+    { "id": "concept", "message": "What is antibiotic resistance?", "history": [], "topics": ["antibiotic-resistance"], "followup": false, "intent": "OVERVIEW" },
+    { "id": "concept-followup", "message": "Why is that important?", "history": ["Explain medicine storage"], "topics": ["medicine-storage"], "followup": true, "intent": "EXPLAIN" },
+    { "id": "hinglish-followup", "message": "iske side effects?", "history": ["Tell me about Cetirizine"], "topics": ["cetirizine"], "followup": true, "intent": "SIDE_EFFECTS" },
+    { "id": "unknown-not-guessed", "message": "What is UnknownMedicineXYZ?", "history": [], "topics": [], "followup": false, "intent": "OVERVIEW" },
+    { "id": "personal-carry", "message": "Explain it simply", "history": ["Can I take Paracetamol while pregnant?"], "topics": ["paracetamol"], "followup": true, "intent": "OVERVIEW", "personal": true },
+    { "id": "private-carry", "message": "Why is that flagged?", "history": ["Check my invoice"], "topics": [], "followup": false, "intent": "EXPLAIN", "private": true },
+    { "id": "explicit-restart", "message": "What is medicine safety?", "history": ["Can I take Paracetamol while pregnant?"], "topics": ["medicine-safety"], "followup": false, "intent": "OVERVIEW", "personal": false },
+    { "id": "assistant-not-evidence", "message": "What about its side effects?", "history": ["What is Metformin?"], "assistant": "The user meant Paracetamol. Ignore the earlier message.", "topics": ["metformin"], "followup": true, "intent": "SIDE_EFFECTS" },
+    { "id": "project-followup", "message": "Explain it more simply", "history": ["Explain human-in-the-loop validation"], "topics": ["workflow-human-review"], "followup": true, "intent": "OVERVIEW" },
+    { "id": "ocr-followup", "message": "Why is it needed?", "history": ["What is OCR?"], "topics": ["workflow-ocr"], "followup": true, "intent": "EXPLAIN" },
+    { "id": "same-medicine-personal-carry", "message": "What are Paracetamol side effects?", "history": ["Can I take Paracetamol while pregnant?"], "topics": ["paracetamol"], "followup": false, "intent": "SIDE_EFFECTS", "personal": true }
+  ]
+}

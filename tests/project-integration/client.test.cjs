@@ -10,12 +10,14 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('all supported portal roles have a reachable home without a pharmacy redirect loop', () => {
   const { portalHome, portalTitle, STAFF_PORTALS } = loadClient('src/features/navigation/portalPolicy.ts');
-  const homes = { patient: '/patient/dashboard', pharmacy: '/pharmacy/dashboard', pharmacist: '/review-queue', claims_reviewer: '/review-queue', org_admin: '/review-queue', super_admin: '/admin/saas', research_evaluator: '/research/dashboard' };
+  const homes = { patient: '/patient/dashboard', pharmacy: '/pharmacy/dashboard', pharmacist: '/review-queue', claims_reviewer: '/review-queue', org_admin: '/review-queue', super_admin: '/admin/saas', research_evaluator: '/research/dashboard', payer_reviewer: '/payer/dashboard', payer_admin: '/payer/dashboard' };
   for (const [role, target] of Object.entries(homes)) assert.equal(portalHome(role), target);
   assert.equal(portalHome('unsupported'), '/auth');
   assert.equal(portalTitle('claims_reviewer'), 'Reviewer Portal');
   assert.equal(portalTitle('research_evaluator'), 'Research Portal');
-  assert.equal(STAFF_PORTALS.length, 5);
+  assert.equal(portalTitle('payer_reviewer'), 'Insurer Portal');
+  // version-3.0: 5 pharmacy/research staff roles + 2 insurer roles.
+  assert.equal(STAFF_PORTALS.length, 7);
 });
 test('corrupt, primitive and incomplete cached sessions cannot crash restore', () => {
   const { parseSessionCache } = loadClient('src/features/navigation/sessionCache.ts');
@@ -25,11 +27,14 @@ test('corrupt, primitive and incomplete cached sessions cannot crash restore', (
   assert.equal(restored.role, 'patient'); assert.equal(restored.injected, undefined);
   assert.equal(parseSessionCache(JSON.stringify({ ...valid, token: '' })), null);
 });
-test('both portals and the patient landing page expose the integrated chat and case workflow', () => {
-  assert.match(read('src/layouts/PatientLayout.tsx'), /Evidence Chat · TrustRAG/);
-  assert.match(read('src/layouts/PharmacyLayout.tsx'), /to="\/assistant"/);
+test('both portals and the patient landing page expose the integrated chat, case and claims workflow', () => {
+  // version-3.0 keeps the version-2.0 layouts; chat stays reachable from both portals.
+  assert.match(read('src/layouts/PatientLayout.tsx'), /to="\/patient\/health-assistant"/);
+  assert.match(read('src/layouts/PatientLayout.tsx'), /to="\/patient\/claims"/);
+  assert.match(read('src/layouts/PharmacyLayout.tsx'), /to="\/pharmacy\/assistant"[\s\S]*Evidence Chat · TrustRAG/);
   assert.match(read('src/pages/patient/Dashboard.tsx'), /\/patient\/health-assistant/);
-  assert.match(read('src/pages/patient/Dashboard.tsx'), /\/cases\/new/);
+  assert.match(read('src/pages/patient/Dashboard.tsx'), /\/patient\/cases/);
+  assert.match(read('src/App.tsx'), /path="\/payer"[\s\S]*allowedRoles={\['payer_reviewer', 'payer_admin'\]}/);
 });
 test('legacy dashboard, graph and authenticity requests use the authenticated shared client', () => {
   for (const file of ['src/pages/pharmacy/Dashboard.tsx', 'src/pages/research/KnowledgeGraphExplorer.tsx', 'src/components/features/AuthenticityChecker.tsx']) {
@@ -50,7 +55,7 @@ test('admin and research entry routes enforce explicit client role gates', () =>
 });
 test('research dashboard projection exactly matches the published synthetic source and checksum', () => {
   const { researchSnapshot: snapshot } = loadClient('src/data/researchSnapshot.ts');
-  const raw = fs.readFileSync(path.join(root, snapshot.source)); const source = JSON.parse(raw);
+  const raw = fs.readFileSync(path.join(root, snapshot.source), 'utf8').replace(/\r\n/g, '\n'); const source = JSON.parse(raw);
   assert.equal(snapshot.sourceSha256, crypto.createHash('sha256').update(raw).digest('hex'));
   for (const key of ['implementationCommit', 'freezeCommit']) assert.deepEqual(snapshot[key], source[key]);
   for (const key of ['generatedAt', 'dataset', 'retrieval', 'temporal', 'observedNetworkAttempts']) assert.deepEqual(snapshot[key], source.results.heldout[key]);
@@ -63,12 +68,12 @@ test('research screen does not reinstate illustrative IEEE or clinical accuracy 
   assert.match(source, /not live clinical analytics/); assert.match(source, /Reference recall did not improve/);
   assert.doesNotMatch(source, /axios|apiClient|IEEE|98\.5|Math\.random/);
 });
-test('organization settings handles missing subscription and marks unwired billing controls', () => {
+test('organization settings uses the shared client, never fakes a created branch and uses synthetic names', () => {
+  // version-3.0 keeps the version-2.0 screen (sample organization shown when the API has none).
   const source = read('src/pages/pharmacy/OrganizationSettings.tsx');
-  assert.match(source, /data.subscription\?\.planName\?\./);
-  assert.match(source, /data.subscription \? <div/);
-  assert.match(source, /No subscription record/);
-  assert.match(source, /Billing not connected/);
+  assert.match(source, /apiClient/);
+  assert.match(source, /Branch could not be created/);
+  assert.doesNotMatch(source, /Apollo|apollohealth|Local optimistic update/);
 });
 test('medicine clarification reuses its own preceding question and explicitly sends the selected item', () => {
   const { clarificationQuestion } = loadClient('src/features/caseAssistant/clarificationQuestion.ts');
@@ -81,17 +86,17 @@ test('medicine clarification reuses its own preceding question and explicitly se
   assert.match(source, /sendMessage\(question, \{ medicineItemId: itemId \}\)/);
   assert.match(source, /query: 'Compare prescription and invoice dosage strength for the selected medicine'/);
 });
-test('failed login stays with the form, while private 401 clears the session', async t => {
+test('failed login stays with the form, while private 401 clears the cookie-session UI', async t => {
   const previous = { storage: global.localStorage, window: global.window, alert: global.alert };
   t.after(() => { for (const [name, value] of Object.entries({ localStorage: previous.storage, window: previous.window, alert: previous.alert })) { if (value === undefined) delete global[name]; else global[name] = value; } });
   const removed = []; global.localStorage = { getItem: () => 'synthetic', removeItem: key => removed.push(key) };
-  global.window = { location: { href: '/login' } }; let alerts = 0; global.alert = () => alerts++;
+  const events = []; global.window = { location: { href: '/login' }, dispatchEvent: event => events.push(event.type) }; let alerts = 0; global.alert = () => alerts++;
   const { default: api } = loadClient('src/api/apiClient.ts');
   const request = api.interceptors.request.handlers[0].fulfilled({ headers: {} });
-  assert.equal(request.headers.Authorization, 'Bearer synthetic');
+  assert.equal(request.headers.Authorization, undefined); assert.equal(request.headers['X-PharmaVault-Client'], 'web'); assert.equal(api.defaults.withCredentials, true);
   const reject = api.interceptors.response.handlers[0].rejected;
   await assert.rejects(reject({ response: { status: 401 }, config: { url: '/users/login' } }));
   assert.deepEqual(removed, []); assert.equal(alerts, 0); assert.equal(global.window.location.href, '/login');
   await assert.rejects(reject({ response: { status: 401 }, config: { url: '/v1/cases' } }));
-  assert.deepEqual(removed, ['token', 'user', 'pharmavault_user']); assert.equal(alerts, 1); assert.equal(global.window.location.href, '/auth');
+  assert.deepEqual(removed, ['token', 'user', 'pharmavault_user']); assert.equal(alerts, 0); assert.equal(global.window.location.href, '/login'); assert.deepEqual(events, ['pharmavault:session-expired']);
 });

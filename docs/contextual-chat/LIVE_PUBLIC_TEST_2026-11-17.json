@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-17",
+  "scope": "PUBLIC_PROJECT_REFERENCE_ONLY",
+  "approval": "One additional bounded public-only generation test explicitly approved by user",
+  "result": {
+    "mode": "GEMINI_RAG",
+    "followupResolved": true,
+    "topic": "workflow-human-review",
+    "retrievalMethod": "BM25",
+    "sourceId": "6ffe50b72fa97e6a",
+    "sourceTitle": "Human-in-the-loop validation",
+    "warnings": [],
+    "generationRequests": 1,
+    "embeddingRequests": 0,
+    "retries": 0,
+    "rawHistoryExported": false,
+    "privateDataSent": false
+  },
+  "bounds": {
+    "outputTokenCeiling": 1024,
+    "privateExportFlagsChanged": false,
+    "environmentFilesChanged": false,
+    "normalServerGenerationEnabled": false
+  },
+  "limitations": "Adapter success and mechanical citation validation only; not expert answer grading, semantic entailment, medical accuracy, whole-browser live-model acceptance or superiority over any model. The running synthetic web demo remains LLM-disabled."
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pharmavault.example/schemas/case-share-grant.schema.json",
+  "title": "CaseShareGrant",
+  "description": "Explicit, revocable claimant consent that lets one insurer organization read one verification case for claim review.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "caseId": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "granteeOrganizationId": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "grantedBy": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+    "purpose": { "const": "INSURANCE_CLAIM_REVIEW" },
+    "scope": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "enum": ["case_summary", "documents", "extracted_fields", "consistency_checks", "risk_signals", "review_decisions"] }
+    },
+    "consentText": { "type": "string", "minLength": 20, "maxLength": 2000 },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "revokedAt": { "type": ["string", "null"], "format": "date-time" },
+    "createdAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "caseId", "granteeOrganizationId", "grantedBy", "purpose", "scope", "consentText", "expiresAt", "revokedAt", "createdAt"],
+  "additionalProperties": false
+}

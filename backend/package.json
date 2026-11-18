@@ -11,7 +11,11 @@
     "test:evidence": "node --test tests/evidenceRoutingExplainability.test.js",
     "test": "node --test --test-concurrency=1 tests/*.test.js",
     "data:import": "node seeder.js",
-    "seed:catalogue": "node seeders/catalogueSeeder.js"
+    "seed:catalogue": "node seeders/catalogueSeeder.js",
+    "mongo:local": "node scripts/runMongo.js",
+    "seed:demo": "node seedDemo.js && node seedPharmacyHub.js",
+    "retention:run": "node scripts/runRetention.js",
+    "documents:encrypt": "node scripts/encryptStoredDocuments.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -24,11 +28,12 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.8.4",
     "node-cron": "^4.2.1",
-    "nodemailer": "^8.0.6",
+    "nodemailer": "^10.6.0",
     "pdf-to-img": "^7.0.1",
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
+    "mongodb-memory-server": "^11.3.0",
     "nodemon": "^3.1.7",
     "supertest": "^7.2.2"
   }

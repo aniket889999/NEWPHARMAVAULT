@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pharmavault.example/schemas/chat-provider-readiness.schema.json",
+  "title": "Public chat provider readiness observation",
+  "description": "Configuration and recent public response observation only; never clinical or private-case validation. Reading status makes no provider call.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "state", "reasonCode", "configured", "model", "liveProviderVerified", "checkedAt", "lastSuccessAt", "expiresAt", "verificationScope", "privateCasePolicy", "statusDoesNotProbe"],
+  "properties": {
+    "schemaVersion": { "const": "chat-provider-readiness/1.0.0" },
+    "state": { "enum": ["LOCAL_ONLY", "MISCONFIGURED", "CONFIGURED_UNVERIFIED", "VERIFIED_RECENTLY", "DEGRADED"] },
+    "reasonCode": { "enum": ["GENERATION_DISABLED", "PUBLIC_EXPORT_NOT_ALLOWED", "MISSING_CREDENTIAL", "INVALID_MODEL", "NOT_CHECKED", "CHECK_EXPIRED", "LIVE_RESPONSE_VALIDATED", "PROVIDER_RATE_LIMIT", "PROVIDER_UNAVAILABLE", "PROVIDER_TIMEOUT", "ANSWER_VALIDATION_FAILED"] },
+    "configured": { "type": "boolean" },
+    "model": { "anyOf": [{ "type": "null" }, { "type": "string", "maxLength": 100, "pattern": "^gemini-[a-z0-9.-]+$", "not": { "pattern": "\\s" } }] },
+    "liveProviderVerified": { "type": "boolean" },
+    "checkedAt": { "$ref": "#/$defs/timestamp" },
+    "lastSuccessAt": { "$ref": "#/$defs/timestamp" },
+    "expiresAt": { "$ref": "#/$defs/timestamp" },
+    "verificationScope": { "enum": ["NONE", "PUBLIC_REFERENCE_GENERATION"] },
+    "privateCasePolicy": { "const": "LOCAL_ONLY" },
+    "statusDoesNotProbe": { "const": true }
+  },
+  "$defs": {
+    "timestamp": { "anyOf": [{ "type": "null" }, { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$" }] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "state": { "const": "VERIFIED_RECENTLY" } }, "required": ["state"] },
+      "then": { "properties": { "configured": { "const": true }, "liveProviderVerified": { "const": true }, "reasonCode": { "const": "LIVE_RESPONSE_VALIDATED" }, "model": { "type": "string" }, "checkedAt": { "type": "string" }, "lastSuccessAt": { "type": "string" }, "expiresAt": { "type": "string" }, "verificationScope": { "const": "PUBLIC_REFERENCE_GENERATION" } } },
+      "else": { "properties": { "liveProviderVerified": { "const": false } } }
+    },
+    {
+      "if": { "properties": { "state": { "enum": ["LOCAL_ONLY", "MISCONFIGURED"] } }, "required": ["state"] },
+      "then": { "properties": { "configured": { "const": false }, "checkedAt": { "type": "null" }, "lastSuccessAt": { "type": "null" }, "expiresAt": { "type": "null" }, "verificationScope": { "const": "NONE" } } },
+      "else": { "properties": { "configured": { "const": true }, "model": { "type": "string" } } }
+    },
+    {
+      "if": { "properties": { "state": { "const": "LOCAL_ONLY" } }, "required": ["state"] },
+      "then": { "properties": { "reasonCode": { "enum": ["GENERATION_DISABLED", "PUBLIC_EXPORT_NOT_ALLOWED"] } } }
+    },
+    {
+      "if": { "properties": { "state": { "const": "MISCONFIGURED" } }, "required": ["state"] },
+      "then": { "properties": { "reasonCode": { "enum": ["MISSING_CREDENTIAL", "INVALID_MODEL"] } } }
+    },
+    {
+      "if": { "properties": { "state": { "const": "CONFIGURED_UNVERIFIED" } }, "required": ["state"] },
+      "then": { "properties": { "reasonCode": { "enum": ["NOT_CHECKED", "CHECK_EXPIRED"] } } }
+    },
+    {
+      "if": { "properties": { "state": { "const": "DEGRADED" } }, "required": ["state"] },
+      "then": { "properties": { "reasonCode": { "enum": ["PROVIDER_RATE_LIMIT", "PROVIDER_UNAVAILABLE", "PROVIDER_TIMEOUT", "ANSWER_VALIDATION_FAILED"] }, "checkedAt": { "type": "string" }, "expiresAt": { "type": "string" }, "verificationScope": { "const": "PUBLIC_REFERENCE_GENERATION" } } }
+    }
+  ]
+}

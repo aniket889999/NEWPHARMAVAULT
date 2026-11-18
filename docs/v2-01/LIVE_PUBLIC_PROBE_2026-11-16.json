@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "public-provider-probe/1.0.0",
+  "status": "VERIFIED",
+  "readiness": {
+    "schemaVersion": "chat-provider-readiness/1.0.0",
+    "state": "VERIFIED_RECENTLY",
+    "reasonCode": "LIVE_RESPONSE_VALIDATED",
+    "configured": true,
+    "model": "gemini-2.5-flash",
+    "liveProviderVerified": true,
+    "checkedAt": "2026-11-16T16:48:29.817Z",
+    "lastSuccessAt": "2026-11-16T16:48:29.817Z",
+    "expiresAt": "2026-11-16T16:53:29.817Z",
+    "verificationScope": "PUBLIC_REFERENCE_GENERATION",
+    "privateCasePolicy": "LOCAL_ONLY",
+    "statusDoesNotProbe": true
+  },
+  "liveProviderVerified": true,
+  "networkCalls": 1,
+  "embeddingCalls": 0,
+  "providerHttpStatus": 200,
+  "maximumOutputTokens": 1024,
+  "publicPackagedTextOnly": true,
+  "automaticRetries": 0,
+  "scope": "Direct public-generation adapter diagnostic, not browser/HTTP application acceptance or clinical validation."
+}

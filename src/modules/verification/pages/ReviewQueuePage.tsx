@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { VerificationCase } from '../types';
 import { verificationApi } from '../api/verificationApi';
 import { useAuth } from '../../../context/AuthContext';
-import { VerificationNav } from '../components/VerificationNav';
 import { ReviewActionModal } from '../components/ReviewActionModal';
-import { RefreshCw, ShieldCheck, ArrowRight, ShieldAlert, CheckCircle2, Lock } from 'lucide-react';
+import { RefreshCw, ShieldCheck, ArrowRight, ShieldAlert, CheckCircle2, Lock, Search, Clock } from 'lucide-react';
+
+const REVIEW_SLA_HOURS = 24;
+const ageHours = (iso?: string) => (iso ? Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 3600000)) : 0);
 
 export const ReviewQueuePage: React.FC = () => {
   const { user } = useAuth();
@@ -14,6 +16,11 @@ export const ReviewQueuePage: React.FC = () => {
   const [queueCases, setQueueCases] = useState<VerificationCase[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Queue filters (client-side; the server already scopes the queue to this organization)
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'NEEDS_REVIEW' | 'NEEDS_CORRECTION'>('ALL');
+  const [search, setSearch] = useState('');
+  const [sortOldest, setSortOldest] = useState(true);
 
   // Adjudication Modal state
   const [selectedCase, setSelectedCase] = useState<VerificationCase | null>(null);
@@ -45,10 +52,8 @@ export const ReviewQueuePage: React.FC = () => {
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
-        <VerificationNav />
-        <div className="flex-1 max-w-xl mx-auto p-8 flex items-center justify-center">
-          <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center shadow-xs">
+      <div className="flex-1 max-w-xl mx-auto p-8 flex items-center justify-center">
+        <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center shadow-xs">
             <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <Lock className="w-6 h-6" />
             </div>
@@ -56,24 +61,20 @@ export const ReviewQueuePage: React.FC = () => {
             <p className="text-xs text-slate-500 mt-2 leading-relaxed">
               The Reviewer Queue is reserved for licensed pharmacists and claims reviewers. Patients can view their cases under My Cases.
             </p>
-            <button
-              onClick={() => navigate('/cases')}
-              className="mt-6 px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-900 transition-colors"
-            >
-              Go to My Cases
-            </button>
-          </div>
+          <button
+            onClick={() => navigate('/cases')}
+            className="mt-6 px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-900 transition-colors"
+          >
+            Go to My Cases
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <VerificationNav />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Top Header */}
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      {/* Top Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-3">
@@ -100,6 +101,34 @@ export const ReviewQueuePage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Filters */}
+        {queueCases.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {(['ALL', 'NEEDS_REVIEW', 'NEEDS_CORRECTION'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setStatusFilter(f)}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${statusFilter === f ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}
+              >
+                {f === 'ALL' ? `All (${queueCases.length})` : `${f.replace(/_/g, ' ').toLowerCase()} (${queueCases.filter((c) => c.status === f).length})`}
+              </button>
+            ))}
+            <div className="relative ml-auto">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Case or subject reference"
+                aria-label="Search cases"
+                className="pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg w-56 focus:outline-none focus:ring-1 focus:ring-indigo-600 bg-white"
+              />
+            </div>
+            <button onClick={() => setSortOldest((v) => !v)} className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> {sortOldest ? 'Oldest first' : 'Newest first'}
+            </button>
+          </div>
+        )}
 
         {/* Mandatory Accountability Banner */}
         <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex items-start sm:items-center gap-3 text-xs text-indigo-950 font-medium">
@@ -153,7 +182,16 @@ export const ReviewQueuePage: React.FC = () => {
         {/* Queue Cards */}
         {!isLoading && !error && queueCases.length > 0 && (
           <div className="grid grid-cols-1 gap-4">
-            {queueCases.map(c => {
+            {queueCases
+              .filter((c) => statusFilter === 'ALL' || c.status === statusFilter)
+              .filter((c) => !search || `${c.caseReference} ${c.subjectReference || ''}`.toLowerCase().includes(search.toLowerCase()))
+              .sort((a, b) => {
+                const diff = new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime();
+                return sortOldest ? diff : -diff;
+              })
+              .map(c => {
+              const waiting = ageHours(c.updatedAt || c.createdAt);
+              const overdue = waiting > REVIEW_SLA_HOURS;
               const caseId = c.id || c._id;
               const docCount = c.documentIds?.length || 0;
               const createdByName =
@@ -187,6 +225,9 @@ export const ReviewQueuePage: React.FC = () => {
                       <span>Submitted by: <strong className="text-slate-700">{createdByName}</strong></span>
                       <span>Tri-Documents: <strong className="text-slate-700">{docCount}/3</strong></span>
                       <span>Updated: {new Date(c.updatedAt || c.createdAt).toLocaleString()}</span>
+                      <span className={`inline-flex items-center gap-1 font-semibold ${overdue ? 'text-rose-700' : 'text-slate-500'}`}>
+                        <Clock className="w-3.5 h-3.5" /> Waiting {waiting} h{overdue ? ` · over ${REVIEW_SLA_HOURS} h target` : ''}
+                      </span>
                     </div>
                   </div>
 
@@ -223,7 +264,6 @@ export const ReviewQueuePage: React.FC = () => {
             onSuccess={fetchQueue}
           />
         )}
-      </main>
     </div>
   );
 };

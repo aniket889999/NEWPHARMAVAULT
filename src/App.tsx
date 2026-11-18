@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import apiClient from './api/apiClient';
 
-// Auth Components
+// Auth Components & Landing
+import LandingPage from './pages/LandingPage';
 import RoleSelection from './pages/auth/RoleSelection';
 import AuthPage from './pages/auth/AuthPage';
 import RoleRoute from './components/auth/RoleRoute';
@@ -27,6 +28,7 @@ import PatientOrders from './pages/patient/Orders';
 import DoctorConsult from './pages/patient/DoctorConsult';
 import NearbyMedicines from './pages/patient/NearbyMedicines';
 import HealthRecords from './pages/patient/HealthRecords';
+import PatientCasesPage from './pages/patient/PatientCasesPage';
 
 // Pharmacy Dashboards & Features
 import PharmacyDashboard from './pages/pharmacy/Dashboard';
@@ -56,12 +58,21 @@ import { CasesListPage } from './modules/verification/pages/CasesListPage';
 import { CreateCaseWizardPage } from './modules/verification/pages/CreateCaseWizardPage';
 import { CaseDetailPage } from './modules/verification/pages/CaseDetailPage';
 import { ReviewQueuePage } from './modules/verification/pages/ReviewQueuePage';
+import PatientClaims from './pages/patient/PatientClaims';
+import PharmacyClaims from './pages/pharmacy/PharmacyClaims';
+import SecuritySettings from './pages/account/SecuritySettings';
+import TeamAccess from './pages/account/TeamAccess';
+import PayerLayout from './layouts/PayerLayout';
+import ReviewerLayout from './layouts/ReviewerLayout';
+import PayerDashboard from './pages/payer/PayerDashboard';
+import PayerClaimsQueue from './pages/payer/PayerClaimsQueue';
+import PayerClaimWorkspace from './pages/payer/PayerClaimWorkspace';
 
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public Auth Routes */}
-      <Route path="/" element={<Navigate to="/auth" replace />} />
+      {/* Public Pages */}
+      <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<RoleSelection />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage />} />
@@ -83,6 +94,7 @@ const AppRoutes: React.FC = () => {
         <Route path="reminders" element={<SmartReminders />} />
         <Route path="comparisons" element={<MedicineComparison />} />
         <Route path="prescriptions" element={<PrescriptionUpload />} />
+        <Route path="cases" element={<PatientCasesPage />} />
         <Route path="cart" element={<PatientCart />} />
         <Route path="orders" element={<PatientOrders />} />
         <Route path="doctor-consult" element={<DoctorConsult />} />
@@ -90,6 +102,8 @@ const AppRoutes: React.FC = () => {
         <Route path="health-records" element={<HealthRecords />} />
         <Route path="intelligence" element={<PatientIntelligence />} />
         <Route path="accessibility" element={<AccessibilitySettings />} />
+        <Route path="claims" element={<PatientClaims />} />
+        <Route path="security" element={<SecuritySettings />} />
         <Route index element={<Navigate to="/patient/dashboard" replace />} />
       </Route>
 
@@ -97,7 +111,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/pharmacy"
         element={
-          <RoleRoute allowedRole="pharmacy">
+          <RoleRoute allowedRoles={['pharmacy', 'pharmacist', 'org_admin', 'super_admin']}>
             <PharmacyLayout />
           </RoleRoute>
         }
@@ -111,6 +125,11 @@ const AppRoutes: React.FC = () => {
         <Route path="prescription-queue" element={<PrescriptionQueue />} />
         <Route path="operations-intelligence" element={<OperationsIntelligence />} />
         <Route path="workflow-center" element={<WorkflowCenter />} />
+        <Route path="cases" element={<CasesListPage />} />
+        <Route path="review-queue" element={<ReviewQueuePage />} />
+        <Route path="assistant" element={<HealthAssistant />} />
+        <Route path="claims" element={<PharmacyClaims />} />
+        <Route path="security" element={<SecuritySettings />} />
         <Route path="organization-settings" element={<OrganizationSettings />} />
         <Route path="accessibility" element={<AccessibilitySettings />} />
         <Route index element={<Navigate to="/pharmacy/dashboard" replace />} />
@@ -121,55 +140,50 @@ const AppRoutes: React.FC = () => {
       <Route path="/research/knowledge-graph" element={<RoleRoute allowedRoles={['super_admin', 'research_evaluator']}><KnowledgeGraphExplorer /></RoleRoute>} />
       <Route path="/research/ai-safety" element={<RoleRoute allowedRoles={['super_admin']}><AISafetyDashboard /></RoleRoute>} />
 
-      {/* TrustRAG Verification Routes (Work Order 3B) */}
+      {/* Reviewer Portal Routes with Dedicated Left Sidebar Layout */}
       <Route
-        path="/assistant"
         element={
           <RoleRoute allowedRoles={['patient', 'pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
-            <HealthAssistant />
+            <ReviewerLayout />
           </RoleRoute>
         }
-      />
-      <Route
-        path="/cases"
-        element={
-          <RoleRoute allowedRoles={['patient', 'pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
-            <CasesListPage />
-          </RoleRoute>
-        }
-      />
-      <Route
-        path="/cases/new"
-        element={
-          <RoleRoute allowedRoles={['patient', 'pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
-            <CreateCaseWizardPage />
-          </RoleRoute>
-        }
-      />
-      <Route
-        path="/cases/:caseId"
-        element={
-          <RoleRoute allowedRoles={['patient', 'pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
-            <CaseDetailPage />
-          </RoleRoute>
-        }
-      />
-      <Route
-        path="/review-queue"
-        element={
-          <RoleRoute allowedRoles={['pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'super_admin']}>
-            <ReviewQueuePage />
-          </RoleRoute>
-        }
-      />
+      >
+        <Route path="/assistant" element={<HealthAssistant />} />
+        <Route path="/cases" element={<CasesListPage />} />
+        <Route path="/cases/new" element={<CreateCaseWizardPage />} />
+        <Route path="/cases/:caseId" element={<CaseDetailPage />} />
+        <Route path="/review-queue" element={<ReviewQueuePage />} />
+        <Route path="/account/security" element={<div className="p-6 max-w-4xl mx-auto"><SecuritySettings /></div>} />
+        {/* Staff-only pages inside the reviewer workstation (the layout also admits patients for /cases) */}
+        <Route path="/staff/claims" element={<RoleRoute allowedRoles={['pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'branch_manager']}><PharmacyClaims /></RoleRoute>} />
+        <Route path="/team" element={<RoleRoute allowedRoles={['org_admin', 'super_admin']}><TeamAccess /></RoleRoute>} />
+      </Route>
 
-      {/* Catch-all */}
+      {/* Insurer (payer) portal: separate tenant, consent-scoped case access */}
+      <Route
+        path="/payer"
+        element={
+          <RoleRoute allowedRoles={['payer_reviewer', 'payer_admin']}>
+            <PayerLayout />
+          </RoleRoute>
+        }
+      >
+        <Route index element={<Navigate to="/payer/dashboard" replace />} />
+        <Route path="dashboard" element={<PayerDashboard />} />
+        <Route path="claims" element={<PayerClaimsQueue />} />
+        <Route path="claims/:claimId" element={<PayerClaimWorkspace />} />
+        <Route path="team" element={<RoleRoute allowedRoles={['payer_admin']}><TeamAccess /></RoleRoute>} />
+        <Route path="security" element={<SecuritySettings />} />
+      </Route>
+
+
       {/* Super Admin Routes */}
       <Route path="/admin" element={<RoleRoute allowedRoles={['super_admin']}><PharmacyLayout /></RoleRoute>}>
         <Route path="saas" element={<SaaSAdminDashboard />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/auth" replace />} />
+      {/* Catch-all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
@@ -195,10 +209,10 @@ function App() {
   return (
     <div className={`${highContrast ? 'grayscale contrast-125 bg-black' : 'bg-slate-50'} ${largeText ? 'text-lg' : 'text-base'}`}>
       <AuthProvider>
-        <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#333', color: '#fff' } }} />
+        <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#1e293b', color: '#fff' } }} />
         {!serverReachable && (
-          <div className="bg-red-600 text-white text-sm font-bold p-3 text-center sticky top-0 z-[9999] flex items-center justify-center gap-2 shadow-md">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <div className="bg-red-600 text-white text-sm font-semibold p-2.5 text-center sticky top-0 z-[9999] flex items-center justify-center gap-2 shadow-sm">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
             Server not reachable: Backend API connection failed. Please check if the server is running on port 5001.
           </div>
         )}

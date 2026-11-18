@@ -25,6 +25,7 @@ const languageRoutes = require('./routes/languageRoutes');
 const workflowRoutes = require('./routes/workflowRoutes');
 const organizationRoutes = require('./routes/organizationRoutes');
 const branchRoutes = require('./routes/branchRoutes');
+const claimsRoutes = require('./routes/claimsRoutes');
 const trustRagRoutes = require('./routes/trustRagRoutes');
 const chatRagRoutes = require('./routes/chatRagRoutes');
 const prioritizedCaseAssistantRoutes = require('./routes/prioritizedCaseAssistantRoutes');
@@ -101,6 +102,13 @@ app.use('/api/branches', branchRoutes);
 app.use('/api/v1/chat', protect, tenantMiddleware, chatRagRoutes);
 // Separate extension: the frozen Session 4 answer/freshness routes stay intact.
 app.use('/api/v1/cases/:caseId/assistant', prioritizedCaseAssistantRoutes);
+// TEST-ONLY E2E setup routes: never mounted in production.
+if (process.env.E2E_SETUP_ENABLED === 'true' && process.env.NODE_ENV !== 'production' && (process.env.E2E_SETUP_KEY || '').length >= 12) {
+  app.use('/api/v1/e2e', require('./routes/e2eSetupRoutes'));
+}
+
+// Claims module (claimant ↔ insurer), pharmacy claim status and notifications
+app.use('/api/v1', protect, tenantMiddleware, claimsRoutes);
 app.use('/api/v1', protect, tenantMiddleware, trustRagRoutes);
 
 app.use(notFound);

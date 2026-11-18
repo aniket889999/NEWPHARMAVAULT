@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "public-precision-pilot-v1",
+  "date": "2026-11-17T11:09:12.319Z",
+  "scope": "PUBLIC_REFERENCE_ONLY",
+  "userApprovalRequestLimit": 6,
+  "actualGenerationRequests": 6,
+  "embeddingRequests": 0,
+  "retries": 0,
+  "maxOutputTokensEach": 1024,
+  "privateDataSent": false,
+  "rawHistoryExported": false,
+  "candidateSha256": {
+    "backend/data/chatReferenceExtensions.js": "3e2aeedca6884dd7084c32b10d71cf7dc33bec280d2ea86aac8b8045ec0a3ea7",
+    "backend/data/chatTopicRegistry.js": "32a5b13ceb1df1ed192ee9a9f5b3804f3eee426b6f7a661fd68070b794e603d1",
+    "backend/data/precisionRanker.v1.json": "0b432029559b64e7cae134c3462f710b431e49aaf7d73513e0bec93c39401227",
+    "backend/services/chatReferenceRegistry.js": "6979eb5a99d4f5299ec15fb9d7dc46b85ba5fbfc0069454ee9535afce613119b",
+    "backend/services/chatContextService.js": "b95c23db71a324c223aa44e925db1b9320c5631f1845fa47216190f6a0ebd09d",
+    "backend/services/contextualChatService.js": "8e5a26234f8cb849234b8e76b7fce49c75e9ea692d68202e592a4272782c26e7",
+    "backend/services/preciseAnswerService.js": "c7d6090e721458f418ab49c78aac1ea7fe34f5546da33a957ce0cd76cad71af8",
+    "backend/services/precisionRankingService.js": "497b8051d1cf1a6529f9e138a55a8986f96dec4a8aeed55a623798c9544732a7",
+    "backend/services/publicAnswerSynthesisService.js": "2205ddd55cb975c9231635d114e21970eb135cb861ff59e8daa70772ee186503",
+    "backend/services/pharmacyChatPolicy.js": "1a8004c5776131e13a2eedd359a81494393b7ee63f7910ea0ea052bf6a7507c9",
+    "backend/services/approvedHealthSearchService.js": "81b19960e0859d4527a78662aaf721137a54b214bf718e0d23487725c04828b7"
+  },
+  "summary": {
+    "BASELINE_CONVERSATIONAL_RAG": {
+      "scenarios": 3,
+      "generatedAndCitationChecked": 3,
+      "expectedSourceHit": 3,
+      "wordLimitMet": 3,
+      "totalWords": 235
+    },
+    "ENHANCED_PRECISE_RAG": {
+      "scenarios": 3,
+      "generatedAndCitationChecked": 1,
+      "expectedSourceHit": 3,
+      "wordLimitMet": 3,
+      "totalWords": 154
+    }
+  },
+  "canClaimSuperiority": false,
+  "GPT": "NOT_RUN",
+  "Claude": "NOT_RUN",
+  "clinicalReview": "NOT_PERFORMED",
+  "limitation": "Three developer-selected public scenarios; two pipeline variants using the same Gemini model and base corpus, different prompts/retrieval. Mechanical/source/length checks only, no blinded semantic or clinical grading, significance test, independent gold set, cross-model superiority or training claim about Gemini weights.",
+  "rows": [
+    {
+      "id": "public-review",
+      "arm": "BASELINE_CONVERSATIONAL_RAG",
+      "mode": "GEMINI_RAG",
+      "model": "gemini-2.5-flash",
+      "durationMs": 1915,
+      "requests": 1,
+      "words": 78,
+      "wordLimit": 160,
+      "selectedSourceKeys": [
+        "human-review"
+      ],
+      "expectedSourceHit": true,
+      "mechanicalCitationValidationPassed": true,
+      "comparableBaseCorpusOnly": true,
+      "reply": "Human-in-the-loop validation involves a pharmacist or claims reviewer examining extracted information, original documents, and risk indicators. This review occurs before a verification decision is made. [S1]\n\nDuring this process, the reviewer can choose to 'Verify' the information, 'Return for Correction' if issues are found, or 'Escalate' the case. Each action is recorded with a reason and an audit trail. It's important to note that a chatbot cannot perform actions like verifying, rejecting, closing, or approving a case. [S1]",
+      "warnings": []
+    },
+    {
+      "id": "public-review",
+      "arm": "ENHANCED_PRECISE_RAG",
+      "mode": "GEMINI_RAG",
+      "model": "gemini-2.5-flash",
+      "durationMs": 3402,
+      "requests": 1,
+      "words": 73,
+      "wordLimit": 160,
+      "selectedSourceKeys": [
+        "human-review"
+      ],
+      "expectedSourceHit": true,
+      "mechanicalCitationValidationPassed": true,
+      "comparableBaseCorpusOnly": true,
+      "reply": "Human-in-the-loop validation involves an authorized pharmacist or claims reviewer examining extracted fields, source documents, and risk signals prior to making a verification decision. The available review actions are Verify, Return for Correction, and Escalate, with each action being recorded along with a reason and an audit trail. [S1]\n\nIt is important to note that a chatbot answer is not capable of verifying, rejecting, closing, or approving a case within this validation process. [S1]",
+      "warnings": []
+    },
+    {
+      "id": "public-reference-effects",
+      "arm": "BASELINE_CONVERSATIONAL_RAG",
+      "mode": "GEMINI_RAG",
+      "model": "gemini-2.5-flash",
+      "durationMs": 1823,
+      "requests": 1,
+      "words": 88,
+      "wordLimit": 160,
+      "selectedSourceKeys": [
+        "nhs-metformin-effects"
+      ],
+      "expectedSourceHit": true,
+      "mechanicalCitationValidationPassed": true,
+      "comparableBaseCorpusOnly": true,
+      "reply": "Metformin may cause several side effects, including nausea, vomiting, diarrhea, abdominal discomfort, a reduced appetite, and an altered sense of taste. Some individuals might also experience a deficiency in Vitamin B12. It's important to note that not everyone will experience these side effects. [S1]\n\nIf you experience side effects that are persistent or troublesome, you should consult a pharmacist or doctor. While rare, more serious issues like lactic acidosis and severe allergic reactions can occur. If you experience severe illness or breathing problems, seek urgent medical assessment. [S1]",
+      "warnings": []
+    },
+    {
+      "id": "public-reference-effects",
+      "arm": "ENHANCED_PRECISE_RAG",
+      "mode": "PRECISE_LOCAL_EVIDENCE",
+      "model": null,
+      "durationMs": 2031,
+      "requests": 1,
+      "words": 38,
+      "wordLimit": 160,
+      "selectedSourceKeys": [
+        "nhs-metformin-effects"
+      ],
+      "expectedSourceHit": true,
+      "mechanicalCitationValidationPassed": false,
+      "comparableBaseCorpusOnly": true,
+      "reply": "Metformin can cause nausea, vomiting, diarrhoea, abdominal discomfort, reduced appetite and altered taste. Vitamin B12 deficiency is another possible issue. Rare serious problems include lactic acidosis and severe allergy; severe illness or breathing problems require urgent assessment. [S1]",
+      "warnings": [
+        "General educational reference; not individual treatment advice or India-specific regulatory verification. Source checks are not clinical validation.",
+        "Model generation could not complete a validated answer; showing concise source-supported notes instead."
+      ]
+    },
+    {
+      "id": "public-context-followup",
+      "arm": "BASELINE_CONVERSATIONAL_RAG",
+      "mode": "GEMINI_RAG",
+      "model": "gemini-2.5-flash",
+      "durationMs": 1676,
+      "requests": 1,
+      "words": 69,
+      "wordLimit": 90,
+      "selectedSourceKeys": [
+        "nhs-paracetamol-effects"
+      ],
+      "expectedSourceHit": true,
+      "mechanicalCitationValidationPassed": true,
+      "comparableBaseCorpusOnly": true,
+      "reply": "When paracetamol is used as directed, side effects are very uncommon. However, rare but serious issues can occur, potentially affecting the liver, blood cells, or causing an allergic reaction. [S1]\n\nWarning signs of these rare serious problems include swelling, difficulty breathing, yellowing of the skin or eyes, or unusual bruising. If you experience severe symptoms or suspect an overdose, it is important to seek urgent medical help immediately. [S1]",
+      "warnings": []
+    },
+    {
+      "id": "public-context-followup",
+      "arm": "ENHANCED_PRECISE_RAG",
+      "mode": "PRECISE_LOCAL_EVIDENCE",
+      "model": null,
+      "durationMs": 1366,
+      "requests": 1,
+      "words": 43,
+      "wordLimit": 90,
+      "selectedSourceKeys": [
+        "nhs-paracetamol-effects"
+      ],
+      "expectedSourceHit": true,
+      "mechanicalCitationValidationPassed": false,
+      "comparableBaseCorpusOnly": true,
+      "reply": "Side effects of paracetamol are very uncommon when it is used correctly. Rare serious problems can involve an allergic reaction, the liver or blood cells. Seek urgent medical help for severe symptoms or suspected excess intake rather than waiting for a chatbot. [S1]",
+      "warnings": [
+        "General educational reference; not individual treatment advice or India-specific regulatory verification. Source checks are not clinical validation.",
+        "Model generation could not complete a validated answer; showing concise source-supported notes instead."
+      ]
+    }
+  ]
+}

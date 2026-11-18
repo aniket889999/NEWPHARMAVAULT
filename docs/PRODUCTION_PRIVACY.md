@@ -2,6 +2,8 @@
 
 PharmaVault TrustRAG is an academic verification MVP. The hardening in this repository makes local and single-node demonstrations safer; it does **not** certify the system for clinical use, NHCX conformance, claims adjudication, HIPAA compliance, or handling real patient data.
 
+**17 November 2026 update:** browser cookies, one-hour native-token bounds, durable logout revocation, current production dependency audit results and the web/API deployment example are documented in [Launch-readiness P1](launch/READINESS.md). That report supersedes older authentication/setup instructions below. Public healthcare launch remains blocked by its explicit review and operational gates.
+
 ## What is implemented
 
 - The API disables the Express fingerprint header and applies anti-framing, no-sniff, no-referrer, no-store, permissions-policy and production HSTS headers.

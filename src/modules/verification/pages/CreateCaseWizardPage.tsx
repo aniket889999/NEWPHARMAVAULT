@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { verificationApi } from '../api/verificationApi';
 import { DocumentType, VerificationCase } from '../types';
-import { VerificationNav } from '../components/VerificationNav';
 import { LifecycleStepper } from '../components/LifecycleStepper';
 import { caseCreationGate } from '../integration/caseCreationGate';
 import { isEntityId, safeApiMessage } from '../integration/snapshot';
@@ -208,11 +207,8 @@ export const CreateCaseWizardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <VerificationNav />
-
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-8 space-y-8">
-        {/* Header */}
+    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8 font-sans">
+      {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
@@ -417,7 +413,6 @@ export const CreateCaseWizardPage: React.FC = () => {
             </div>
           </div>
         )}
-      </main>
     </div>
   );
 };

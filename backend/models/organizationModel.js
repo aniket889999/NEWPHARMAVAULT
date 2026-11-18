@@ -11,6 +11,13 @@ const organizationSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  // 'payer' = insurer / TPA tenant. Payers never own verification cases.
+  kind: {
+    type: String,
+    enum: ['pharmacy', 'payer'],
+    default: 'pharmacy',
+    index: true
+  },
   plan: {
     type: String,
     enum: ['Starter', 'Professional', 'Enterprise'],

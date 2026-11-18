@@ -5,6 +5,10 @@ const User = require('./models/userModel');
 dotenv.config();
 
 const seed = async () => {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Refusing to seed synthetic demo accounts when NODE_ENV=production.');
+    process.exit(1);
+  }
   try {
     await mongoose.connect(process.env.MONGO_URI);
     
@@ -30,6 +34,18 @@ const seed = async () => {
         role: 'pharmacy'
       });
       console.log('✅ Demo Pharmacy User created');
+    }
+
+    // Create Demo Reviewer
+    const reviewerExists = await User.findOne({ email: 'reviewer@test.com' });
+    if (!reviewerExists) {
+      await User.create({
+        name: 'Clinical Claims Reviewer',
+        email: 'reviewer@test.com',
+        password: 'password123',
+        role: 'claims_reviewer'
+      });
+      console.log('✅ Demo Reviewer User created');
     }
 
     console.log('🎉 Demo Setup Complete!');

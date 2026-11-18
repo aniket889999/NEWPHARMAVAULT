@@ -11,7 +11,6 @@ import {
   AuditEventItem
 } from '../types';
 import { useAuth } from '../../../context/AuthContext';
-import { VerificationNav } from '../components/VerificationNav';
 import { LifecycleStepper } from '../components/LifecycleStepper';
 import { EvidenceCard } from '../components/EvidenceCard';
 import { ExtractedFieldsEditor } from '../components/ExtractedFieldsEditor';
@@ -217,13 +216,10 @@ export const CaseDetailPage: React.FC = () => {
 
   if (isLoading || (vCase && (vCase.id || vCase._id) !== caseId)) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
-        <VerificationNav />
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center">
-            <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-3" />
-            <p className="text-sm font-semibold text-slate-700">Loading Case Verification...</p>
-          </div>
+      <div className="flex-1 flex items-center justify-center p-12">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-3" />
+          <p className="text-sm font-semibold text-slate-700">Loading Case Verification...</p>
         </div>
       </div>
     );
@@ -231,20 +227,17 @@ export const CaseDetailPage: React.FC = () => {
 
   if (error || !vCase) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
-        <VerificationNav />
-        <div className="flex-1 max-w-2xl mx-auto p-8 flex items-center">
-          <div className="bg-white border border-red-200 rounded-xl p-8 text-center shadow-xs w-full">
-            <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
-            <h2 className="text-base font-bold text-slate-900">Unable to Access Case</h2>
-            <p className="text-xs text-slate-500 mt-2">{error || 'Case not found or access denied.'}</p>
-            <button
-              onClick={() => navigate('/cases')}
-              className="mt-6 px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-900 transition-colors"
-            >
-              Back to Cases List
-            </button>
-          </div>
+      <div className="max-w-2xl mx-auto p-8 flex items-center">
+        <div className="bg-white border border-red-200 rounded-xl p-8 text-center shadow-xs w-full">
+          <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+          <h2 className="text-base font-bold text-slate-900">Unable to Access Case</h2>
+          <p className="text-xs text-slate-500 mt-2">{error || 'Case not found or access denied.'}</p>
+          <button
+            onClick={() => navigate('/cases')}
+            className="mt-6 px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-900 transition-colors"
+          >
+            Back to Cases List
+          </button>
         </div>
       </div>
     );
@@ -254,12 +247,9 @@ export const CaseDetailPage: React.FC = () => {
   const canClose = isStaff && ['VERIFIED', 'REJECTED'].includes(vCase.status);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <VerificationNav />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {sourceLinkError && <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">{sourceLinkError}</p>}
-        {/* Breadcrumb & Navigation */}
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      {sourceLinkError && <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">{sourceLinkError}</p>}
+      {/* Breadcrumb & Navigation */}
         <div className="flex items-center justify-between mb-4">
           <Link
             to="/cases"
@@ -680,7 +670,6 @@ export const CaseDetailPage: React.FC = () => {
             </div>
           </div>
         )}
-      </main>
     </div>
   );
 };

@@ -75,6 +75,11 @@ function acquireCaseLock(caseId) {
 async function withCaseMutationGuard(caseId, fn) {
   const release = acquireCaseLock(caseId);
   try {
+    // Multi-instance deployments: also hold a MongoDB lease (CASE_LOCK_BACKEND=mongo).
+    const { distributedLocksEnabled, mongoCaseLock } = require('../platform/distributedLock');
+    if (distributedLocksEnabled()) {
+      return await mongoCaseLock().withLock(`case:${String(caseId)}`, fn);
+    }
     return await fn();
   } finally {
     release();

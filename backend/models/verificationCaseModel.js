@@ -59,6 +59,12 @@ const verificationCaseSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    // Set by the retention job when document content and derived evidence were removed.
+    purgedAt: {
+      type: Date,
+      default: null,
+      index: true
+    },
     evidenceRevision: {
       type: Number,
       default: 0,

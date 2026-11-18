@@ -58,7 +58,7 @@ function createCorsOptions() {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-PharmaVault-Client'],
     maxAge: 600
   };
 }
@@ -90,6 +90,7 @@ function getTrustProxySetting() {
 }
 
 const LEGACY_EXTERNAL_AI_PATHS = [
+  '/api/mentor-demo',
   '/api/chat', '/api/agents', '/api/graphrag', '/api/language',
   '/api/prescriptions/analyze', '/api/intelligence',
   '/api/explainability', '/api/workflows'
@@ -116,6 +117,12 @@ function validateProductionSecurity() {
   const storageRoot = String(process.env.DOCUMENT_STORAGE_ROOT || '').trim();
   if (!storageRoot || !path.isAbsolute(storageRoot)) {
     throw new Error('[CRITICAL] DOCUMENT_STORAGE_ROOT must be an absolute, persistent volume path in production.');
+  }
+
+  // Opt-in hard requirement so existing deployments are not broken; staging sets it to true.
+  const documentKey = String(process.env.DOCUMENT_ENCRYPTION_KEY || '');
+  if (process.env.DOCUMENT_ENCRYPTION_REQUIRED === 'true' && documentKey.length < 32) {
+    throw new Error('[CRITICAL] DOCUMENT_ENCRYPTION_KEY (32+ characters) is required when DOCUMENT_ENCRYPTION_REQUIRED=true.');
   }
 }
 

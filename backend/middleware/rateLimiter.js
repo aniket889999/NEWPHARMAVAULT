@@ -1,4 +1,8 @@
 const rateLimit = require('express-rate-limit');
+const { MongoRateLimitStore } = require('../services/platform/mongoRateLimitStore');
+
+// RATE_LIMIT_STORE=mongo shares counters across API instances; default stays in-memory.
+const sharedStore = (prefix) => (process.env.RATE_LIMIT_STORE === 'mongo' ? { store: new MongoRateLimitStore({ prefix }) } : {});
 
 const parseLimit = (val, defaultVal) => {
   const parsed = parseInt(val, 10);
@@ -6,11 +10,13 @@ const parseLimit = (val, defaultVal) => {
 };
 
 const windowMs = parseLimit(process.env.RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000);
-const authMax = parseLimit(process.env.RATE_LIMIT_AUTH_MAX, 10);
+const defaultAuthMax = process.env.NODE_ENV === 'production' ? 10 : 200;
+const authMax = parseLimit(process.env.RATE_LIMIT_AUTH_MAX, defaultAuthMax);
 const aiMax = parseLimit(process.env.RATE_LIMIT_AI_MAX, 30);
 
 // Stricter limiter for auth (login/register)
 const authLimiter = rateLimit({
+  ...sharedStore('auth'),
   windowMs,
   max: authMax,
   message: { message: 'Too many login attempts, please try again later.' },
@@ -20,6 +26,7 @@ const authLimiter = rateLimit({
 
 // Stricter limiter for AI and computationally expensive routes
 const aiLimiter = rateLimit({
+  ...sharedStore('ai'),
   windowMs,
   max: aiMax,
   message: { message: 'Too many AI requests, please try again later.' },
@@ -30,6 +37,7 @@ const aiLimiter = rateLimit({
 // Limiter for document content streaming
 const docMax = parseLimit(process.env.RATE_LIMIT_DOC_MAX, 120);
 const documentContentLimiter = rateLimit({
+  ...sharedStore('doc'),
   windowMs,
   max: docMax,
   message: { message: 'Too many document content requests, please try again later.' },
@@ -37,6 +45,5 @@ const documentContentLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// NOTE: For multi-instance deployments (e.g. cluster, PM2, Kubernetes), 
-// this in-memory limiter MUST be replaced by a shared store like Redis.
+// Multi-instance deployments: set RATE_LIMIT_STORE=mongo (shared MongoDB counters).
 module.exports = { authLimiter, aiLimiter, documentContentLimiter };
