@@ -42,7 +42,9 @@ jobs:
           npm install --prefix e2e --no-audit --no-fund
           npx --prefix e2e playwright install --with-deps chromium
       - name: Seed synthetic demo accounts
-        run: npm --prefix backend run seed:demo
+        run: |
+          npm --prefix backend run seed:demo
+          npm --prefix backend run seed:showcase
       - name: Run Playwright
         working-directory: e2e
         run: npx playwright test
@@ -53,3 +55,11 @@ jobs:
           name: playwright-report
           path: e2e/playwright-report/
           retention-days: 14
+      - name: Upload showcase screenshots (synthetic claimant ↔ fictional insurer)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: showcase-screenshots
+          path: e2e/showcase/
+          if-no-files-found: ignore
+          retention-days: 30

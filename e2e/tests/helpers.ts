@@ -18,13 +18,13 @@ export async function signIn(page: Page, opts: { tab: 'patient' | 'pharmacy' | '
  * patient creates the case, the seeded pharmacist reviews it.
  * Document upload/OCR is covered by backend integration tests; here we only need an eligible case.
  */
-export async function createVerifiedCaseViaApi(request: APIRequestContext): Promise<string> {
+export async function createVerifiedCaseViaApi(request: APIRequestContext, claimant = { email: 'patient@test.com' }): Promise<string> {
   const loginNative = async (email: string, role: string) => {
     const res = await request.post(`${API}/users/login`, { data: { email, password: DEMO_PASSWORD, role } });
     expect(res.ok(), `login ${email}`).toBeTruthy();
     return (await res.json()).token as string;
   };
-  const patientToken = await loginNative('patient@test.com', 'patient');
+  const patientToken = await loginNative(claimant.email, 'patient');
   const created = await request.post(`${API}/v1/cases`, {
     headers: { Authorization: `Bearer ${patientToken}` },
     data: { subjectReference: `e2e-${Date.now()}` }
