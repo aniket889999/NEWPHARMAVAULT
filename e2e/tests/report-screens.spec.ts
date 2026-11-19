@@ -1,3 +1,4 @@
+// recapture after badge fix
 import { test, Page } from '@playwright/test';
 import { signIn } from './helpers';
 
