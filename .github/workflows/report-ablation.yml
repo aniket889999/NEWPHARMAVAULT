@@ -1,0 +1,22 @@
+name: Paper ablation (one-off)
+on:
+  push:
+    branches: ['report/screenshots']
+    paths: ['tests/chat-eval/run-ablation.cjs', '.github/workflows/report-ablation.yml']
+permissions:
+  contents: write
+jobs:
+  ablation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with: { node-version: '22' }
+      - run: npm ci --prefix backend --ignore-scripts --no-audit --no-fund
+      - run: node tests/chat-eval/run-ablation.cjs
+      - run: |
+          cp ablation.json /tmp/ablation.json
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git fetch -q origin report-screenshots-out && git checkout -q report-screenshots-out
+          cp /tmp/ablation.json . && git add ablation.json && git commit -qm "paper ablation results" && git push -q origin report-screenshots-out

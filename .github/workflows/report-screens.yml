@@ -2,6 +2,7 @@ name: Report screenshots (one-off)
 on:
   push:
     branches: ['report/screenshots']
+    paths: ['e2e/tests/report-screens.spec.ts']
 permissions:
   contents: write
 jobs:
