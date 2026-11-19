@@ -131,10 +131,7 @@ const PatientLayout: React.FC = () => {
 
               <Link to="/patient/reminders" className={navItemClass('/patient/reminders')}>
                 <Bell className="w-4 h-4 mr-2.5 text-slate-500" />
-                <span className="flex-1">Medication Reminders</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">
-                  Coming Soon
-                </span>
+                <span>Medication Reminders</span>
               </Link>
 
               <Link to="/patient/health-records" className={navItemClass('/patient/health-records')}>
