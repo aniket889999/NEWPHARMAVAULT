@@ -490,7 +490,17 @@ const payerAnalytics = handle(async (req, res) => {
     Claim.aggregate([{ $match: { payerOrganizationId: orgId } }, { $group: { _id: '$status', count: { $sum: 1 }, amount: { $sum: '$claimedAmount' } } }]),
     Claim.aggregate([
       { $match: { payerOrganizationId: orgId, 'decision.decidedAt': { $ne: null } } },
-      { $project: { hours: { $divide: [{ $subtract: ['$decision.decidedAt', '$createdAt'] }, 3600000] }, queried: { $gt: [{ $size: '$queries' }, 0] } } },
+      // Ignore invalid durations (for example backdated demo decisions) in the
+      // average, without hiding the recorded decision from counts/query rate.
+      { $project: { hours: { $cond: [
+        { $and: [
+          { $eq: [{ $type: '$decision.decidedAt' }, 'date'] },
+          { $eq: [{ $type: '$createdAt' }, 'date'] },
+          { $gte: ['$decision.decidedAt', '$createdAt'] }
+        ] },
+        { $divide: [{ $subtract: ['$decision.decidedAt', '$createdAt'] }, 3600000] },
+        null
+      ] }, queried: { $gt: [{ $size: '$queries' }, 0] } } },
       { $group: { _id: null, decided: { $sum: 1 }, avgHours: { $avg: '$hours' }, withQuery: { $sum: { $cond: ['$queried', 1, 0] } } } }
     ])
   ]);
@@ -500,7 +510,7 @@ const payerAnalytics = handle(async (req, res) => {
     decidedCount: d.decided,
     averageDecisionHours: d.avgHours === null ? null : Math.round(d.avgHours * 10) / 10,
     queryRate: d.decided ? Math.round((d.withQuery / d.decided) * 1000) / 10 : null,
-    note: 'Counts come from recorded claims in this organization only.'
+    note: 'Counts come from recorded claims in this organization only. Average decision time excludes missing or invalid timestamps.'
   });
 });
 
