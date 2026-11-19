@@ -59,7 +59,7 @@ async function upsertUser({ email, name, role, organizationId }) {
     }
     // Nearby medicines (Pune): map positions for the demo branch and synthetic pharmacies with
     // their own inventory. Fictional store names; real Pune area coordinates.
-    await Branch.updateMany({ name: 'Demo Dispensary - Central Bengaluru Hub' }, { $set: { coordinates: { lat: 18.5150, lng: 73.8780 }, location: 'MG Road, Camp, Pune (demo hub)' } });
+    await Branch.updateMany({ name: 'Demo Dispensary - Central Bengaluru Hub' }, { $set: { name: 'Demo Dispensary - Camp, Pune', coordinates: { lat: 18.5150, lng: 73.8780 }, location: 'MG Road, Camp, Pune (demo hub)' } });
     const inOneYear = new Date(Date.now() + 365 * 86_400_000);
     const DOLO = 'Dolo 650mg Tablet', AZEE = 'Azithromycin 500mg (Azee 500)', CTZ = 'Cetirizine 10mg Tablet', PAN = 'Pantoprazole 40mg Tablet', AMOX = 'Amoxicillin 500mg Capsule';
     const pharmacies = [
