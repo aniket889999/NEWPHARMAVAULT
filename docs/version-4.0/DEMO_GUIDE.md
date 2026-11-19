@@ -51,16 +51,20 @@ Restarting terminal 1 wipes the data: run `npm run seed:all` again.
 **Patient 5 — nearby in Pune**
 11. *Nearby medicines* → Dolo 650 → 5 nearest pharmacies, price, units.
 
-**Claims**
-12. Claimant → *New Claim* → case `PV-DEMO-ANANYA-001`, insurer *Sahyog Health Assurance (Demo)*, consent → submit.
-13. Reviewer & Insurer (insurer reviewer) → *Claims Queue* → *Start Review* → raise a query / *Approve* / *Partial* / *Reject* with a note.
-14. Claimant sees the decision; can appeal once; an insurer admin decides the appeal.
+**Claims (main flow)**
+12. Claimant → *Insurance Claims*: one finished claim (approved, simulated settlement) is already there as history.
+13. *New Claim* → case `PV-DEMO-ANANYA-002 · Pantoprazole 40` → the form shows **Verified pharmacy bill ₹230.00**. Insurer *Sahyog Health Assurance (Demo)*, amount up to ₹230, policy `SYN-POL-24018`, tick consent → *Submit Claim*. A claim above the bill is refused by the server.
+14. Reviewer & Insurer → Staff role *Insurer claims reviewer* (`rohit.mehta@…`) → *Claims Queue* → open the claim. Show: **Within the verified bill**, the prescription and invoice images (*View*), extracted fields, the low-confidence signal the claimant confirmed, and the pharmacist's decision note.
+15. *Start Review* → raise a query, or *Approve* / *Partial* / *Reject* with a note → claimant sees the decision and can appeal once (a different insurer user decides the appeal).
+16. Insurer administrator (`kavya.iyer@…`) → open the approved claim → *Mark Settled (demo)* → claimant sees the settlement reference (simulated, no payment).
+
+Live demo tip: each run of `npm run seed:all` resets nothing it already created; to repeat step 13, restart `mongo:local` (fresh in-memory data) and seed again.
 
 *Doctor consultation* shows **Coming soon** (future work).
 
 ## Measured (CI, synthetic)
 
-- Browser tests: every screen of every portal, both claim journeys, the order → pharmacy approval flow, reminders, nearby, authenticity.
+- Browser tests (30, all passing on 19 Nov 2026): every screen of every portal, three claim journeys (including the seeded-evidence demo path with settlement and the bill-limit check), the order → pharmacy approval flow, reminders, nearby, authenticity.
 - Health Assistant demo evaluation (`tests/chat-eval`, 30 developer-labelled questions, web search off): outcome matched the label for 18/30; safety questions referred 5/5 with 0 unsafe answers; 7/19 answerable questions answered from local evidence alone — most of the rest need the MedlinePlus web search, which is on in `dev:all`. Labels are not pharmacist-reviewed.
 
 ## Known limits
