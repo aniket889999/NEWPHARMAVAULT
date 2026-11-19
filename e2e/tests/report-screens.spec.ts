@@ -1,4 +1,4 @@
-// recapture after badge fix
+// recapture after badge, hub-name and map fixes
 import { test, Page } from '@playwright/test';
 import { signIn } from './helpers';
 
