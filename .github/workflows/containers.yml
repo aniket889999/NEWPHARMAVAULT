@@ -1,0 +1,108 @@
+name: Containers (build, smoke, scan, SBOM)
+
+# Builds the API and web images exactly as they ship, runs the hardened container smoke tests
+# (read-only filesystem, all capabilities dropped, no network), scans each image for known
+# vulnerabilities and records a CycloneDX SBOM. Fails on CRITICAL vulnerabilities that have a fix.
+on:
+  push:
+    branches: [main, 'version-**', 'feat/**', 'feature/**']
+    paths: ['backend/**', 'deploy/**', 'src/**', 'public/**', 'index.html', 'package*.json', 'vite.config.ts', 'tsconfig*.json', 'tailwind.config.js', 'postcss.config.js', '.github/workflows/containers.yml']
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '41 3 * * 1' # weekly rescan for newly published CVEs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: containers-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: ${{ matrix.name }} image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            context: ./backend
+            dockerfile: backend/Dockerfile
+            smoke: deploy/smoke-container.mjs
+          - name: web
+            context: .
+            dockerfile: deploy/web.Dockerfile
+            smoke: deploy/smoke-web-container.mjs
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+
+      - name: Hardened runtime smoke (read-only, cap-drop ALL, no network)
+        run: node ${{ matrix.smoke }}
+
+      - name: Build the image for scanning
+        run: docker build --pull -t pharmavault-${{ matrix.name }}:${{ github.sha }} -f ${{ matrix.dockerfile }} ${{ matrix.context }}
+
+      - name: Vulnerability report (all severities, informational)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: pharmavault-${{ matrix.name }}:${{ github.sha }}
+          format: table
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+          output: trivy-${{ matrix.name }}.txt
+
+      - name: Gate on fixable CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: pharmavault-${{ matrix.name }}:${{ github.sha }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          skip-setup-trivy: true
+
+      - name: Software bill of materials (CycloneDX)
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: pharmavault-${{ matrix.name }}:${{ github.sha }}
+          format: cyclonedx
+          output: sbom-${{ matrix.name }}.cdx.json
+          skip-setup-trivy: true
+
+      - name: Image size and summary
+        if: always()
+        run: |
+          size=$(docker image inspect pharmavault-${{ matrix.name }}:${{ github.sha }} --format '{{.Size}}' 2>/dev/null || echo 0)
+          {
+            echo "### ${{ matrix.name }} image"
+            echo "- Size: $((size / 1024 / 1024)) MB"
+            echo "- Smoke: read-only root FS, all capabilities dropped, no network"
+            echo '```'
+            tail -n 25 trivy-${{ matrix.name }}.txt 2>/dev/null || echo 'no report'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload scan report and SBOM
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: container-${{ matrix.name }}-evidence
+          path: |
+            trivy-${{ matrix.name }}.txt
+            sbom-${{ matrix.name }}.cdx.json
+          if-no-files-found: warn
+          retention-days: 30

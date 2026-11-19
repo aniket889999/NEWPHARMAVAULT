@@ -2,7 +2,7 @@ name: Offline checkpoint checks
 
 on:
   push:
-    branches: [main, 'wip/**', 'feature/**']
+    branches: [main, 'version-**', 'wip/**', 'feat/**', 'feature/**']
   pull_request:
     branches: [main]
 

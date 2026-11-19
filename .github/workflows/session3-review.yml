@@ -2,7 +2,7 @@ name: Session 3 independent contract review
 
 on:
   push:
-    branches: [main, wip/session-3-integration-review, 'feature/**']
+    branches: [main, wip/session-3-integration-review, 'version-**', 'feat/**', 'feature/**']
   pull_request:
     branches: [main]
 
@@ -67,7 +67,7 @@ jobs:
       - name: Check Session 4 exact-source answers and signed dependency receipts
         run: node --test backend/tests/caseAssistant.test.js tests/rag-v2/backend.acceptance.test.cjs tests/rag-v2/backend.review.test.cjs
       - name: Check Session 4 real HTTP isolation, corrections and authorization
-        run: NODE_ENV=test node --test backend/tests/caseAssistantIntegration.test.js
+        run: NODE_ENV='test' node --test backend/tests/caseAssistantIntegration.test.js
       - name: Check Session 6 citation priority, complete UI evidence and protected HTTP controls
         run: node --test backend/tests/citationPriority.test.js backend/tests/citationPriorityIntegration.test.js tests/citation-priority/client.test.cjs
       - name: Upload actual results even when checks fail

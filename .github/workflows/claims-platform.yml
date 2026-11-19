@@ -2,7 +2,7 @@ name: Claims module and platform checks
 
 on:
   push:
-    branches: [main, 'version-**', 'feature/**']
+    branches: [main, 'version-**', 'feat/**', 'feature/**']
   pull_request:
     branches: [main, 'version-**']
 
@@ -45,7 +45,7 @@ jobs:
       - name: Claims state machine, TOTP, FHIR validator, locks and shared rate limits (no database)
         run: node --test backend/tests/claimsPlatformPure.test.js backend/tests/platformLocksPure.test.js backend/tests/claimsContractParity.test.js backend/tests/storageEncryptionRetentionPure.test.js backend/tests/reviewPolicyPure.test.js backend/tests/accountSecurityPure.test.js backend/tests/auditChainPure.test.js backend/tests/opsPure.test.js backend/tests/textMessagingPure.test.js backend/tests/reminderSchedulerPure.test.js backend/tests/testDatabaseGuard.test.js
       - name: Claims HTTP workflow, consent, tenant isolation and MFA login (real MongoDB)
-        run: NODE_ENV=test node --test --test-concurrency=1 backend/tests/claimsWorkflowIntegration.test.js backend/tests/reviewWorkflowIntegration.test.js backend/tests/accountSecurityIntegration.test.js backend/tests/auditChainIntegration.test.js backend/tests/dataRightsIntegration.test.js
+        run: NODE_ENV='test' node --test --test-concurrency=1 backend/tests/claimsWorkflowIntegration.test.js backend/tests/reviewWorkflowIntegration.test.js backend/tests/accountSecurityIntegration.test.js backend/tests/auditChainIntegration.test.js backend/tests/dataRightsIntegration.test.js
       - name: Real chain with local OCR (claimant upload → OCR → pharmacist → claim → insurer + evidence assistant)
         env:
           CLAIMS_REAL_OCR: 'true'
@@ -55,7 +55,7 @@ jobs:
           mkdir -p "$CLAIMS_TESSDATA_PATH"
           curl -fsSL -o "$CLAIMS_TESSDATA_PATH/eng.traineddata" https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/87416418657359cb625c412a48b6e1d6d41c29bd/eng.traineddata
           echo "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2  $CLAIMS_TESSDATA_PATH/eng.traineddata" | sha256sum -c -
-          NODE_ENV=test node --test --test-concurrency=1 backend/tests/claimsRealOcrChain.test.js
+          NODE_ENV='test' node --test --test-concurrency=1 backend/tests/claimsRealOcrChain.test.js
       - name: OpenAPI and JSON Schema validation
         run: |
           npm run validate:contract
