@@ -7,8 +7,8 @@ COPY . .
 ENV VITE_API_URL=/api
 RUN npm run build:frontend
 
-FROM nginx:stable-alpine@sha256:901e593c95dc85f5a729f5765516321366ef4ac401821431d408897e95287d0a
-# Apply Alpine security fixes released after the pinned base digest (CI gates on fixable
+FROM nginx:stable-alpine@sha256:3bc3836dc0be3b811f238210360bf8e7ca8a2d0effdae46160bf1f3578710051
+# nginx 1.30.7 (fixes CVE-2026-121810, -123007, -123633). Also apply Alpine security fixes released after the pinned digest (CI gates on fixable
 # CRITICAL CVEs; Dependabot moves the digest forward weekly).
 RUN apk upgrade --no-cache
 COPY deploy/nginx.conf /etc/nginx/nginx.conf

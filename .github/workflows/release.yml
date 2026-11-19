@@ -171,10 +171,12 @@ jobs:
             "${{ secrets.STAGING_HOST }}" "${{ secrets.STAGING_USER }}" > ~/.ssh/config
       - name: Ship the compose file and record the running version for rollback
         run: |
+          # shellcheck disable=SC2029 # values are expanded on the runner on purpose
           scp docker-compose.staging.yml staging:"$DEPLOY_DIR/docker-compose.staging.yml"
           ssh staging "cd '$DEPLOY_DIR' && touch .deployed && cp .deployed .previous"
       - name: Pull and start the new image digests
         run: |
+          # shellcheck disable=SC2029 # values are expanded on the runner on purpose
           ssh staging "cd '$DEPLOY_DIR' \
             && printf 'PV_API_IMAGE=%s\nPV_WEB_IMAGE=%s\n' '$API_IMAGE' '$WEB_IMAGE' > .deployed \
             && set -a && . ./.deployed && set +a \
@@ -188,6 +190,7 @@ jobs:
       - name: Roll back to the previous digests
         if: failure()
         run: |
+          # shellcheck disable=SC2029 # values are expanded on the runner on purpose
           ssh staging "cd '$DEPLOY_DIR' && if [ -s .previous ]; then cp .previous .deployed && set -a && . ./.deployed && set +a \
             && docker compose -f docker-compose.staging.yml up -d --no-build --wait --wait-timeout 180; else echo 'No previous version recorded'; fi"
           echo "::error::Deployment failed and was rolled back to the previous images." 
