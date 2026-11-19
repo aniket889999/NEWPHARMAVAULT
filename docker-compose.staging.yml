@@ -15,6 +15,8 @@ services:
     restart: unless-stopped
 
   api:
+    # CI deploys an immutable image digest from GHCR (PV_API_IMAGE); a local `up --build` still works.
+    image: ${PV_API_IMAGE:-pharmavault-api:local}
     build: { context: ./backend }
     env_file: [./backend/.env.staging]
     environment:
@@ -48,6 +50,7 @@ services:
     tmpfs: [/tmp:rw,nosuid,noexec,size=128m]
 
   web:
+    image: ${PV_WEB_IMAGE:-pharmavault-web:local}
     build: { context: ., dockerfile: deploy/web.Dockerfile }
     depends_on: [api]
     restart: unless-stopped

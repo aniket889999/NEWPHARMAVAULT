@@ -1,0 +1,31 @@
+# Weekly dependency and base-image updates, grouped so they arrive as a few reviewable PRs.
+# Security updates are raised as soon as an advisory is published.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly, day: monday, time: '06:00', timezone: Asia/Kolkata }
+    open-pull-requests-limit: 5
+    groups:
+      web-minor-and-patch: { update-types: [minor, patch] }
+    labels: [dependencies, web]
+
+  - package-ecosystem: npm
+    directory: /backend
+    schedule: { interval: weekly, day: monday, time: '06:00', timezone: Asia/Kolkata }
+    open-pull-requests-limit: 5
+    groups:
+      api-minor-and-patch: { update-types: [minor, patch] }
+    labels: [dependencies, api]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday, time: '06:00', timezone: Asia/Kolkata }
+    groups:
+      actions: { patterns: ['*'] }
+    labels: [dependencies, ci]
+
+  - package-ecosystem: docker
+    directories: [/backend, /deploy]
+    schedule: { interval: weekly, day: monday, time: '06:00', timezone: Asia/Kolkata }
+    labels: [dependencies, containers]

@@ -2,7 +2,7 @@ name: Session 3 independent contract review
 
 on:
   push:
-    branches: [main, wip/session-3-integration-review, 'feature/**']
+    branches: [main, wip/session-3-integration-review, 'version-**', 'feat/**', 'feature/**']
   pull_request:
     branches: [main]
 

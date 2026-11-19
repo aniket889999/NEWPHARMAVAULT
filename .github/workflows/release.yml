@@ -1,0 +1,193 @@
+name: Release and deploy
+
+# Tag vX.Y.Z (or run manually) to:
+#   1. build the API and web images and push them to GHCR with an SBOM and signed build provenance,
+#   2. publish a GitHub Release with generated notes (tags only),
+#   3. deploy those exact image digests to staging — only after a reviewer approves the
+#      `staging` environment — then health-check and roll back automatically on failure.
+# Staging is skipped until the repository variable STAGING_DOMAIN and the staging secrets exist.
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      deploy_staging:
+        description: Deploy the built images to staging (needs approval)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-images:
+    name: Publish ${{ matrix.name }} image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    strategy:
+      matrix:
+        include:
+          - name: api
+            context: ./backend
+            dockerfile: backend/Dockerfile
+          - name: web
+            context: .
+            dockerfile: deploy/web.Dockerfile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/pharmavault-${{ matrix.name }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long
+          labels: |
+            org.opencontainers.image.title=PharmaVault TrustRAG ${{ matrix.name }}
+            org.opencontainers.image.description=Research prototype; synthetic data only
+      - id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          pull: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/pharmavault-${{ matrix.name }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+      - name: Summary
+        run: |
+          echo "- \`ghcr.io/${{ github.repository_owner }}/pharmavault-${{ matrix.name }}@${{ steps.build.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  github-release:
+    name: GitHub Release
+    needs: publish-images
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      packages: read
+    steps:
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve the immutable digests built for this commit
+        id: images
+        run: |
+          for name in api web; do
+            ref="ghcr.io/${GITHUB_REPOSITORY_OWNER}/pharmavault-${name}"
+            digest=$(docker buildx imagetools inspect "${ref}:sha-${GITHUB_SHA}" --format '{{json .Manifest}}' | jq -r .digest)
+            [[ "$digest" == sha256:* ]] || { echo "::error::No image for ${name} at sha-${GITHUB_SHA}"; exit 1; }
+            echo "${name}=${ref}@${digest}" >> "$GITHUB_OUTPUT"
+          done
+      - name: Create the release with generated notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          API: ${{ steps.images.outputs.api }}
+          WEB: ${{ steps.images.outputs.web }}
+        run: |
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes \
+            --notes "Images (immutable digests, with SBOM and build provenance):
+          - API: \`$API\`
+          - Web: \`$WEB\`
+
+          Research prototype. Synthetic data only; settlement is simulated."
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: publish-images
+    if: vars.STAGING_DOMAIN != '' && (startsWith(github.ref, 'refs/tags/v') || inputs.deploy_staging)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: staging
+      url: https://${{ vars.STAGING_DOMAIN }}
+    permissions:
+      contents: read
+      packages: read
+    env:
+      DEPLOY_DIR: ${{ vars.STAGING_DEPLOY_DIR || '/opt/pharmavault' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve the immutable digests built for this commit
+        id: images
+        run: |
+          for name in api web; do
+            ref="ghcr.io/${GITHUB_REPOSITORY_OWNER}/pharmavault-${name}"
+            digest=$(docker buildx imagetools inspect "${ref}:sha-${GITHUB_SHA}" --format '{{json .Manifest}}' | jq -r .digest)
+            [[ "$digest" == sha256:* ]] || { echo "::error::No image for ${name} at sha-${GITHUB_SHA}"; exit 1; }
+            echo "${name}=${ref}@${digest}" >> "$GITHUB_OUTPUT"
+          done
+      - name: Export image references
+        run: |
+          echo "API_IMAGE=${{ steps.images.outputs.api }}" >> "$GITHUB_ENV"
+          echo "WEB_IMAGE=${{ steps.images.outputs.web }}" >> "$GITHUB_ENV"
+      - name: Configure SSH (pinned host key, no trust-on-first-use)
+        env:
+          SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
+          printf 'Host staging\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/id_deploy\n  StrictHostKeyChecking yes\n' \
+            "${{ secrets.STAGING_HOST }}" "${{ secrets.STAGING_USER }}" > ~/.ssh/config
+      - name: Ship the compose file and record the running version for rollback
+        run: |
+          scp docker-compose.staging.yml staging:"$DEPLOY_DIR/docker-compose.staging.yml"
+          ssh staging "cd '$DEPLOY_DIR' && touch .deployed && cp .deployed .previous"
+      - name: Pull and start the new image digests
+        run: |
+          ssh staging "cd '$DEPLOY_DIR' \
+            && printf 'PV_API_IMAGE=%s\nPV_WEB_IMAGE=%s\n' '$API_IMAGE' '$WEB_IMAGE' > .deployed \
+            && set -a && . ./.deployed && set +a \
+            && docker compose -f docker-compose.staging.yml pull api web \
+            && docker compose -f docker-compose.staging.yml up -d --no-build --wait --wait-timeout 180"
+      - name: Health check through HTTPS
+        run: |
+          curl --fail --silent --show-error --retry 12 --retry-delay 5 --retry-all-errors \
+            "https://${{ vars.STAGING_DOMAIN }}/api/ready"
+          echo "Staging healthy on $API_IMAGE" >> "$GITHUB_STEP_SUMMARY"
+      - name: Roll back to the previous digests
+        if: failure()
+        run: |
+          ssh staging "cd '$DEPLOY_DIR' && if [ -s .previous ]; then cp .previous .deployed && set -a && . ./.deployed && set +a \
+            && docker compose -f docker-compose.staging.yml up -d --no-build --wait --wait-timeout 180; else echo 'No previous version recorded'; fi"
+          echo "::error::Deployment failed and was rolled back to the previous images." 

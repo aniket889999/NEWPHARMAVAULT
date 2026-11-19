@@ -2,7 +2,7 @@ name: Claims module and platform checks
 
 on:
   push:
-    branches: [main, 'version-**', 'feature/**']
+    branches: [main, 'version-**', 'feat/**', 'feature/**']
   pull_request:
     branches: [main, 'version-**']
 
