@@ -85,7 +85,7 @@ const SmartReminders: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto p-6 md:p-8 space-y-6 font-sans">
-      {/* Coming Soon Hero Banner */}
+      {/* Reminders hero banner */}
       <div className="bg-white rounded-2xl border border-amber-200 p-6 shadow-xs relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-2">
