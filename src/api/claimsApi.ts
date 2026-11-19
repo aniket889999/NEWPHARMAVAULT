@@ -26,7 +26,10 @@ export interface Claim {
   payerName?: string;
   queries: ClaimQuery[];
   decision: ClaimDecision | null;
-  settlement: { reference: string; settledAt: string; simulated: true } | null;
+  decisionAcceptedAt?: string | null;
+  /** Last day to appeal; null when the decision cannot be appealed (any more). */
+  appealDeadline?: string | null;
+  settlement: { reference: string; settledAt: string; amount?: number | null; simulated: true } | null;
   history: { status: ClaimStatus; at: string; byRole: string }[];
   appeal: null | { count: number; reason: string; appealedAt: string; previousDecision: ClaimDecision | null };
   createdAt: string;
@@ -48,7 +51,32 @@ export interface PayerClaimDetail {
   consistencyChecks: { id: string; checkType: string; status: string; severity: string; message: string; reviewRequired?: boolean }[];
   riskSignals: { id: string; signalType: string; severity: string; description: string; reviewRequired?: boolean }[];
   reviewDecisions: { id: string; decision: string; reasonCode?: string; notes?: string; createdAt: string }[];
+  amountCheck?: { invoiceTotal: number | null; approvedElsewhere?: number; claimedAmount: number; status: 'WITHIN_INVOICE' | 'EXCEEDS_INVOICE' | 'UNKNOWN' };
+  settleCheck?: { allowed: boolean; reason: string | null };
+  /** True when this reviewer made the decision now under appeal (four-eyes: someone else must decide). */
+  youDecidedAppealedDecision?: boolean;
   reasonCodes: { rejected: string[]; partial: string[] };
+}
+
+export interface PayerAssistantAnswer {
+  audience: 'PAYER'; claimReference: string; caseId: string; reply: string;
+  mode: 'LOCAL_CASE_EVIDENCE' | 'CLARIFY' | 'ABSTAIN' | 'SAFETY'; intent: string;
+  medicineItemId: string | null;
+  choices: { itemId: string; label: string; documentType: string }[];
+  sources: { citation: string; documentId: string | null; fieldId: string | null; pageNumber: number | null; title: string; excerpt: string }[];
+  warnings: string[]; suggestedQuestions: string[]; disclaimer: string;
+}
+
+export interface EligibleCase {
+  id: string; caseReference: string; subjectReference?: string | null; status: string; updatedAt: string;
+  invoiceTotal?: number | null;
+  /** Already approved by insurers on this bill. */
+  approvedSoFar?: number;
+  /** Part of the verified bill still claimable; null when the bill total is unknown. */
+  remainingAmount?: number | null;
+  claimable?: boolean;
+  blockedReason?: string | null;
+  blockedCode?: string | null;
 }
 
 export interface NotificationItem { id: string; type: string; title: string; body: string; link: string | null; readAt: string | null; createdAt: string; emailDelivery?: string }
@@ -86,7 +114,7 @@ export const errorMessage = (err: unknown, fallback: string) =>
 export const claimsApi = {
   // Claimant
   payers: async () => (await apiClient.get<{ id: string; name: string }[]>('/v1/claims/payers')).data,
-  eligibleCases: async () => (await apiClient.get<{ id: string; caseReference: string; status: string; updatedAt: string }[]>('/v1/claims/eligible-cases')).data,
+  eligibleCases: async () => (await apiClient.get<EligibleCase[]>('/v1/claims/eligible-cases')).data,
   myClaims: async () => (await apiClient.get<Claim[]>('/v1/claims')).data,
   submit: async (body: { caseId: string; payerOrganizationId: string; claimedAmount: number; policyNumber: string; consent: { accepted: boolean } }) =>
     (await apiClient.post<Claim>('/v1/claims', body)).data,
@@ -94,6 +122,7 @@ export const claimsApi = {
     (await apiClient.post<Claim>(`/v1/claims/${claimId}/queries/${queryId}/answer`, { answer })).data,
   withdraw: async (claimId: string) => (await apiClient.post<Claim>(`/v1/claims/${claimId}/withdraw`, {})).data,
   appeal: async (claimId: string, reason: string) => (await apiClient.post<Claim>(`/v1/claims/${claimId}/appeal`, { reason })).data,
+  acceptDecision: async (claimId: string) => (await apiClient.post<Claim>(`/v1/claims/${claimId}/accept-decision`, {})).data,
 
   // Insurer
   /** Server-side paged insurer queue; totals come from X-Total-Count. */
@@ -106,6 +135,8 @@ export const claimsApi = {
   payerClaim: async (claimId: string) => (await apiClient.get<PayerClaimDetail>(`/v1/payer/claims/${claimId}`)).data,
   payerDocumentBlob: async (claimId: string, documentId: string) =>
     (await apiClient.get<Blob>(`/v1/payer/claims/${claimId}/documents/${documentId}/content`, { responseType: 'blob' })).data,
+  askAssistant: async (claimId: string, message: string, medicineItemId: string | null = null) =>
+    (await apiClient.post<PayerAssistantAnswer>(`/v1/payer/claims/${claimId}/assistant/answers`, { message, medicineItemId })).data,
   startReview: async (claimId: string) => (await apiClient.post<Claim>(`/v1/payer/claims/${claimId}/start-review`, {})).data,
   raiseQuery: async (claimId: string, question: string) => (await apiClient.post<Claim>(`/v1/payer/claims/${claimId}/queries`, { question })).data,
   decide: async (claimId: string, body: { decision: string; approvedAmount?: number; reasonCode?: string; note: string }) =>

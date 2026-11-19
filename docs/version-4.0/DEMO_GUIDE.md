@@ -53,21 +53,28 @@ Restarting terminal 1 wipes the data: run `npm run seed:all` again.
 **Patient 5 — nearby in Pune**
 11. *Nearby medicines* → Dolo 650 → 5 nearest pharmacies, price, units.
 
-**Claims**
-12. Claimant → *New Claim* → case `PV-DEMO-ANANYA-001`, insurer *Sahyog Health Assurance (Demo)*, consent → submit.
-13. Reviewer & Insurer (insurer reviewer) → *Claims Queue* → *Start Review* → raise a query / *Approve* / *Partial* / *Reject* with a note.
-14. Claimant sees the decision; can appeal once; an insurer admin decides the appeal.
+**Claims (main flow)**
+12. Claimant → *Insurance Claims*: one finished claim (approved, simulated settlement) is already there as history.
+13. *New Claim* → case `PV-DEMO-ANANYA-002 · Pantoprazole 40` → the form shows **Verified pharmacy bill ₹230.00**. Insurer *Sahyog Health Assurance (Demo)*, amount up to ₹230, policy `SYN-POL-24018`, tick consent → *Submit Claim*. A claim above the bill is refused by the server.
+14. Reviewer & Insurer → Staff role *Insurer claims reviewer* (`rohit.mehta@…`) → *Claims Queue* → open the claim. Show: **Within the verified bill**, the prescription and invoice images (*View*), extracted fields, the low-confidence signal the claimant confirmed, and the pharmacist's decision note.
+    - **Evidence Assistant** (right column): click *Compare the prescription and the invoice* → a cited answer from both documents (click a citation to open the document). Ask *Should I approve this claim?* → it refuses: humans decide. It uses only the evidence the claimant consented to share; nothing goes to web search or an external AI.
+15. *Start Review* → raise a query, or *Approve* / *Partial* / *Reject* with a note → claimant sees the decision and the date until which they can appeal (7 days, once; a different insurer user decides the appeal — the original reviewer sees that they cannot decide it).
+16. Insurer administrator (`kavya.iyer@…`) → open the approved claim → *Mark Settled (demo)* → claimant sees the settled amount and reference (simulated, no payment). A **partial** approval can be settled only after the claimant clicks *Accept Decision*, appeals, or the 7 days pass.
+17. Show the double-claim guard: *New Claim* again → `PV-DEMO-ANANYA-001` and `-002` are greyed out as **already claimed**. One bill is never paid twice: one open claim per case across insurers, an insurer that decided is not asked again, and a second insurer can only be asked for the part of the bill not yet approved.
+
+Live demo tip: each run of `npm run seed:all` resets nothing it already created; to repeat step 13, restart `mongo:local` (fresh in-memory data) and seed again.
 
 *Doctor consultation* shows **Coming soon** (future work).
 
 ## Measured (CI, synthetic)
 
-- Browser tests: every screen of every portal, both claim journeys, the order → pharmacy approval flow, reminders, nearby, authenticity.
+- Teammate-reported browser tests (30 passing on 19 Nov 2026): every screen of every portal, three claim journeys (including the seeded-evidence demo path with settlement and the bill-limit check), the order → pharmacy approval flow, reminders, nearby, authenticity. Not independently rerun as part of the chatbot push.
 - Upstream Health Assistant demo snapshot: 18/30 outcome matches, 7/19 expected answers and 5/5 safety referrals. The 18 November local integration measured 23/30 outcome matches, 14/19 expected answers with cited on-topic content and 5/5 safety referrals (0 unsafe direct answers on those five scenarios), with web/model disabled and the same developer labels. Brand-label clarification causes three policy differences; evidence and phrasing gaps also remain. These labels are not pharmacist-reviewed or an unseen gold standard. See the integration checkpoint rather than presenting either snapshot as clinical accuracy.
+- 19 November public RAG technical acceptance: two actual authenticated answers passed with dense-vector + lexical retrieval, cited Gemini generation, and account-bound contextual follow-up. Exactly two embedding batches and four generation/review requests, no retries or private data. See [the current checkpoint](../chatbot-next/GAPS_345_CHECKPOINT_2026-11-19.md). This is not a 30-question rerun or clinical evaluation.
 
 ## Known limits
 
 - OCR reads printed prescriptions; handwriting is weak.
 - Authenticity uses the PharmaVault ledger and a small CDSCO reference list; no FDA dataset is included.
-- Health Assistant answers are cited source notes (no external AI); "What is Dolo 650 used for?" asks to clarify instead of answering.
+- Default local Health Assistant answers remain cited source notes; the explicit public-chat launcher can enable bounded external generation and semantic retrieval using a privately configured credential. Private case data is never exported. "What is Dolo 650 used for?" asks for ingredient confirmation rather than assuming a brand formulation.
 - Payment is "pay at pharmacy"; no returns flow; doctor consultation is future work.

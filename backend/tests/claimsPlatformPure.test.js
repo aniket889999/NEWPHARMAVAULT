@@ -112,3 +112,65 @@ test('claim bundle with decision validates; broken bundles are caught', () => {
   assert.match(messages, /payor is required/);
   assert.match(messages, /does not resolve/);
 });
+
+// ── Claimant ↔ insurer workflow gaps closed in version-4.0 ──
+const { claimEligibility, amountBlocker, approvedAmountOf } = require('../services/claims/claimEligibility');
+
+test('claim eligibility: one pharmacy bill is never paid twice', () => {
+  const A = 'a'.repeat(24);
+  const B = 'b'.repeat(24);
+  // Fresh case: claimable up to the whole bill.
+  let e = claimEligibility({ invoiceTotal: 230, claims: [] });
+  assert.deepEqual([e.claimable, e.remainingAmount, e.approvedSoFar], [true, 230, 0]);
+  assert.equal(amountBlocker(230, e), null);
+  assert.equal(amountBlocker(230.01, e), 'CLAIM_EXCEEDS_INVOICE');
+
+  // Open claim with insurer A blocks a second claim with A *and* with B (no parallel double claim).
+  const open = [{ status: 'UNDER_PAYER_REVIEW', payerOrganizationId: A, claimReference: 'CLM-1' }];
+  assert.equal(claimEligibility({ invoiceTotal: 230, claims: open, payerOrganizationId: A }).code, 'DUPLICATE_OPEN_CLAIM');
+  assert.equal(claimEligibility({ invoiceTotal: 230, claims: open, payerOrganizationId: B }).code, 'CASE_HAS_OPEN_CLAIM');
+  assert.equal(claimEligibility({ invoiceTotal: 230, claims: [{ ...open[0], status: 'APPEALED' }] }).claimable, false);
+
+  // Settled in full: nothing left to claim with anyone.
+  const settled = [{ status: 'SETTLED', payerOrganizationId: A, claimReference: 'CLM-1', decision: { approvedAmount: 230 }, settlement: { amount: 230 } }];
+  assert.equal(claimEligibility({ invoiceTotal: 230, claims: settled }).code, 'CASE_FULLY_CLAIMED');
+  assert.equal(claimEligibility({ invoiceTotal: 230, claims: settled, payerOrganizationId: B }).code, 'CASE_FULLY_CLAIMED');
+
+  // Partial approval by A: same insurer cannot be asked again; insurer B only for the remainder.
+  const partial = [{ status: 'PARTIALLY_APPROVED', payerOrganizationId: A, claimReference: 'CLM-1', decision: { approvedAmount: 150 } }];
+  assert.equal(claimEligibility({ invoiceTotal: 230, claims: partial, payerOrganizationId: A }).code, 'ALREADY_DECIDED_BY_PAYER');
+  e = claimEligibility({ invoiceTotal: 230, claims: partial, payerOrganizationId: B });
+  assert.deepEqual([e.claimable, e.remainingAmount, e.approvedSoFar], [true, 80, 150]);
+  assert.equal(amountBlocker(80, e), null);
+  assert.equal(amountBlocker(80.5, e), 'CLAIM_EXCEEDS_INVOICE');
+
+  // Rejected and withdrawn claims approve nothing; rejected insurer still cannot be re-asked.
+  const rejected = [{ status: 'REJECTED', payerOrganizationId: A, claimReference: 'CLM-1', decision: { approvedAmount: 0 } }, { status: 'WITHDRAWN', payerOrganizationId: B, claimReference: 'CLM-2' }];
+  assert.equal(claimEligibility({ invoiceTotal: 230, claims: rejected, payerOrganizationId: A }).code, 'ALREADY_DECIDED_BY_PAYER');
+  assert.equal(claimEligibility({ invoiceTotal: 230, claims: rejected, payerOrganizationId: B }).remainingAmount, 230);
+  assert.equal(approvedAmountOf({ status: 'WITHDRAWN', decision: { approvedAmount: 99 } }), 0);
+
+  // Unknown bill total: no amount ceiling, but the open/decided rules still apply.
+  e = claimEligibility({ invoiceTotal: null, claims: [] });
+  assert.deepEqual([e.claimable, e.remainingAmount, amountBlocker(1e6, e)], [true, null, null]);
+});
+
+test('appeal window and settlement of partial approvals protect the claimant', () => {
+  const decidedAt = new Date('2026-11-01T10:00:00Z');
+  const in3Days = new Date('2026-11-04T10:00:00Z');
+  const in8Days = new Date('2026-11-09T10:00:00Z');
+  const reason = 'The quantity limit does not apply to this chronic prescription.';
+  assert.equal(sm.APPEAL_WINDOW_DAYS, 7);
+  assert.equal(sm.appealDeadline(decidedAt).toISOString(), '2026-11-08T10:00:00.000Z');
+  assert.equal(sm.validateAppeal({ status: 'REJECTED', reason, decidedAt, now: in3Days }), reason);
+  assert.throws(() => sm.validateAppeal({ status: 'REJECTED', reason, decidedAt, now: in8Days }), { code: 'APPEAL_WINDOW_CLOSED' });
+  assert.throws(() => sm.validateAppeal({ status: 'PARTIALLY_APPROVED', reason, decidedAt, decisionAcceptedAt: in3Days, now: in3Days }), { code: 'DECISION_ACCEPTED' });
+
+  // Full approval settles at once; a partial waits for accept / appeal / window end.
+  assert.equal(sm.settlementBlocker({ status: 'APPROVED', decidedAt, now: in3Days }), null);
+  assert.equal(sm.settlementBlocker({ status: 'PARTIALLY_APPROVED', decidedAt, now: in3Days }), 'APPEAL_WINDOW_OPEN');
+  assert.equal(sm.settlementBlocker({ status: 'PARTIALLY_APPROVED', decidedAt, decisionAcceptedAt: in3Days, now: in3Days }), null);
+  assert.equal(sm.settlementBlocker({ status: 'PARTIALLY_APPROVED', decidedAt, appealCount: 1, now: in3Days }), null);
+  assert.equal(sm.settlementBlocker({ status: 'PARTIALLY_APPROVED', decidedAt, now: in8Days }), null);
+  assert.equal(sm.settlementBlocker({ status: 'REJECTED', decidedAt, now: in8Days }), 'NOT_SETTLEABLE');
+});

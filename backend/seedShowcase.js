@@ -22,6 +22,10 @@ const Medicine = require('./models/medicineModel');
 const VerificationCase = require('./models/verificationCaseModel');
 const Prescription = require('./models/prescriptionModel');
 const Order = require('./models/orderModel');
+const Claim = require('./models/claimModel');
+const CaseShareGrant = require('./models/caseShareGrantModel');
+const { SHARE_SCOPES } = require('./models/caseShareGrantModel');
+const { seedDemoCaseEvidence } = require('./services/claims/demoCaseEvidence');
 
 const INSURER_NAME = 'Sahyog Health Assurance (Demo)';
 const PASSWORD = 'password123';
@@ -59,7 +63,7 @@ async function upsertUser({ email, name, role, organizationId }) {
     }
     // Nearby medicines (Pune): map positions for the demo branch and synthetic pharmacies with
     // their own inventory. Fictional store names; real Pune area coordinates.
-    await Branch.updateMany({ name: 'Demo Dispensary - Central Bengaluru Hub' }, { $set: { coordinates: { lat: 18.5150, lng: 73.8780 }, location: 'MG Road, Camp, Pune (demo hub)' } });
+    await Branch.updateMany({ name: 'Demo Dispensary - Central Bengaluru Hub' }, { $set: { name: 'Demo Dispensary - Camp, Pune', coordinates: { lat: 18.5150, lng: 73.8780 }, location: 'MG Road, Camp, Pune (demo hub)' } });
     const inOneYear = new Date(Date.now() + 365 * 86_400_000);
     const DOLO = 'Dolo 650mg Tablet', AZEE = 'Azithromycin 500mg (Azee 500)', CTZ = 'Cetirizine 10mg Tablet', PAN = 'Pantoprazole 40mg Tablet', AMOX = 'Amoxicillin 500mg Capsule';
     const pharmacies = [
@@ -108,6 +112,39 @@ async function upsertUser({ email, name, role, organizationId }) {
         { $setOnInsert: { ...c, reviewRequired: c.status !== 'VERIFIED', organizationId: pharmacyOrg?._id, branchId: pharmacyBranch?._id, createdBy: claimant._id } },
         { upsert: true }
       );
+    }
+
+    // Give the verified demo cases real (synthetic) evidence, so an insurer reviewing a demo claim
+    // sees documents, extracted fields, checks and the pharmacist's decision — not an empty case.
+    const pharmacist = await User.findOne({ email: 'pharmacist@test.com' });
+    for (const ref of ['PV-DEMO-ANANYA-001', 'PV-DEMO-ANANYA-002']) {
+      const vc = await VerificationCase.findOne({ caseReference: ref });
+      if (!vc) continue;
+      if (!vc.organizationId && pharmacyOrg) { vc.organizationId = pharmacyOrg._id; vc.branchId = pharmacyBranch?._id; await vc.save(); }
+      if (await seedDemoCaseEvidence(vc, { claimantId: claimant._id, pharmacistId: pharmacist?._id })) console.log(`  evidence added to ${ref}`);
+    }
+
+    // One finished claim (approved and settled, simulated) so the insurer dashboard and the claimant's
+    // claim history are not empty at the start of a demo. PV-DEMO-ANANYA-002 stays free for a live claim.
+    const caseOne = await VerificationCase.findOne({ caseReference: 'PV-DEMO-ANANYA-001' });
+    if (caseOne && !(await Claim.exists({ claimantId: claimant._id }))) {
+      const day = 86400000; const t0 = Date.now() - 6 * day;
+      const grant = await CaseShareGrant.create({ caseId: caseOne._id, granteeOrganizationId: insurer._id, grantedBy: claimant._id, scope: [...SHARE_SCOPES],
+        consentText: 'I allow the selected insurer to view this verification case (documents, extracted fields, consistency checks, risk signals and pharmacist review decisions) only to review this insurance claim. I can withdraw this consent before a decision is made.',
+        expiresAt: new Date(t0 + 90 * day) });
+      await Claim.create({
+        caseId: caseOne._id, claimantId: claimant._id, pharmacyOrganizationId: caseOne.organizationId || pharmacyOrg?._id, payerOrganizationId: insurer._id, shareGrantId: grant._id,
+        policyNumber: 'SYN-POL-24017', claimedAmount: 139.5, status: 'SETTLED', reviewStartedAt: new Date(t0 + 0.2 * day),
+        decision: { decision: 'APPROVED', approvedAmount: 139.5, reasonCode: null, note: 'Bill matches the verified prescription; medicines are covered under the outpatient benefit.', decidedBy: reviewer._id, decidedAt: new Date(t0 + day) },
+        settlement: { reference: 'SIM-SETTLE-0001', amount: 139.5, settledAt: new Date(t0 + 2 * day), simulated: true },
+        history: [
+          { status: 'SUBMITTED', at: new Date(t0), byRole: 'patient', by: claimant._id },
+          { status: 'UNDER_PAYER_REVIEW', at: new Date(t0 + 0.2 * day), byRole: 'payer_reviewer', by: reviewer._id },
+          { status: 'APPROVED', at: new Date(t0 + day), byRole: 'payer_reviewer', by: reviewer._id },
+          { status: 'SETTLED', at: new Date(t0 + 2 * day), byRole: 'payer_admin', by: admin._id }
+        ]
+      });
+      console.log('  demo claim history added (approved and settled, simulated)');
     }
 
     // Pharmacy order flow: tie the hub's sample prescriptions and orders to the demo pharmacy,
