@@ -28,10 +28,13 @@ test('corrupt, primitive and incomplete cached sessions cannot crash restore', (
   assert.equal(parseSessionCache(JSON.stringify({ ...valid, token: '' })), null);
 });
 test('both portals and the patient landing page expose the integrated chat, case and claims workflow', () => {
-  // version-3.0 keeps the version-2.0 layouts; chat stays reachable from both portals.
+  // Patient chat stays in the patient portal.
   assert.match(read('src/layouts/PatientLayout.tsx'), /to="\/patient\/health-assistant"/);
   assert.match(read('src/layouts/PatientLayout.tsx'), /to="\/patient\/claims"/);
-  assert.match(read('src/layouts/PharmacyLayout.tsx'), /to="\/pharmacy\/assistant"[\s\S]*Evidence Chat · TrustRAG/);
+  // version-4.0 (product decision): case review and Evidence Chat live in the merged Reviewer & Insurer portal,
+  // not in the pharmacy menu.
+  assert.match(read('src/layouts/ReviewerLayout.tsx'), /to="\/assistant"[\s\S]*Evidence Assistant/);
+  assert.doesNotMatch(read('src/layouts/PharmacyLayout.tsx'), /to="\/pharmacy\/(assistant|cases|review-queue)"/);
   assert.match(read('src/pages/patient/Dashboard.tsx'), /\/patient\/health-assistant/);
   assert.match(read('src/pages/patient/Dashboard.tsx'), /\/patient\/cases/);
   assert.match(read('src/App.tsx'), /path="\/payer"[\s\S]*allowedRoles={\['payer_reviewer', 'payer_admin'\]}/);

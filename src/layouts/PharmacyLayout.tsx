@@ -9,17 +9,11 @@ import {
   LogOut, 
   Database, 
   Clock, 
-  AlertTriangle, 
-  Building2, 
-  ShieldCheck, 
-  Inbox,
-  MessageSquare,
+  AlertTriangle,  
   Receipt,
-  KeyRound,
   FileSignature, 
   ChevronRight,
-  ExternalLink,
-  Award
+  ExternalLink
 } from 'lucide-react';
 
 const PharmacyLayout: React.FC = () => {
@@ -116,24 +110,9 @@ const PharmacyLayout: React.FC = () => {
           {/* Section: TrustRAG Verification */}
           <div>
             <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Verification & Ledger
+              Claims & Ledger
             </p>
             <div className="space-y-1">
-              <Link to="/pharmacy/cases" className={navItemClass('/pharmacy/cases')}>
-                <ShieldCheck className="w-4 h-4 mr-2.5 text-teal-600" />
-                <span>Verification Cases</span>
-              </Link>
-
-              <Link to="/pharmacy/assistant" className={navItemClass('/pharmacy/assistant')}>
-                <MessageSquare className="w-4 h-4 mr-2.5 text-teal-600" />
-                <span>Evidence Chat · TrustRAG</span>
-              </Link>
-
-              <Link to="/pharmacy/review-queue" className={navItemClass('/pharmacy/review-queue')}>
-                <Inbox className="w-4 h-4 mr-2.5 text-amber-600" />
-                <span>Reviewer Queue</span>
-              </Link>
-
               <Link to="/pharmacy/claims" className={navItemClass('/pharmacy/claims')}>
                 <Receipt className="w-4 h-4 mr-2.5 text-blue-600" />
                 <span>Insurance Claims</span>
@@ -146,23 +125,6 @@ const PharmacyLayout: React.FC = () => {
             </div>
           </div>
 
-          {/* Section: Organization */}
-          <div>
-            <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Management
-            </p>
-            <div className="space-y-1">
-              <Link to="/pharmacy/organization-settings" className={navItemClass('/pharmacy/organization-settings')}>
-                <Building2 className="w-4 h-4 mr-2.5 text-slate-500" />
-                <span>Branch Settings</span>
-              </Link>
-
-              <Link to="/pharmacy/security" className={navItemClass('/pharmacy/security')}>
-                <KeyRound className="w-4 h-4 mr-2.5 text-slate-500" />
-                <span>Security & MFA</span>
-              </Link>
-            </div>
-          </div>
         </nav>
 
         {/* Sidebar Footer User Info */}
@@ -211,19 +173,6 @@ const PharmacyLayout: React.FC = () => {
 
           <div className="flex items-center space-x-4">
             <NotificationBell />
-            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700">
-              <Award className="w-3.5 h-3.5 text-emerald-600" />
-              <span>NABH Certified (demo value)</span>
-            </div>
-
-            <Link
-              to="/pharmacy/cases"
-              className="text-xs font-medium text-slate-600 hover:text-blue-700 flex items-center space-x-1"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-              <span className="hidden sm:inline">Verification Cases</span>
-            </Link>
-
             <Link
               to="/"
               className="text-xs font-medium text-slate-500 hover:text-slate-800 flex items-center space-x-1"

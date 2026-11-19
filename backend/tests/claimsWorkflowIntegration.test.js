@@ -22,6 +22,8 @@ const Claim = require('../models/claimModel');
 const CaseShareGrant = require('../models/caseShareGrantModel');
 const Notification = require('../models/notificationModel');
 const AuditEvent = require('../models/auditEventModel');
+const Document = require('../models/documentModel');
+const ExtractedField = require('../models/extractedFieldModel');
 const { assertTestDatabase } = require('../utils/testDatabaseGuard');
 const { totp } = require('../utils/totp');
 
@@ -35,7 +37,7 @@ test('Claims module: consent, tenant isolation, human decisions, FHIR and MFA', 
     assertTestDatabase(process.env.MONGO_URI);
     const conn = await mongoose.connect(process.env.MONGO_URI);
     assertTestDatabase(conn);
-    await Promise.all([User, Organization, VerificationCase, Claim, CaseShareGrant, Notification, AuditEvent].map((M) => M.deleteMany({})));
+    await Promise.all([User, Organization, VerificationCase, Claim, CaseShareGrant, Notification, AuditEvent, Document, ExtractedField].map((M) => M.deleteMany({})));
     await Claim.syncIndexes();
 
     const owner = new mongoose.Types.ObjectId();
@@ -126,9 +128,22 @@ test('Claims module: consent, tenant isolation, human decisions, FHIR and MFA', 
     assert.equal(fhir.status, 200);
     assert.equal(fhir.body.validation.valid, true, JSON.stringify(fhir.body.validation.issues));
     assert.equal((await auth(request(app).post(`/api/v1/payer/claims/${claimId}/settle`), payerReviewer)).status, 403);
+    // A partial approval is not settled behind the claimant's back while they can still appeal.
+    const early = await auth(request(app).post(`/api/v1/payer/claims/${claimId}/settle`), payerAdmin);
+    assert.equal(early.status, 409);
+    assert.equal(early.body.code, 'APPEAL_WINDOW_OPEN');
+    const adminView = await auth(request(app).get(`/api/v1/payer/claims/${claimId}`), payerAdmin);
+    assert.equal(adminView.body.settleCheck.allowed, false);
+    assert.match(adminView.body.settleCheck.reason, /accept or appeal/);
+    const accepted = await auth(request(app).post(`/api/v1/claims/${claimId}/accept-decision`), patient);
+    assert.equal(accepted.status, 200, JSON.stringify(accepted.body));
+    assert.ok(accepted.body.decisionAcceptedAt);
+    assert.equal(accepted.body.appealDeadline, null);
+    assert.equal((await auth(request(app).post(`/api/v1/claims/${claimId}/appeal`).send({ reason: 'I changed my mind after accepting the partial approval.' }), patient)).body.code, 'DECISION_ACCEPTED');
     const settled = await auth(request(app).post(`/api/v1/payer/claims/${claimId}/settle`), payerAdmin);
     assert.equal(settled.body.status, 'SETTLED');
     assert.equal(settled.body.settlement.simulated, true);
+    assert.equal(settled.body.settlement.amount, 300, 'settles the approved amount, not the claimed amount');
     const analytics = await auth(request(app).get('/api/v1/payer/analytics'), payerAdmin);
     assert.equal(analytics.body.byStatus.SETTLED.count, 1);
   });
@@ -151,6 +166,102 @@ test('Claims module: consent, tenant isolation, human decisions, FHIR and MFA', 
     for (const action of ['CLAIM_SUBMITTED_WITH_CONSENT', 'CLAIM_UNDER_PAYER_REVIEW', 'CLAIM_QUERY_RAISED', 'CLAIM_PARTIALLY_APPROVED', 'CLAIM_SETTLED', 'CASE_SHARE_REVOKED', 'PAYER_VIEWED_CASE']) {
       assert.ok(actions.includes(action), `missing audit ${action}`);
     }
+  });
+
+  await t.test('one pharmacy bill is never paid twice; appeal window; four-eyes hint', async () => {
+    const submit = (user, body) => auth(request(app).post('/api/v1/claims').send(submitBody(body)), user);
+    // Insurer A already decided (and settled) a claim on verifiedCase: it cannot be asked again.
+    const again = await submit(patient, { policyNumber: 'SYN-POL-0003' });
+    assert.equal(again.status, 409);
+    assert.equal(again.body.code, 'ALREADY_DECIDED_BY_PAYER');
+
+    // A verified case with a ₹230 pharmacy bill.
+    const billCase = await VerificationCase.create({ organizationId: pharmacyOrg._id, createdBy: patient._id, status: 'VERIFIED' });
+    const invoice = await Document.create({ caseId: billCase._id, type: 'PHARMACY_INVOICE', objectStorageKey: 'test/invoice.png', mimeType: 'image/png', sizeBytes: 10, uploadStatus: 'COMPLETED', processingStatus: 'PROCESSED', uploadedBy: patient._id });
+    await ExtractedField.create({ caseId: billCase._id, documentId: invoice._id, fieldType: 'total_amount', rawValue: 'Rs 230.00', normalizedValue: '230.00', extractionConfidence: 0.96 });
+    const caseBody = { caseId: String(billCase._id) };
+    const eligibleRow = async () => (await auth(request(app).get('/api/v1/claims/eligible-cases'), patient)).body.find((c) => c.id === String(billCase._id));
+    assert.deepEqual(await eligibleRow().then((r) => [r.claimable, r.invoiceTotal, r.remainingAmount]), [true, 230, 230]);
+
+    assert.equal((await submit(patient, { ...caseBody, claimedAmount: 230.5 })).body.code, 'CLAIM_EXCEEDS_INVOICE');
+    const withA = await submit(patient, { ...caseBody, claimedAmount: 230, policyNumber: 'SYN-POL-0004' });
+    assert.equal(withA.status, 201, JSON.stringify(withA.body));
+    // No parallel claim with a second insurer for the same bill.
+    const parallel = await submit(patient, { ...caseBody, payerOrganizationId: String(payerB._id), claimedAmount: 100, policyNumber: 'SYN-POL-0005' });
+    assert.equal(parallel.status, 409);
+    assert.equal(parallel.body.code, 'CASE_HAS_OPEN_CLAIM');
+    assert.deepEqual(await eligibleRow().then((r) => [r.claimable, r.blockedCode]), [false, 'CASE_HAS_OPEN_CLAIM']);
+
+    // Insurer A approves ₹150 of ₹230.
+    await auth(request(app).post(`/api/v1/payer/claims/${withA.body.id}/start-review`), payerReviewer);
+    const partial = await auth(request(app).post(`/api/v1/payer/claims/${withA.body.id}/decision`).send({ decision: 'PARTIALLY_APPROVED', approvedAmount: 150, reasonCode: 'ITEM_NOT_COVERED', note: 'One strip is outside the outpatient benefit.' }), payerReviewer);
+    assert.equal(partial.body.status, 'PARTIALLY_APPROVED');
+    assert.ok(partial.body.appealDeadline, 'claimant sees until when they can appeal');
+    assert.equal((await submit(patient, { ...caseBody, policyNumber: 'SYN-POL-0006', claimedAmount: 80 })).body.code, 'ALREADY_DECIDED_BY_PAYER');
+    assert.deepEqual(await eligibleRow().then((r) => [r.claimable, r.approvedSoFar, r.remainingAmount]), [true, 150, 80]);
+
+    // Insurer B may only be asked for the ₹80 that is still unpaid.
+    const tooMuch = await submit(patient, { ...caseBody, payerOrganizationId: String(payerB._id), claimedAmount: 100, policyNumber: 'SYN-POL-0007' });
+    assert.equal(tooMuch.status, 400);
+    assert.equal(tooMuch.body.code, 'CLAIM_EXCEEDS_INVOICE');
+    assert.match(tooMuch.body.message, /80\.00/);
+    const withB = await submit(patient, { ...caseBody, payerOrganizationId: String(payerB._id), claimedAmount: 80, policyNumber: 'SYN-POL-0008' });
+    assert.equal(withB.status, 201, JSON.stringify(withB.body));
+    const viewB = await auth(request(app).get(`/api/v1/payer/claims/${withB.body.id}`), otherPayerReviewer);
+    assert.deepEqual([viewB.body.amountCheck.invoiceTotal, viewB.body.amountCheck.approvedElsewhere, viewB.body.amountCheck.status], [230, 150, 'WITHIN_INVOICE']);
+
+    // Appeal window: after 7 days the claimant can no longer appeal and the insurer may settle the partial amount.
+    await Claim.updateOne({ _id: withA.body.id }, { $set: { 'decision.decidedAt': new Date(Date.now() - 8 * 86400000) } });
+    const late = await auth(request(app).post(`/api/v1/claims/${withA.body.id}/appeal`).send({ reason: 'The second strip was prescribed and should be covered too.' }), patient);
+    assert.equal(late.body.code, 'APPEAL_WINDOW_CLOSED');
+    assert.equal((await auth(request(app).get(`/api/v1/claims/${withA.body.id}`), patient)).body.appealDeadline, null);
+    const settledA = await auth(request(app).post(`/api/v1/payer/claims/${withA.body.id}/settle`), payerAdmin);
+    assert.equal(settledA.status, 200, JSON.stringify(settledA.body));
+    assert.equal(settledA.body.settlement.amount, 150);
+
+    // Four-eyes on appeals is visible before the reviewer fills the form.
+    await auth(request(app).post(`/api/v1/payer/claims/${withB.body.id}/start-review`), otherPayerReviewer);
+    await auth(request(app).post(`/api/v1/payer/claims/${withB.body.id}/decision`).send({ decision: 'REJECTED', reasonCode: 'NOT_COVERED_UNDER_POLICY', note: 'Secondary cover does not include this medicine.' }), otherPayerReviewer);
+    const appealed = await auth(request(app).post(`/api/v1/claims/${withB.body.id}/appeal`).send({ reason: 'My secondary policy covers gastro medicines; please re-check.' }), patient);
+    assert.equal(appealed.body.status, 'APPEALED');
+    await auth(request(app).post(`/api/v1/payer/claims/${withB.body.id}/start-review`), otherPayerReviewer);
+    const sameReviewer = await auth(request(app).get(`/api/v1/payer/claims/${withB.body.id}`), otherPayerReviewer);
+    assert.equal(sameReviewer.body.youDecidedAppealedDecision, true);
+    const blocked = await auth(request(app).post(`/api/v1/payer/claims/${withB.body.id}/decision`).send({ decision: 'APPROVED', note: 'Approving my own appealed decision.' }), otherPayerReviewer);
+    assert.equal(blocked.status, 403);
+    assert.equal(blocked.body.code, 'FOUR_EYES_APPEAL');
+    const actions = (await AuditEvent.find({ caseId: verifiedCase._id }).lean()).map((e) => e.action);
+    assert.ok(actions.includes('CLAIM_DECISION_ACCEPTED'));
+  });
+
+  await t.test('insurer evidence assistant: consent-bound, tenant-scoped, never decides', async () => {
+    const ownClaim = await Claim.findOne({ payerOrganizationId: payerA._id, status: 'SETTLED' }).sort('-createdAt');
+    const ask = (user, id, body) => auth(request(app).post(`/api/v1/payer/claims/${id}/assistant/answers`).send(body), user);
+    const ok = await ask(payerReviewer, ownClaim._id, { message: 'Which medicine is on this case?' });
+    assert.equal(ok.status, 200, JSON.stringify(ok.body));
+    assert.equal(ok.body.audience, 'PAYER');
+    assert.equal(ok.body.bindingToken, null, 'no pharmacy-case freshness receipt is issued to insurers');
+    assert.ok(['LOCAL_CASE_EVIDENCE', 'CLARIFY', 'ABSTAIN'].includes(ok.body.mode));
+    assert.equal(ok.headers['cache-control'], 'private, no-store');
+
+    for (const message of ['Should I approve this claim?', 'Is this fraud?', 'can we reject it']) {
+      const refusal = await ask(payerReviewer, ownClaim._id, { message });
+      assert.equal(refusal.body.mode, 'SAFETY', message);
+      assert.deepEqual(refusal.body.sources, []);
+    }
+    assert.equal((await Claim.findById(ownClaim._id)).status, 'SETTLED', 'the assistant changes nothing');
+
+    assert.equal((await ask(otherPayerReviewer, ownClaim._id, { message: 'Which medicine?' })).status, 404, 'other insurer');
+    assert.equal((await ask(pharmacist, ownClaim._id, { message: 'Which medicine?' })).status, 403, 'pharmacy staff');
+    assert.equal((await ask(patient, ownClaim._id, { message: 'Which medicine?' })).status, 403, 'claimant');
+    assert.equal((await ask(payerReviewer, ownClaim._id, { message: 'x', caseId: String(verifiedCase._id) })).status, 400, 'no extra fields');
+    assert.equal((await ask(payerReviewer, ownClaim._id, { message: '' })).status, 400);
+
+    const withdrawn = await Claim.findOne({ payerOrganizationId: payerB._id, status: 'WITHDRAWN' });
+    const revoked = await ask(otherPayerReviewer, withdrawn._id, { message: 'Which medicine is on this case?' });
+    assert.equal(revoked.status, 403);
+    assert.equal(revoked.body.code, 'CONSENT_INACTIVE');
+    assert.ok(await AuditEvent.exists({ action: 'PAYER_ASSISTANT_QUERY', actorId: payerReviewer._id }));
   });
 
   await t.test('team admin: staff list is org-scoped and roles must match the organization type', async () => {

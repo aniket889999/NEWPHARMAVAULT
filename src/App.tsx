@@ -62,7 +62,7 @@ import PatientClaims from './pages/patient/PatientClaims';
 import PharmacyClaims from './pages/pharmacy/PharmacyClaims';
 import SecuritySettings from './pages/account/SecuritySettings';
 import TeamAccess from './pages/account/TeamAccess';
-import PayerLayout from './layouts/PayerLayout';
+import ReviewerLayout from './layouts/ReviewerLayout';
 import CasesShell from './layouts/CasesShell';
 import PayerDashboard from './pages/payer/PayerDashboard';
 import PayerClaimsQueue from './pages/payer/PayerClaimsQueue';
@@ -165,7 +165,7 @@ const AppRoutes: React.FC = () => {
         path="/payer"
         element={
           <RoleRoute allowedRoles={['payer_reviewer', 'payer_admin']}>
-            <PayerLayout />
+            <ReviewerLayout />
           </RoleRoute>
         }
       >

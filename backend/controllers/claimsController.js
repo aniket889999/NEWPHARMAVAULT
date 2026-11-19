@@ -24,6 +24,9 @@ const { notifyUsers, notifyOrganizationRoles } = require('../services/claims/not
 const { buildClaimBundle } = require('../services/fhir/fhirBundleBuilder');
 const { validateBundle } = require('../services/fhir/fhirR4Validator');
 const { setPagingHeaders } = require('../services/review/reviewPolicy');
+const { invoiceTotalForCase } = require('../services/claims/invoiceTotal');
+const { claimEligibility, amountBlocker } = require('../services/claims/claimEligibility');
+const { answerForPayer } = require('../services/claims/payerEvidenceAssistant');
 
 const PAYER_ROLES = ['payer_reviewer', 'payer_admin'];
 const PHARMACY_STAFF = ['pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'branch_manager'];
@@ -47,6 +50,12 @@ const handle = (fn) => asyncHandler(async (req, res) => {
   }
 });
 
+function openAppealDeadline(c, now = new Date()) {
+  if (!['REJECTED', 'PARTIALLY_APPROVED'].includes(c.status) || (c.appeal?.count || 0) >= sm.MAX_APPEALS || c.decisionAcceptedAt) return null;
+  const deadline = sm.appealDeadline(c.decision?.decidedAt);
+  return deadline && deadline > now ? deadline : null;
+}
+
 function claimantView(claim) {
   const c = claim.toObject ? claim.toObject() : claim;
   return {
@@ -56,7 +65,12 @@ function claimantView(claim) {
     payerName: c.payerOrganizationId?.name,
     queries: (c.queries || []).map((q) => ({ id: String(q._id), question: q.question, askedAt: q.askedAt, answer: q.answer, answeredAt: q.answeredAt })),
     decision: c.decision?.decision ? { decision: c.decision.decision, approvedAmount: c.decision.approvedAmount, reasonCode: c.decision.reasonCode, note: c.decision.note, decidedAt: c.decision.decidedAt } : null,
-    settlement: c.settlement?.settledAt ? { reference: c.settlement.reference, settledAt: c.settlement.settledAt, simulated: true } : null,
+    decisionAcceptedAt: c.decisionAcceptedAt || null,
+    // Last day the claimant may appeal; null when the decision cannot be appealed (any more).
+    appealDeadline: openAppealDeadline(c),
+    settlement: c.settlement?.settledAt
+      ? { reference: c.settlement.reference, settledAt: c.settlement.settledAt, amount: c.settlement.amount ?? c.decision?.approvedAmount ?? null, simulated: true }
+      : null,
     history: (c.history || []).map((h) => ({ status: h.status, at: h.at, byRole: h.byRole })),
     appeal: c.appeal?.count
       ? {
@@ -124,9 +138,23 @@ const listPayers = handle(async (req, res) => {
   res.json(payers.map((p) => ({ id: String(p._id), name: p.name })));
 });
 
+const CLAIM_FIELDS_FOR_ELIGIBILITY = 'caseId status payerOrganizationId claimReference decision.approvedAmount settlement.amount';
+
 const listEligibleCases = handle(async (req, res) => {
-  const cases = await VerificationCase.find({ createdBy: req.user._id, status: 'VERIFIED' }).select('caseReference status updatedAt').sort('-updatedAt').limit(50).lean();
-  res.json(cases.map((c) => ({ id: String(c._id), caseReference: c.caseReference, status: c.status, updatedAt: c.updatedAt })));
+  const cases = await VerificationCase.find({ createdBy: req.user._id, status: 'VERIFIED' }).select('caseReference subjectReference status updatedAt').sort('-updatedAt').limit(50).lean();
+  const ids = cases.map((c) => c._id);
+  const [totals, claims] = await Promise.all([
+    Promise.all(cases.map((c) => invoiceTotalForCase(c._id))),
+    Claim.find({ caseId: { $in: ids } }).select(CLAIM_FIELDS_FOR_ELIGIBILITY).lean()
+  ]);
+  res.json(cases.map((c, i) => {
+    const e = claimEligibility({ invoiceTotal: totals[i], claims: claims.filter((cl) => String(cl.caseId) === String(c._id)) });
+    return {
+      id: String(c._id), caseReference: c.caseReference, subjectReference: c.subjectReference || null, status: c.status, updatedAt: c.updatedAt,
+      invoiceTotal: totals[i], approvedSoFar: e.approvedSoFar, remainingAmount: e.remainingAmount,
+      claimable: e.claimable, blockedReason: e.message, blockedCode: e.code
+    };
+  }));
 });
 
 const submitClaim = handle(async (req, res) => {
@@ -143,8 +171,20 @@ const submitClaim = handle(async (req, res) => {
   const payer = await Organization.findOne({ _id: payerOrganizationId, kind: 'payer', status: 'active' });
   if (!payer) throw sm.controlled(404, 'PAYER_NOT_FOUND', 'Insurer not found.');
 
-  const existing = await Claim.findOne({ caseId, payerOrganizationId, status: { $in: ['SUBMITTED', 'UNDER_PAYER_REVIEW', 'QUERY_RAISED'] } });
-  if (existing) throw sm.controlled(409, 'DUPLICATE_OPEN_CLAIM', `An open claim (${existing.claimReference}) already exists for this case and insurer.`);
+  // One pharmacy bill is never paid twice: one open claim per case, no re-claim with an insurer
+  // that already decided, and never more than the part of the bill not yet approved.
+  const [invoiceTotal, caseClaims] = await Promise.all([
+    invoiceTotalForCase(vCase._id),
+    Claim.find({ caseId: vCase._id }).select(CLAIM_FIELDS_FOR_ELIGIBILITY).lean()
+  ]);
+  const eligibility = claimEligibility({ invoiceTotal, claims: caseClaims, payerOrganizationId: payer._id });
+  if (!eligibility.claimable) throw sm.controlled(409, eligibility.code, eligibility.message);
+  if (amountBlocker(amount, eligibility)) {
+    const limit = eligibility.remainingAmount.toFixed(2);
+    throw sm.controlled(400, 'CLAIM_EXCEEDS_INVOICE', eligibility.approvedSoFar > 0
+      ? `The claimed amount cannot be more than the part of the verified bill not yet approved (₹${limit}).`
+      : `The claimed amount cannot be more than the verified pharmacy bill (₹${invoiceTotal.toFixed(2)}).`);
+  }
 
   const session = await mongoose.startSession().catch(() => null);
   let claim;
@@ -222,7 +262,10 @@ const withdrawClaim = handle(async (req, res) => {
 
 const appealClaim = handle(async (req, res) => {
   const claim = await claimantClaim(req);
-  const reason = sm.validateAppeal({ status: claim.status, appealCount: claim.appeal?.count || 0, reason: req.body?.reason });
+  const reason = sm.validateAppeal({
+    status: claim.status, appealCount: claim.appeal?.count || 0, reason: req.body?.reason,
+    decidedAt: claim.decision?.decidedAt, decisionAcceptedAt: claim.decisionAcceptedAt
+  });
   const grant = await CaseShareGrant.findById(claim.shareGrantId);
   if (!grant || !grant.isActive()) throw sm.controlled(409, 'CONSENT_INACTIVE', 'Your data-sharing consent for this claim has expired or was revoked. Submit a new claim instead.');
   const previous = claim.decision?.toObject ? claim.decision.toObject() : claim.decision;
@@ -236,6 +279,24 @@ const appealClaim = handle(async (req, res) => {
     }
   });
   await notifyOrganizationRoles(claim.payerOrganizationId, PAYER_ROLES, { type: 'CLAIM_APPEALED', title: 'Claim appealed', body: `Claim ${claim.claimReference} was appealed. A different reviewer must decide it.`, link: `/payer/claims/${claim._id}` });
+  res.json(claimantView(await updated.populate('payerOrganizationId', 'name')));
+});
+
+const acceptDecision = handle(async (req, res) => {
+  const claim = await claimantClaim(req);
+  if (claim.status !== 'PARTIALLY_APPROVED') throw sm.controlled(409, 'NOT_ACCEPTABLE', 'Only a partially approved claim needs your acceptance.');
+  if (claim.decisionAcceptedAt) throw sm.controlled(409, 'DECISION_ACCEPTED', 'You have already accepted this decision.');
+  const updated = await Claim.findOneAndUpdate(
+    { _id: claim._id, status: 'PARTIALLY_APPROVED', decisionAcceptedAt: null },
+    { $set: { decisionAcceptedAt: new Date() } },
+    { new: true }
+  );
+  if (!updated) throw sm.controlled(409, 'CLAIM_CHANGED', 'This claim was changed by someone else. Reload and try again.');
+  await auditLoggerService.logEvent({
+    caseId: claim.caseId, actorId: req.user._id, actorRole: req.user.role, action: 'CLAIM_DECISION_ACCEPTED',
+    targetType: 'Claim', targetId: claim._id, metadata: { claimReference: claim.claimReference, approvedAmount: claim.decision?.approvedAmount }
+  });
+  await notifyOrganizationRoles(claim.payerOrganizationId, PAYER_ROLES, { type: 'CLAIM_DECISION_ACCEPTED', title: 'Claimant accepted the partial approval', body: `Claim ${claim.claimReference} can now be settled.`, link: `/payer/claims/${claim._id}` });
   res.json(claimantView(await updated.populate('payerOrganizationId', 'name')));
 });
 
@@ -277,6 +338,27 @@ const payerGetClaim = handle(async (req, res) => {
     Organization.findById(claim.pharmacyOrganizationId).select('name').lean()
   ]);
 
+  const invoiceTotal = scope.has('extracted_fields') ? await invoiceTotalForCase(caseId) : null;
+  // What other insurers already approved on this bill (amounts only; no other claim details leak).
+  const otherClaims = await Claim.find({ caseId, _id: { $ne: claim._id } }).select(CLAIM_FIELDS_FOR_ELIGIBILITY).lean();
+  const { approvedSoFar: approvedElsewhere } = claimEligibility({ invoiceTotal, claims: otherClaims });
+  const limit = invoiceTotal === null ? null : Math.max(0, Math.round((invoiceTotal - approvedElsewhere) * 100) / 100);
+  const amountCheck = {
+    invoiceTotal,
+    approvedElsewhere,
+    claimedAmount: claim.claimedAmount,
+    status: limit === null ? 'UNKNOWN' : (claim.claimedAmount > limit + 0.005 ? 'EXCEEDS_INVOICE' : 'WITHIN_INVOICE')
+  };
+  const blocker = sm.settlementBlocker({ status: claim.status, appealCount: claim.appeal?.count || 0, decidedAt: claim.decision?.decidedAt, decisionAcceptedAt: claim.decisionAcceptedAt });
+  const settleCheck = {
+    allowed: blocker === null && req.user.role === 'payer_admin',
+    reason: blocker === 'APPEAL_WINDOW_OPEN'
+      ? `Waiting for the claimant to accept or appeal the partial approval (until ${sm.appealDeadline(claim.decision?.decidedAt).toISOString().slice(0, 10)}).`
+      : blocker === null && req.user.role !== 'payer_admin' ? 'Only an insurer admin can mark a claim settled.' : null
+  };
+  // Four-eyes on appeals, shown up front: the reviewer of the appealed decision cannot decide again.
+  const youDecidedAppealedDecision = Boolean(claim.appeal?.count && claim.appeal.previousDecision?.decidedBy && String(claim.appeal.previousDecision.decidedBy) === String(req.user._id));
+
   await auditLoggerService.logEvent({ caseId, actorId: req.user._id, actorRole: req.user.role, action: 'PAYER_VIEWED_CASE', targetType: 'Claim', targetId: claim._id, metadata: { claimReference: claim.claimReference } });
 
   const strip = (rows) => rows.map(({ _id, ...rest }) => ({ id: String(_id), ...rest }));
@@ -290,6 +372,9 @@ const payerGetClaim = handle(async (req, res) => {
     consistencyChecks: strip(checks),
     riskSignals: strip(signals),
     reviewDecisions: strip(reviews),
+    amountCheck,
+    settleCheck,
+    youDecidedAppealedDecision,
     reasonCodes: { rejected: sm.REJECTION_REASON_CODES, partial: sm.PARTIAL_REASON_CODES }
   });
 });
@@ -308,6 +393,23 @@ const payerDocumentContent = handle(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Cache-Control', 'private, no-store');
   res.status(200).send(buffer);
+});
+
+const payerAssistantAnswer = handle(async (req, res) => {
+  const claim = await payerClaim(req);
+  const grant = await activeGrantFor(claim);
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some((k) => !['message', 'medicineItemId'].includes(k))) {
+    throw sm.controlled(400, 'INVALID_ASSISTANT_REQUEST', 'Send only message and an optional medicineItemId.');
+  }
+  const answer = await answerForPayer({ claim, grant, user: req.user, message: body.message, medicineItemId: body.medicineItemId ?? null });
+  // Audit that the insurer used the assistant on this case; the question text itself is not stored.
+  await auditLoggerService.logEvent({
+    caseId: claim.caseId, actorId: req.user._id, actorRole: req.user.role, action: 'PAYER_ASSISTANT_QUERY', targetType: 'Claim', targetId: claim._id,
+    metadata: { claimReference: claim.claimReference, mode: answer.mode, intent: answer.intent, sourceCount: (answer.sources || []).length }
+  });
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.json(answer);
 });
 
 const payerStartReview = handle(async (req, res) => {
@@ -349,9 +451,15 @@ const payerDecide = handle(async (req, res) => {
 
 const payerSettle = handle(async (req, res) => {
   const claim = await payerClaim(req);
+  sm.assertTransition(claim.status, 'SETTLED', req.user.role);
+  const blocker = sm.settlementBlocker({ status: claim.status, appealCount: claim.appeal?.count || 0, decidedAt: claim.decision?.decidedAt, decisionAcceptedAt: claim.decisionAcceptedAt });
+  if (blocker === 'APPEAL_WINDOW_OPEN') {
+    throw sm.controlled(409, 'APPEAL_WINDOW_OPEN', 'The claimant can still appeal this partial approval. Settle after they accept it or the appeal window ends.');
+  }
   const reference = `SIM-SETTLE-${Date.now().toString(36).toUpperCase()}`;
-  const updated = await transition(claim._id, claim.status, 'SETTLED', req, { set: { settlement: { reference, settledAt: new Date(), simulated: true } } });
-  await notifyUsers([claim.claimantId], { type: 'CLAIM_SETTLED', title: 'Claim settled (demo)', body: `Claim ${claim.claimReference} was marked settled. This is a simulated settlement; no money moved.`, link: '/patient/claims' });
+  const amount = claim.decision?.approvedAmount ?? null;
+  const updated = await transition(claim._id, claim.status, 'SETTLED', req, { set: { settlement: { reference, amount, settledAt: new Date(), simulated: true } } });
+  await notifyUsers([claim.claimantId], { type: 'CLAIM_SETTLED', title: 'Claim settled (demo)', body: `Claim ${claim.claimReference} was marked settled for ₹${Number(amount || 0).toFixed(2)}. This is a simulated settlement; no money moved.`, link: '/patient/claims' });
   res.json(claimantView(updated));
 });
 
@@ -431,8 +539,8 @@ const markAllNotificationsRead = handle(async (req, res) => {
 module.exports = {
   PAYER_ROLES,
   PHARMACY_STAFF,
-  listPayers, listEligibleCases, submitClaim, listMyClaims, getMyClaim, answerQuery, withdrawClaim, appealClaim,
-  payerListClaims, payerGetClaim, payerDocumentContent, payerStartReview, payerRaiseQuery, payerDecide, payerSettle, payerFhirBundle, payerAnalytics,
+  listPayers, listEligibleCases, submitClaim, listMyClaims, getMyClaim, answerQuery, withdrawClaim, appealClaim, acceptDecision,
+  payerListClaims, payerGetClaim, payerDocumentContent, payerAssistantAnswer, payerStartReview, payerRaiseQuery, payerDecide, payerSettle, payerFhirBundle, payerAnalytics,
   pharmacyLinkedClaims,
   listNotifications, markNotificationRead, markAllNotificationsRead
 };

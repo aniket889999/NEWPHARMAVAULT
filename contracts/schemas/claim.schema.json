@@ -150,6 +150,22 @@
         }
       ]
     },
+    "decisionAcceptedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "When the claimant accepted a PARTIALLY_APPROVED decision (gives up the appeal)."
+    },
+    "appealDeadline": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "Last moment to appeal a REJECTED or PARTIALLY_APPROVED decision (7 days after it); null when no appeal is possible."
+    },
     "settlement": {
       "oneOf": [
         {
@@ -167,6 +183,15 @@
             },
             "simulated": {
               "const": true
+            },
+            "amount": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "multipleOf": 0.01,
+              "description": "Approved amount marked as settled (simulated)."
             }
           },
           "required": [

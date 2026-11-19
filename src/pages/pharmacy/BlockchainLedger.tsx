@@ -35,13 +35,10 @@ const BlockchainLedger: React.FC = () => {
     setLoading(true);
     try {
       const { data } = await apiClient.get('/blockchain/ledger');
-      if (Array.isArray(data) && data.length > 0) {
-        setLedger(data);
-      } else {
-        setLedger(fallbackLedger);
-      }
+      setLedger(Array.isArray(data) ? data : []);
     } catch {
-      setLedger(fallbackLedger);
+      setLedger([]);
+      toast.error('Could not load the ledger. Check that the server is running.');
     } finally {
       setLoading(false);
     }
@@ -75,24 +72,8 @@ const BlockchainLedger: React.FC = () => {
       setFormData({ medicineName: '', batchNumber: '', manufacturer: '', expiryDate: '' });
       fetchLedger();
       checkIntegrity();
-    } catch {
-      // Local demo block creation
-      const prev = ledger[0]?.blockchainHash || '0'.repeat(64);
-      const newBlock = {
-        _id: `blk_${Date.now()}`,
-        medicineName: formData.medicineName,
-        batchNumber: formData.batchNumber,
-        manufacturer: formData.manufacturer,
-        expiryDate: formData.expiryDate,
-        timestamp: new Date().toISOString(),
-        blockchainHash: 'a9b2c3d4' + Math.random().toString(36).substring(2, 18) + '88f1',
-        previousHash: prev,
-        verificationStatus: 'Verified'
-      };
-      setLedger(prevList => [newBlock, ...prevList]);
-      setRegisteredBlock(newBlock);
-      setShowRegister(false);
-      toast.success('Batch committed to immutable ledger (Demo Mode)');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'The batch could not be registered.');
     }
   };
 
@@ -355,37 +336,5 @@ const BlockchainLedger: React.FC = () => {
   );
 };
 
-const fallbackLedger = [
-  {
-    _id: 'blk_1',
-    medicineName: 'Paracetamol 650mg (Dolo 650)',
-    manufacturer: 'Micro Labs Limited',
-    batchNumber: 'B-DLO-650',
-    timestamp: new Date().toISOString(),
-    blockchainHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-    previousHash: '0000000000000000000000000000000000000000000000000000000000000000',
-    verificationStatus: 'Verified'
-  },
-  {
-    _id: 'blk_2',
-    medicineName: 'Azithromycin 500mg (Azee 500)',
-    manufacturer: 'Cipla Limited',
-    batchNumber: 'B-AZE-500',
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    blockchainHash: 'a8f5c1d39281e4b928172c38d910283746501928374650192837465019283746',
-    previousHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-    verificationStatus: 'Verified'
-  },
-  {
-    _id: 'blk_3',
-    medicineName: 'Amoxicillin Clavulanate 625mg (Augmentin)',
-    manufacturer: 'GlaxoSmithKline',
-    batchNumber: 'B-AUG-625',
-    timestamp: new Date(Date.now() - 7200000).toISOString(),
-    blockchainHash: 'b719283746501928374650192837465019283746501928374650192837465019',
-    previousHash: 'a8f5c1d39281e4b928172c38d910283746501928374650192837465019283746',
-    verificationStatus: 'Verified'
-  }
-];
 
 export default BlockchainLedger;

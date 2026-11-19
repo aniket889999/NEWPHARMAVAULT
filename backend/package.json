@@ -19,7 +19,8 @@
     "audit:verify": "node scripts/verifyAuditChain.js",
     "audit:export": "node scripts/exportAuditLog.js",
     "indexes:sync": "node scripts/syncIndexes.js",
-    "seed:showcase": "node seedShowcase.js"
+    "seed:showcase": "node seedShowcase.js",
+    "seed:all": "node seedDemo.js && node seedPharmacyHub.js && node seedShowcase.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

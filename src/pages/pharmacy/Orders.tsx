@@ -21,14 +21,11 @@ const PharmacyOrders: React.FC = () => {
     try {
       setLoading(true);
       const { data } = await apiClient.get('/orders');
-      if (Array.isArray(data) && data.length > 0) {
-        setOrders(data);
-      } else {
-        setOrders(fallbackOrders);
-      }
+      setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching orders:', error);
-      setOrders(fallbackOrders);
+      setOrders([]);
+      toast.error('Could not load orders. Check that the server is running.');
     } finally {
       setLoading(false);
     }
@@ -44,10 +41,8 @@ const PharmacyOrders: React.FC = () => {
       await apiClient.put(`/orders/${id}/status`, { status: newStatus });
       toast.success(`Order marked as ${newStatus}`, { id: 'status' });
       fetchOrders();
-    } catch (error) {
-      // Local state update for smooth demo
-      setOrders(prev => prev.map(o => (o._id === id || o.id === id ? { ...o, status: newStatus } : o)));
-      toast.success(`Order updated to ${newStatus}`, { id: 'status' });
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'The order could not be updated.', { id: 'status' });
     }
   };
 
@@ -139,7 +134,7 @@ const PharmacyOrders: React.FC = () => {
         <div className="flex items-center space-x-2 w-full sm:w-auto">
           <Filter className="w-4 h-4 text-slate-400" />
           <div className="flex flex-wrap gap-1">
-            {['ALL', 'Pending', 'Processing', 'Ready', 'Delivered'].map(status => (
+            {['ALL', 'Pending', 'Awaiting Pharmacist', 'Approved', 'Processing', 'Ready', 'Delivered', 'Needs Clarification', 'Rejected'].map(status => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
@@ -228,10 +223,12 @@ const PharmacyOrders: React.FC = () => {
                           onChange={(e) => handleStatusChange(orderId, e.target.value)}
                           className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:ring-1 focus:ring-blue-600"
                         >
-                          <option value="Pending">Mark Pending</option>
+                          {!['Approved', 'Processing', 'Ready', 'Delivered', 'Cancelled'].includes(order.status) && <option value={order.status} disabled>{order.status}</option>}
+                          <option value="Approved">Mark Approved</option>
                           <option value="Processing">Mark Processing</option>
                           <option value="Ready">Mark Ready</option>
                           <option value="Delivered">Mark Delivered</option>
+                          <option value="Cancelled">Cancel (returns stock)</option>
                         </select>
                       </td>
                     </tr>
@@ -246,38 +243,5 @@ const PharmacyOrders: React.FC = () => {
   );
 };
 
-const fallbackOrders = [
-  {
-    _id: 'ord_101',
-    user: { name: 'Rahul Sharma', email: 'rahul.s@health.in' },
-    orderItems: [
-      { name: 'Azithromycin 500mg (Azee 500)', qty: 2, price: 119.00 },
-      { name: 'Dolo 650mg Tablet', qty: 1, price: 30.50 }
-    ],
-    totalPrice: 268.50,
-    status: 'Pending',
-    createdAt: new Date().toISOString()
-  },
-  {
-    _id: 'ord_102',
-    user: { name: 'Meera Nambiar', email: 'meera.n@domain.com' },
-    orderItems: [
-      { name: 'Pantoprazole 40mg (Pan-40)', qty: 1, price: 95.00 }
-    ],
-    totalPrice: 95.00,
-    status: 'Processing',
-    createdAt: new Date().toISOString()
-  },
-  {
-    _id: 'ord_103',
-    user: { name: 'Vikram Joshi', email: 'vikram.j@corp.com' },
-    orderItems: [
-      { name: 'Cetirizine 10mg (Cetzine)', qty: 3, price: 18.00 }
-    ],
-    totalPrice: 54.00,
-    status: 'Ready',
-    createdAt: new Date().toISOString()
-  }
-];
 
 export default PharmacyOrders;

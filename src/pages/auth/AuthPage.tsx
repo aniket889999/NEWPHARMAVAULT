@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth, MfaRequiredError } from '../../context/AuthContext';
-import { ShieldCheck, User, Store, Mail, Lock, CheckCircle2, ChevronLeft, Building2, LogIn } from 'lucide-react';
+import { ShieldCheck, User, Store, Mail, Lock, CheckCircle2, ChevronLeft, Building2, LogIn, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { portalHome, portalTitle, STAFF_PORTALS } from '../../features/navigation/portalPolicy';
 
 const DEMO_CREDENTIALS: Record<string, { name: string; email: string }> = {
   patient: { name: 'Demo Patient', email: 'patient@test.com' },
+  // A claimant signs in with a patient account and lands on Insurance Claims.
+  claimant: { name: 'Ananya Verma (Claimant)', email: 'ananya.verma@claimant.example' },
   pharmacy: { name: 'Demo Pharmacy Hub', email: 'pharmacy@test.com' },
   claims_reviewer: { name: 'Clinical Claims Reviewer', email: 'reviewer@test.com' },
   pharmacist: { name: 'Demo Pharmacist', email: 'pharmacist@test.com' },
@@ -23,8 +25,8 @@ const AuthPage: React.FC = () => {
   
   // Current active role in view
   const currentRoleParam = searchParams.get('role') || 'patient';
-  const [activeRole, setActiveRole] = useState<'patient' | 'pharmacy' | 'claims_reviewer'>(
-    currentRoleParam === 'pharmacy' ? 'pharmacy' : currentRoleParam === 'claims_reviewer' ? 'claims_reviewer' : 'patient'
+  const [activeRole, setActiveRole] = useState<'patient' | 'claimant' | 'pharmacy' | 'claims_reviewer'>(
+    currentRoleParam === 'pharmacy' ? 'pharmacy' : currentRoleParam === 'claims_reviewer' ? 'claims_reviewer' : currentRoleParam === 'claimant' ? 'claimant' : 'patient'
   );
 
   const { login, signup, isLoading } = useAuth();
@@ -38,8 +40,9 @@ const AuthPage: React.FC = () => {
     return STAFF_PORTALS.some((p) => p.role === requested) ? (requested as string) : 'claims_reviewer';
   });
 
-  const loginRole = activeRole === 'claims_reviewer' ? staffRole : activeRole;
-  const canSelfRegister = activeRole === 'patient';
+  const loginRole = activeRole === 'claims_reviewer' ? staffRole : activeRole === 'claimant' ? 'patient' : activeRole;
+  const canSelfRegister = activeRole === 'patient' || activeRole === 'claimant';
+  const homeAfterLogin = () => (activeRole === 'claimant' ? '/patient/claims' : portalHome(loginRole));
 
   const [email, setEmail] = useState(() => DEMO_CREDENTIALS[loginRole]?.email || '');
   const [password, setPassword] = useState('password123');
@@ -49,7 +52,7 @@ const AuthPage: React.FC = () => {
   // Sync state if url param changes
   useEffect(() => {
     const role = searchParams.get('role');
-    if (role === 'pharmacy' || role === 'claims_reviewer' || role === 'patient') {
+    if (role === 'pharmacy' || role === 'claims_reviewer' || role === 'patient' || role === 'claimant') {
       setActiveRole(role);
     }
     const requestedStaffRole = searchParams.get('staffRole');
@@ -62,9 +65,9 @@ const AuthPage: React.FC = () => {
   }, [searchParams]);
 
   // Handle switching tabs
-  const handleRoleChange = (role: 'patient' | 'pharmacy' | 'claims_reviewer') => {
+  const handleRoleChange = (role: 'patient' | 'claimant' | 'pharmacy' | 'claims_reviewer') => {
     setActiveRole(role);
-    if (role !== 'patient') setIsLogin(true);
+    if (role !== 'patient' && role !== 'claimant') setIsLogin(true);
     const targetRole = role === 'claims_reviewer' ? staffRole : role;
     setEmail(DEMO_CREDENTIALS[targetRole]?.email || '');
     setPassword('password123');
@@ -94,7 +97,7 @@ const AuthPage: React.FC = () => {
         toast.success('Account created successfully');
       }
 
-      navigate(portalHome(loginRole));
+      navigate(homeAfterLogin());
     } catch (err: any) {
       if (err instanceof MfaRequiredError) {
         setNeedsOtp(true);
@@ -109,17 +112,17 @@ const AuthPage: React.FC = () => {
   };
 
   // Instant 1-Click Demo Login handler
-  const handleQuickDemoLogin = async (demoRole: 'patient' | 'pharmacy' | 'claims_reviewer') => {
+  const handleQuickDemoLogin = async (demoRole: 'patient' | 'claimant' | 'pharmacy' | 'claims_reviewer') => {
     setError('');
-    const effectiveRole = demoRole === 'claims_reviewer' ? staffRole : demoRole;
-    const targetDemo = DEMO_CREDENTIALS[effectiveRole] || DEMO_CREDENTIALS[demoRole];
+    const effectiveRole = demoRole === 'claims_reviewer' ? staffRole : demoRole === 'claimant' ? 'patient' : demoRole;
+    const targetDemo = DEMO_CREDENTIALS[demoRole === 'claims_reviewer' ? staffRole : demoRole] || DEMO_CREDENTIALS[demoRole];
     const demoEmail = targetDemo.email;
     const demoPass = 'password123';
 
     try {
       await login(demoEmail, demoPass, effectiveRole);
       toast.success(`Signed in as ${targetDemo.name} (Demo)`);
-      navigate(portalHome(effectiveRole));
+      navigate(demoRole === 'claimant' ? '/patient/claims' : portalHome(effectiveRole));
     } catch (err: any) {
       setEmail(demoEmail);
       setPassword(demoPass);
@@ -140,6 +143,16 @@ const AuthPage: React.FC = () => {
       demoName: DEMO_CREDENTIALS.patient.name,
       demoEmail: DEMO_CREDENTIALS.patient.email
     },
+    claimant: {
+      title: 'Claimant Portal',
+      subtitle: 'Apply for a medical claim, answer insurer questions and see the decision',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      accentColor: 'text-emerald-700',
+      btnColor: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+      icon: FileText,
+      demoName: DEMO_CREDENTIALS.claimant.name,
+      demoEmail: DEMO_CREDENTIALS.claimant.email
+    },
     pharmacy: {
       title: 'Pharmacy Hub',
       subtitle: 'Dispensary inventory, prescription review & ledger',
@@ -151,7 +164,7 @@ const AuthPage: React.FC = () => {
       demoEmail: DEMO_CREDENTIALS.pharmacy.email
     },
     claims_reviewer: {
-      title: portalTitle(staffRole),
+      title: ['payer_reviewer', 'payer_admin'].includes(staffRole) ? 'Reviewer & Insurer Portal' : portalTitle(staffRole),
       subtitle: ['payer_reviewer', 'payer_admin'].includes(staffRole)
         ? 'Insurer claims adjudication, coverage & settlement workstation'
         : 'TrustRAG verification queue & discrepancy adjudication',
@@ -168,7 +181,7 @@ const AuthPage: React.FC = () => {
       demoName: DEMO_CREDENTIALS[staffRole]?.name || 'Clinical Claims Reviewer',
       demoEmail: DEMO_CREDENTIALS[staffRole]?.email || 'reviewer@test.com'
     }
-  }[activeRole];
+  }[activeRole as 'patient' | 'claimant' | 'pharmacy' | 'claims_reviewer'];
 
   const IconComponent = portalDetails.icon;
 
@@ -192,7 +205,7 @@ const AuthPage: React.FC = () => {
       {/* Main Card */}
       <div className="max-w-md w-full mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {/* Portal Role Tabs */}
-        <div className="grid grid-cols-3 bg-slate-100/80 p-1.5 border-b border-slate-200 text-xs font-medium">
+        <div className="grid grid-cols-4 bg-slate-100/80 p-1.5 border-b border-slate-200 text-xs font-medium">
           <button
             type="button"
             onClick={() => handleRoleChange('patient')}
@@ -204,6 +217,19 @@ const AuthPage: React.FC = () => {
           >
             <User className="w-3.5 h-3.5" />
             <span className="truncate">Patient</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleRoleChange('claimant')}
+            className={`py-2 px-1 text-center rounded-lg transition-all flex items-center justify-center space-x-1 ${
+              activeRole === 'claimant'
+                ? 'bg-white text-emerald-800 shadow-xs font-semibold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span className="truncate">Claimant</span>
           </button>
 
           <button
@@ -229,7 +255,7 @@ const AuthPage: React.FC = () => {
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span className="truncate">Reviewer</span>
+            <span className="truncate">Reviewer &amp; Insurer</span>
           </button>
         </div>
 

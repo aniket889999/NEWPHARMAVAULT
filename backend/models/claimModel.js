@@ -49,8 +49,12 @@ const claimSchema = new mongoose.Schema(
       decidedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
       decidedAt: { type: Date, default: null }
     },
+    // Set when the claimant accepts a partial approval (gives up the appeal) so it can be settled.
+    decisionAcceptedAt: { type: Date, default: null },
     settlement: {
       reference: { type: String, default: null },
+      // Amount marked as settled: the approved amount of the decision (simulated, no payment).
+      amount: { type: Number, default: null },
       settledAt: { type: Date, default: null },
       simulated: { type: Boolean, default: true }
     },

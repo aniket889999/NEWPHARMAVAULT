@@ -1,6 +1,6 @@
 const express = require('express');
 const { authorize } = require('../middleware/authMiddleware');
-const { documentContentLimiter } = require('../middleware/rateLimiter');
+const { documentContentLimiter, aiLimiter } = require('../middleware/rateLimiter');
 const c = require('../controllers/claimsController');
 
 // Mounted at /api/v1 behind protect + tenantMiddleware (see app.js).
@@ -15,12 +15,14 @@ router.get('/claims/:claimId', authorize('patient'), c.getMyClaim);
 router.post('/claims/:claimId/queries/:queryId/answer', authorize('patient'), c.answerQuery);
 router.post('/claims/:claimId/withdraw', authorize('patient'), c.withdrawClaim);
 router.post('/claims/:claimId/appeal', authorize('patient'), c.appealClaim);
+router.post('/claims/:claimId/accept-decision', authorize('patient'), c.acceptDecision);
 
 // Insurer (payer tenant)
 router.get('/payer/claims', authorize(...c.PAYER_ROLES), c.payerListClaims);
 router.get('/payer/analytics', authorize(...c.PAYER_ROLES), c.payerAnalytics);
 router.get('/payer/claims/:claimId', authorize(...c.PAYER_ROLES), c.payerGetClaim);
 router.get('/payer/claims/:claimId/documents/:documentId/content', authorize(...c.PAYER_ROLES), documentContentLimiter, c.payerDocumentContent);
+router.post('/payer/claims/:claimId/assistant/answers', authorize(...c.PAYER_ROLES), aiLimiter, c.payerAssistantAnswer);
 router.get('/payer/claims/:claimId/fhir-bundle', authorize(...c.PAYER_ROLES), c.payerFhirBundle);
 router.post('/payer/claims/:claimId/start-review', authorize(...c.PAYER_ROLES), c.payerStartReview);
 router.post('/payer/claims/:claimId/queries', authorize(...c.PAYER_ROLES), c.payerRaiseQuery);

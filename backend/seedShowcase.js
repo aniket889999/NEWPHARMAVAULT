@@ -20,6 +20,12 @@ const Organization = require('./models/organizationModel');
 const Branch = require('./models/branchModel');
 const Medicine = require('./models/medicineModel');
 const VerificationCase = require('./models/verificationCaseModel');
+const Prescription = require('./models/prescriptionModel');
+const Order = require('./models/orderModel');
+const Claim = require('./models/claimModel');
+const CaseShareGrant = require('./models/caseShareGrantModel');
+const { SHARE_SCOPES } = require('./models/caseShareGrantModel');
+const { seedDemoCaseEvidence } = require('./services/claims/demoCaseEvidence');
 
 const INSURER_NAME = 'Sahyog Health Assurance (Demo)';
 const PASSWORD = 'password123';
@@ -55,25 +61,34 @@ async function upsertUser({ email, name, role, organizationId }) {
         address: { street: '4th Floor, Demo Towers', city: 'Pune', state: 'Maharashtra', zip: '411001', country: 'India' }
       });
     }
-    // Nearby medicines: map positions for the demo branch and two more synthetic pharmacies
-    // with their own inventory (fictional names, Bengaluru coordinates).
-    await Branch.updateMany({ name: 'Demo Dispensary - Central Bengaluru Hub' }, { $set: { coordinates: { lat: 12.9716, lng: 77.5946 }, location: 'MG Road, Bengaluru' } });
+    // Nearby medicines (Pune): map positions for the demo branch and synthetic pharmacies with
+    // their own inventory. Fictional store names; real Pune area coordinates.
+    await Branch.updateMany({ name: 'Demo Dispensary - Central Bengaluru Hub' }, { $set: { name: 'Demo Dispensary - Camp, Pune', coordinates: { lat: 18.5150, lng: 73.8780 }, location: 'MG Road, Camp, Pune (demo hub)' } });
     const inOneYear = new Date(Date.now() + 365 * 86_400_000);
+    const DOLO = 'Dolo 650mg Tablet', AZEE = 'Azithromycin 500mg (Azee 500)', CTZ = 'Cetirizine 10mg Tablet', PAN = 'Pantoprazole 40mg Tablet', AMOX = 'Amoxicillin 500mg Capsule';
     const pharmacies = [
-      { org: 'Shree Sai Medicals (Demo)', branch: 'Shree Sai Medicals - Indiranagar', location: '100 Feet Road, Indiranagar, Bengaluru', lat: 12.9784, lng: 77.6408, license: 'KA-DEMO-21B-1001',
-        stock: [['Dolo 650mg Tablet', 120, 31, 'Micro Labs Limited', 'B-DLO-650'], ['Azithromycin 500mg (Azee 500)', 18, 118, 'Cipla Limited', 'B-AZE-500'], ['Cetirizine 10mg Tablet', 60, 22, 'Dr. Reddy\'s Laboratories', 'B-CTZ-010']] },
-      { org: 'CareWell Pharmacy (Demo)', branch: 'CareWell Pharmacy - Koramangala', location: '80 Feet Road, Koramangala, Bengaluru', lat: 12.9352, lng: 77.6245, license: 'KA-DEMO-21B-1002',
-        stock: [['Dolo 650mg Tablet', 6, 29, 'Micro Labs Limited', 'B-DLO-650'], ['Pantoprazole 40mg Tablet', 40, 95, 'Alkem Laboratories', 'B-PAN-402']] }
+      { org: 'Shree Sai Medicals (Demo)', branch: 'Shree Sai Medicals - Shivajinagar', location: 'FC Road, Shivajinagar, Pune', lat: 18.5308, lng: 73.8475, license: 'MH-DEMO-21B-2001',
+        stock: [[DOLO, 120, 31, 'Micro Labs Limited', 'B-DLO-650', false], [AZEE, 18, 118, 'Cipla Limited', 'B-AZE-500', true], [CTZ, 60, 22, "Dr. Reddy's Laboratories", 'B-CTZ-010', false]] },
+      { org: 'Sanjeevani Medical Store (Demo)', branch: 'Sanjeevani Medical Store - Deccan', location: 'JM Road, Deccan Gymkhana, Pune', lat: 18.5167, lng: 73.8411, license: 'MH-DEMO-21B-2002',
+        stock: [[DOLO, 45, 30, 'Micro Labs Limited', 'B-DLO-650', false], [AMOX, 30, 72, 'Alkem Laboratories', 'B-AMX-500', true]] },
+      { org: 'CareWell Pharmacy (Demo)', branch: 'CareWell Pharmacy - Kothrud', location: 'Karve Road, Kothrud, Pune', lat: 18.5074, lng: 73.8077, license: 'MH-DEMO-21B-2003',
+        stock: [[DOLO, 6, 29, 'Micro Labs Limited', 'B-DLO-650', false], [PAN, 40, 95, 'Alkem Laboratories', 'B-PAN-402', false]] },
+      { org: 'LifeLine Chemists (Demo)', branch: 'LifeLine Chemists - Koregaon Park', location: 'North Main Road, Koregaon Park, Pune', lat: 18.5362, lng: 73.8940, license: 'MH-DEMO-21B-2004',
+        stock: [[DOLO, 80, 32, 'Micro Labs Limited', 'B-DLO-650', false], [CTZ, 25, 24, "Dr. Reddy's Laboratories", 'B-CTZ-010', false]] },
+      { org: 'Arogya Pharmacy (Demo)', branch: 'Arogya Pharmacy - Aundh', location: 'ITI Road, Aundh, Pune', lat: 18.5590, lng: 73.8070, license: 'MH-DEMO-21B-2005',
+        stock: [[DOLO, 200, 28, 'Micro Labs Limited', 'B-DLO-650', false], [AMOX, 12, 70, 'Alkem Laboratories', 'B-AMX-500', true]] },
+      { org: 'NewCare Medicos (Demo)', branch: 'NewCare Medicos - Hadapsar', location: 'Solapur Road, Hadapsar, Pune', lat: 18.5089, lng: 73.9260, license: 'MH-DEMO-21B-2006',
+        stock: [[DOLO, 15, 33, 'Micro Labs Limited', 'B-DLO-650', false]] }
     ];
     for (const p of pharmacies) {
       let org = await Organization.findOne({ name: p.org });
       if (!org) org = await Organization.create({ name: p.org, owner: owner._id, kind: 'pharmacy', plan: 'Starter', status: 'active', contactEmail: 'store@pharmacy.example' });
       let branch = await Branch.findOne({ organizationId: org._id, name: p.branch });
       if (!branch) branch = await Branch.create({ organizationId: org._id, name: p.branch, licenseNumber: p.license, location: p.location, coordinates: { lat: p.lat, lng: p.lng } });
-      for (const [name, stock, price, manufacturer, batchNumber] of p.stock) {
+      for (const [name, stock, price, manufacturer, batchNumber, prescriptionRequired] of p.stock) {
         await Medicine.updateOne(
           { name, branchId: branch._id },
-          { $set: { name, category: 'General', description: `${name} (synthetic inventory)`, price, stock, manufacturer, prescriptionRequired: false, expiryDate: inOneYear, batchNumber, organizationId: org._id, branchId: branch._id } },
+          { $set: { name, category: 'General', description: `${name} (synthetic inventory)`, price, stock, manufacturer, prescriptionRequired, expiryDate: inOneYear, batchNumber, organizationId: org._id, branchId: branch._id } },
           { upsert: true }
         );
       }
@@ -97,6 +112,82 @@ async function upsertUser({ email, name, role, organizationId }) {
         { $setOnInsert: { ...c, reviewRequired: c.status !== 'VERIFIED', organizationId: pharmacyOrg?._id, branchId: pharmacyBranch?._id, createdBy: claimant._id } },
         { upsert: true }
       );
+    }
+
+    // Give the verified demo cases real (synthetic) evidence, so an insurer reviewing a demo claim
+    // sees documents, extracted fields, checks and the pharmacist's decision — not an empty case.
+    const pharmacist = await User.findOne({ email: 'pharmacist@test.com' });
+    for (const ref of ['PV-DEMO-ANANYA-001', 'PV-DEMO-ANANYA-002']) {
+      const vc = await VerificationCase.findOne({ caseReference: ref });
+      if (!vc) continue;
+      if (!vc.organizationId && pharmacyOrg) { vc.organizationId = pharmacyOrg._id; vc.branchId = pharmacyBranch?._id; await vc.save(); }
+      if (await seedDemoCaseEvidence(vc, { claimantId: claimant._id, pharmacistId: pharmacist?._id })) console.log(`  evidence added to ${ref}`);
+    }
+
+    // One finished claim (approved and settled, simulated) so the insurer dashboard and the claimant's
+    // claim history are not empty at the start of a demo. PV-DEMO-ANANYA-002 stays free for a live claim.
+    const caseOne = await VerificationCase.findOne({ caseReference: 'PV-DEMO-ANANYA-001' });
+    if (caseOne && !(await Claim.exists({ claimantId: claimant._id }))) {
+      const day = 86400000; const t0 = Date.now() - 6 * day;
+      const grant = await CaseShareGrant.create({ caseId: caseOne._id, granteeOrganizationId: insurer._id, grantedBy: claimant._id, scope: [...SHARE_SCOPES],
+        consentText: 'I allow the selected insurer to view this verification case (documents, extracted fields, consistency checks, risk signals and pharmacist review decisions) only to review this insurance claim. I can withdraw this consent before a decision is made.',
+        expiresAt: new Date(t0 + 90 * day) });
+      await Claim.create({
+        caseId: caseOne._id, claimantId: claimant._id, pharmacyOrganizationId: caseOne.organizationId || pharmacyOrg?._id, payerOrganizationId: insurer._id, shareGrantId: grant._id,
+        policyNumber: 'SYN-POL-24017', claimedAmount: 139.5, status: 'SETTLED', reviewStartedAt: new Date(t0 + 0.2 * day),
+        decision: { decision: 'APPROVED', approvedAmount: 139.5, reasonCode: null, note: 'Bill matches the verified prescription; medicines are covered under the outpatient benefit.', decidedBy: reviewer._id, decidedAt: new Date(t0 + day) },
+        settlement: { reference: 'SIM-SETTLE-0001', amount: 139.5, settledAt: new Date(t0 + 2 * day), simulated: true },
+        history: [
+          { status: 'SUBMITTED', at: new Date(t0), byRole: 'patient', by: claimant._id },
+          { status: 'UNDER_PAYER_REVIEW', at: new Date(t0 + 0.2 * day), byRole: 'payer_reviewer', by: reviewer._id },
+          { status: 'APPROVED', at: new Date(t0 + day), byRole: 'payer_reviewer', by: reviewer._id },
+          { status: 'SETTLED', at: new Date(t0 + 2 * day), byRole: 'payer_admin', by: admin._id }
+        ]
+      });
+      console.log('  demo claim history added (approved and settled, simulated)');
+    }
+
+    // Pharmacy order flow: tie the hub's sample prescriptions and orders to the demo pharmacy,
+    // and give each pending prescription a waiting order so the pharmacist can approve/clarify/reject it.
+    if (pharmacyOrg) {
+      await Prescription.updateMany({ organizationId: { $exists: false } }, { $set: { organizationId: pharmacyOrg._id } });
+      await Order.updateMany({ pharmacyOrganizationId: { $exists: false } }, { $set: { pharmacyOrganizationId: pharmacyOrg._id, branchId: pharmacyBranch?._id } });
+      const pending = await Prescription.find({ organizationId: pharmacyOrg._id, status: 'Pending Review', orderId: { $exists: false } });
+      for (const rx of pending) {
+        const items = [];
+        for (const d of rx.detectedMedicines || []) {
+          const word = String(d.medicineName || '').split(/\s+/)[0];
+          if (!word) continue;
+          const med = await Medicine.findOne({ organizationId: pharmacyOrg._id, name: { $regex: word.replace(/[.*+?^${}()|[\]\\]/g, ''), $options: 'i' } });
+          if (med) items.push({ name: med.name, qty: 1, price: med.price, medicine: med._id, prescriptionRequired: Boolean(med.prescriptionRequired) });
+        }
+        if (!items.length) continue;
+        const order = await Order.create({ user: rx.user, orderItems: items, totalPrice: items.reduce((t, i) => t + i.price, 0), pharmacyOrganizationId: pharmacyOrg._id, branchId: pharmacyBranch?._id, requiresPrescription: true, prescription: rx._id, status: 'Awaiting Pharmacist' });
+        await Prescription.updateOne({ _id: rx._id }, { $set: { orderId: order._id } });
+      }
+    }
+
+    // Ananya has a saved prescription (not yet ordered) so she can buy a prescription-only medicine in the demo.
+    if (!(await Prescription.exists({ user: claimant._id }))) {
+      await Prescription.create({
+        user: claimant._id, doctorName: 'Dr. Ramesh Kulkarni, MD', patientName: 'Ananya Verma', prescriptionDate: new Date().toISOString().slice(0, 10), overallConfidence: 0.92,
+        extractedText: 'Rx: Cap Amoxicillin 500mg 1-0-1 x 3 days after food. Tab Dolo 650mg SOS for fever. Dr. Ramesh Kulkarni MD (synthetic)',
+        detectedMedicines: [
+          { medicineName: 'Amoxicillin 500mg Capsule', genericName: 'Amoxicillin', dosage: '1 capsule', frequency: '1-0-1', duration: '3 days', instructions: 'After food', confidence: 0.93 },
+          { medicineName: 'Dolo 650mg Tablet', genericName: 'Paracetamol', dosage: '1 tablet', frequency: 'SOS', duration: 'As needed for fever', instructions: 'Max 4 tablets a day', confidence: 0.95 }
+        ],
+        status: 'Pending Review'
+      });
+    }
+
+    // Workflow Center: real pipeline records for the demo pharmacy account.
+    try {
+      const WorkflowAudit = require('./models/workflowAuditModel');
+      if (!(await WorkflowAudit.exists({ pharmacyId: owner.pharmacyId || owner._id }))) {
+        await require('./workflows/workflowEngine').seedDemoWorkflows(owner.pharmacyId || owner._id, owner._id);
+      }
+    } catch (error) {
+      console.warn('Workflow seed skipped:', error.message);
     }
 
     console.log(JSON.stringify({

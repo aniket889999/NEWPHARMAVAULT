@@ -24,6 +24,10 @@ const DECISION_STATUSES = Object.freeze(['APPROVED', 'PARTIALLY_APPROVED', 'REJE
 // REJECTED is final once the single appeal has been used (see isTerminal).
 const TERMINAL_STATUSES = Object.freeze(['SETTLED', 'WITHDRAWN']);
 const MAX_APPEALS = 1;
+// The claimant has this many days after a REJECTED / PARTIALLY_APPROVED decision to appeal.
+// A partial approval is settled only after the claimant accepts it, appeals, or the window ends.
+const APPEAL_WINDOW_DAYS = 7;
+const DAY_MS = 86400000;
 
 const CLAIMANT_ROLES = Object.freeze(['patient']);
 const PAYER_ROLES = Object.freeze(['payer_reviewer', 'payer_admin']);
@@ -147,17 +151,44 @@ function isTerminal(status, appealCount = 0) {
   return TERMINAL_STATUSES.includes(status);
 }
 
-function validateAppeal({ status, appealCount = 0, reason }) {
+function appealDeadline(decidedAt) {
+  if (!decidedAt) return null;
+  const t = new Date(decidedAt).getTime();
+  return Number.isFinite(t) ? new Date(t + APPEAL_WINDOW_DAYS * DAY_MS) : null;
+}
+
+function validateAppeal({ status, appealCount = 0, reason, decidedAt = null, decisionAcceptedAt = null, now = new Date() }) {
   if (!['REJECTED', 'PARTIALLY_APPROVED'].includes(status)) {
     throw controlled(409, 'NOT_APPEALABLE', 'Only a rejected or partially approved claim can be appealed.');
   }
   if (appealCount >= MAX_APPEALS) throw controlled(409, 'APPEAL_ALREADY_USED', 'This claim has already been appealed once.');
+  if (decisionAcceptedAt) throw controlled(409, 'DECISION_ACCEPTED', 'You accepted this decision, so it can no longer be appealed.');
+  const deadline = appealDeadline(decidedAt);
+  if (deadline && new Date(now) > deadline) {
+    throw controlled(409, 'APPEAL_WINDOW_CLOSED', `The ${APPEAL_WINDOW_DAYS}-day appeal window for this decision has closed.`);
+  }
   const clean = typeof reason === 'string' ? reason.trim() : '';
   if (clean.length < 20 || clean.length > 2000) throw controlled(400, 'APPEAL_REASON_REQUIRED', 'Explain the appeal in 20–2000 characters.');
   return clean;
 }
 
+/**
+ * Why a decided claim cannot be settled yet, or null when it can.
+ * A partial approval waits for the claimant: accept, appeal (already used), or the window ends.
+ */
+function settlementBlocker({ status, appealCount = 0, decidedAt = null, decisionAcceptedAt = null, now = new Date() }) {
+  if (!['APPROVED', 'PARTIALLY_APPROVED'].includes(status)) return 'NOT_SETTLEABLE';
+  if (status === 'APPROVED') return null;
+  if (decisionAcceptedAt || appealCount >= MAX_APPEALS) return null;
+  const deadline = appealDeadline(decidedAt);
+  if (!deadline || new Date(now) > deadline) return null;
+  return 'APPEAL_WINDOW_OPEN';
+}
+
 module.exports = {
+  APPEAL_WINDOW_DAYS,
+  appealDeadline,
+  settlementBlocker,
   CLAIM_STATUSES,
   DECISION_STATUSES,
   TERMINAL_STATUSES,

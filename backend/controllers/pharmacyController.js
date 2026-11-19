@@ -35,7 +35,9 @@ const getNearbyPharmacies = asyncHandler(async (req, res) => {
   // Sum stock per branch for medicines whose name contains the search text and are not expired.
   const rows = await Medicine.aggregate([
     { $match: { name: { $regex: escapeRegex(medicine), $options: 'i' }, branchId: { $ne: null }, expiryDate: { $gt: new Date() } } },
-    { $group: { _id: '$branchId', organizationId: { $first: '$organizationId' }, stock: { $sum: '$stock' }, price: { $min: '$price' }, names: { $addToSet: '$name' } } }
+    { $match: { recalled: { $ne: true }, stock: { $gt: 0 } } },
+    { $sort: { price: 1 } },
+    { $group: { _id: '$branchId', organizationId: { $first: '$organizationId' }, stock: { $sum: '$stock' }, price: { $min: '$price' }, names: { $addToSet: '$name' }, medicineId: { $first: '$_id' }, medicineName: { $first: '$name' }, prescriptionRequired: { $max: '$prescriptionRequired' } } }
   ]);
   const branches = await Branch.find({ _id: { $in: rows.map((r) => r._id) }, status: { $ne: 'inactive' }, 'coordinates.lat': { $ne: null } }).lean();
   const orgs = await Organization.find({ _id: { $in: branches.map((b) => b.organizationId) } }).select('name kind status').lean();
@@ -62,10 +64,15 @@ const getNearbyPharmacies = asyncHandler(async (req, res) => {
         medicineStock: row.stock,
         medicinePrice: Number(row.price.toFixed(2)),
         matchedMedicines: row.names.slice(0, 5),
+        medicineId: String(row.medicineId),
+        medicineName: row.medicineName,
+        prescriptionRequired: Boolean(row.prescriptionRequired),
         searchedMedicine: medicine
       };
     })
-    .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+    // The nearest N pharmacies (default 5, max 20).
+    .slice(0, Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 5, 1), 20));
 
   res.json({ success: true, count: results.length, source: 'PharmaVault pharmacy inventory', data: results });
 });

@@ -22,20 +22,15 @@ const PrescriptionQueue: React.FC = () => {
     try {
       setLoading(true);
       const { data } = await apiClient.get('/pharmacy/prescription-queue');
-      if (Array.isArray(data) && data.length > 0) {
-        setPrescriptions(data);
-        setSelectedRx(data[0]);
-        setNotes(data[0].pharmacistNotes || '');
-      } else {
-        setPrescriptions(fallbackQueue);
-        setSelectedRx(fallbackQueue[0]);
-        setNotes(fallbackQueue[0].pharmacistNotes || '');
-      }
+      const list = Array.isArray(data) ? data : [];
+      setPrescriptions(list);
+      setSelectedRx(list[0] || null);
+      setNotes(list[0]?.pharmacistNotes || '');
     } catch (error) {
       console.error("Failed to load prescription queue", error);
-      setPrescriptions(fallbackQueue);
-      setSelectedRx(fallbackQueue[0]);
-      setNotes(fallbackQueue[0].pharmacistNotes || '');
+      setPrescriptions([]);
+      setSelectedRx(null);
+      toast.error('Could not load the prescription queue. Check that the server is running.');
     } finally {
       setLoading(false);
     }
@@ -57,13 +52,8 @@ const PrescriptionQueue: React.FC = () => {
       if (selectedRx && (selectedRx._id === id || selectedRx.id === id)) {
         setSelectedRx((prev: any) => ({ ...prev, status, pharmacistNotes: notes }));
       }
-    } catch (error) {
-      // Local optimistic update
-      setPrescriptions(prev => prev.map(p => (p._id === id || p.id === id ? { ...p, status, pharmacistNotes: notes } : p)));
-      if (selectedRx && (selectedRx._id === id || selectedRx.id === id)) {
-        setSelectedRx((prev: any) => ({ ...prev, status, pharmacistNotes: notes }));
-      }
-      toast.success(`Prescription updated to ${status}`, { id: 'status' });
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'The prescription could not be updated.', { id: 'status' });
     }
   };
 
@@ -145,11 +135,11 @@ const PrescriptionQueue: React.FC = () => {
                     <div>
                       <h4 className="font-bold text-slate-900 text-xs flex items-center">
                         <User className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                        {rx.patientName || 'Rahul Sharma'}
+                        {rx.patientName || rx.user?.name || 'Patient'}
                       </h4>
                       <p className="text-[11px] text-slate-500 flex items-center mt-0.5">
                         <Stethoscope className="w-3 h-3 mr-1 text-blue-600" />
-                        {rx.doctorName || 'Dr. Ramesh Kulkarni, MD'}
+                        {rx.doctorName || 'Doctor not read'}
                       </p>
                     </div>
                     {getStatusBadge(rx.status)}
@@ -189,7 +179,7 @@ const PrescriptionQueue: React.FC = () => {
                     Clinical Safety Verification Panel
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Patient: <strong>{selectedRx.patientName || 'Rahul Sharma'}</strong> • Attending: {selectedRx.doctorName || 'Dr. Ramesh Kulkarni'}
+                    Patient: <strong>{selectedRx.patientName || selectedRx.user?.name || 'Patient'}</strong> • Attending: {selectedRx.doctorName || 'Doctor not read'}
                   </p>
                 </div>
                 <div>{getStatusBadge(selectedRx.status)}</div>
@@ -300,6 +290,15 @@ const PrescriptionQueue: React.FC = () => {
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                     <span>Authorize & Approve</span>
                   </button>
+                  {selectedRx.status === 'Approved' && (
+                    <button
+                      onClick={() => updateStatus(selectedRx._id || selectedRx.id, 'Dispensed')}
+                      className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs transition-colors flex items-center"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                      <span>Mark Ready for Pickup</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -314,67 +313,5 @@ const PrescriptionQueue: React.FC = () => {
   );
 };
 
-const fallbackQueue = [
-  {
-    _id: 'rx_demo_1',
-    patientName: 'Rahul Sharma',
-    doctorName: 'Dr. Ramesh Kulkarni, MD (MCI-2014-9988)',
-    prescriptionDate: new Date().toISOString().split('T')[0],
-    overallConfidence: 0.94,
-    status: 'Pending Review',
-    extractedText: 'Rx: Tab Azithromycin 500mg 1 OD x 3 days. Tab Dolo 650mg SOS fever.',
-    detectedMedicines: [
-      {
-        medicineName: 'Azithromycin 500mg',
-        dosage: '500mg',
-        frequency: '1 OD (Once Daily)',
-        duration: '3 Days',
-        instructions: 'Post dinner with warm water',
-        confidence: 0.96,
-        stock: 120
-      },
-      {
-        medicineName: 'Dolo 650mg Tablet',
-        dosage: '650mg',
-        frequency: 'SOS (When needed)',
-        duration: '3 Days max',
-        instructions: 'Only if body temperature > 100°F',
-        confidence: 0.93,
-        stock: 450
-      }
-    ],
-    pharmacistNotes: 'Antibiotic duration matches CDSCO guidelines for mild bacterial throat infections.'
-  },
-  {
-    _id: 'rx_demo_2',
-    patientName: 'Meera Nambiar',
-    doctorName: 'Dr. Priya Sundaram, MBBS DNB',
-    prescriptionDate: new Date().toISOString().split('T')[0],
-    overallConfidence: 0.88,
-    status: 'Pending Review',
-    extractedText: 'Rx: Augmentin 625mg BD x 5 days, Pan-40 1 OD before breakfast x 7 days.',
-    detectedMedicines: [
-      {
-        medicineName: 'Augmentin 625mg',
-        dosage: '625mg',
-        frequency: '1 BD (Twice Daily)',
-        duration: '5 Days',
-        instructions: 'After breakfast and dinner',
-        confidence: 0.89,
-        stock: 18
-      },
-      {
-        medicineName: 'Pan-40 (Pantoprazole 40mg)',
-        dosage: '40mg',
-        frequency: '1 OD',
-        duration: '7 Days',
-        instructions: 'Empty stomach 30 mins before morning meal',
-        confidence: 0.95,
-        stock: 14
-      }
-    ],
-    pharmacistNotes: 'Low stock warning on Augmentin 625mg (18 units in dispensary).'
-  }
-];
 
 export default PrescriptionQueue;

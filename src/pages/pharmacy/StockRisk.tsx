@@ -23,14 +23,11 @@ const StockRisk: React.FC = () => {
     try {
       setLoading(true);
       const { data } = await apiClient.get('/pharmacy/stock-risk');
-      if (Array.isArray(data) && data.length > 0) {
-        setRisks(data);
-      } else {
-        setRisks(fallbackStockRisks);
-      }
+      setRisks(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch stock risk data", error);
-      setRisks(fallbackStockRisks);
+      setRisks([]);
+      toast.error('Could not load data. Check that the server is running.');
     } finally {
       setLoading(false);
     }
@@ -56,8 +53,14 @@ const StockRisk: React.FC = () => {
     }
   };
 
-  const handleCreatePO = (name: string, suggestedUnits: number) => {
-    toast.success(`Purchase Order generated for +${suggestedUnits} units of ${name} sent to authorized distributor.`);
+  const handleCreatePO = async (id: string, name: string, suggestedUnits: number) => {
+    try {
+      await apiClient.post(`/pharmacy/medicines/${id}/reorder`, { qty: suggestedUnits || 100 });
+      toast.success(`Reorder request recorded: +${suggestedUnits || 100} units of ${name}.`);
+      fetchRisk();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Reorder could not be recorded.');
+    }
   };
 
   const getRiskBadge = (level: string) => {
@@ -176,7 +179,7 @@ const StockRisk: React.FC = () => {
                             </button>
 
                             <button 
-                              onClick={() => handleCreatePO(item.name, suggestedUnits)}
+                              onClick={() => handleCreatePO(item._id, item.name, suggestedUnits)}
                               className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[11px] font-semibold transition-colors inline-flex items-center shadow-2xs"
                               title="Generate purchase order"
                             >
@@ -292,39 +295,5 @@ const getFallbackSubstitutes = (medicineName: string) => {
   };
 };
 
-const fallbackStockRisks = [
-  {
-    _id: 'stock_1',
-    name: 'Insulin Glargine 100 IU/ml (Lantus Solostar)',
-    stock: 9,
-    category: 'Endocrinology & Diabetes',
-    riskLevel: 'Low',
-    suggestedReorder: 50
-  },
-  {
-    _id: 'stock_2',
-    name: 'Pantoprazole 40mg (Pan-40)',
-    stock: 14,
-    category: 'Gastroenterology',
-    riskLevel: 'Low',
-    suggestedReorder: 100
-  },
-  {
-    _id: 'stock_3',
-    name: 'Amoxicillin + Clavulanic Acid 625mg (Augmentin)',
-    stock: 18,
-    category: 'Antibiotics & Antimicrobials',
-    riskLevel: 'Low',
-    suggestedReorder: 150
-  },
-  {
-    _id: 'stock_4',
-    name: 'Dolo 650mg Tablet',
-    stock: 450,
-    category: 'Analgesics & Antipyretics',
-    riskLevel: 'Good',
-    suggestedReorder: 0
-  }
-];
 
 export default StockRisk;

@@ -9,7 +9,8 @@ class WorkflowAuditLogger {
         trigger: triggerEvent,
         approvalRequired: workflow.requireApproval,
         approverRole: workflow.approverRole,
-        riskLevel: context.riskClass || 'Low',
+        // Map free-text risk classes ('High Risk', 'Emergency Risk') onto the stored levels.
+        riskLevel: ({ 'High Risk': 'High', 'Emergency Risk': 'Critical', 'Medium Risk': 'Medium', 'Low Risk': 'Low' })[context.riskClass] || (['Low', 'Medium', 'High', 'Critical'].includes(context.riskClass) ? context.riskClass : 'Low'),
         priority: priority,
         userId: context.userId,
         pharmacyId: context.pharmacyId,

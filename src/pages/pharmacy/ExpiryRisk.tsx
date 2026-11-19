@@ -18,14 +18,11 @@ const ExpiryRisk: React.FC = () => {
     try {
       setLoading(true);
       const { data } = await apiClient.get('/pharmacy/expiry-risk');
-      if (Array.isArray(data) && data.length > 0) {
-        setRisks(data);
-      } else {
-        setRisks(fallbackExpiryRisks);
-      }
+      setRisks(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch expiry risk data", error);
-      setRisks(fallbackExpiryRisks);
+      setRisks([]);
+      toast.error('Could not load data. Check that the server is running.');
     } finally {
       setLoading(false);
     }
@@ -35,12 +32,25 @@ const ExpiryRisk: React.FC = () => {
     fetchRisk();
   }, []);
 
-  const handleApplyMarkdown = (medicineName: string, batchNumber: string) => {
-    toast.success(`30% clearance discount applied to ${medicineName} (Batch ${batchNumber}) for FEFO dispensing.`);
+  const handleApplyMarkdown = async (id: string, medicineName: string, batchNumber: string) => {
+    try {
+      const { data } = await apiClient.post(`/pharmacy/medicines/${id}/markdown`, { percent: 30 });
+      toast.success(`${medicineName} (Batch ${batchNumber}) marked down 30%: now ₹${Number(data.price).toFixed(2)}.`);
+      fetchRisk();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Markdown could not be applied.');
+    }
   };
 
-  const handleReturnToVendor = (medicineName: string, batchNumber: string) => {
-    toast.success(`Return Authorization (RMA) ticket generated for ${medicineName} (Batch ${batchNumber}).`);
+  const handleReturnToVendor = async (id: string, medicineName: string, batchNumber: string) => {
+    if (!window.confirm(`Recall ${medicineName} batch ${batchNumber}? It is removed from sale (stock set to 0).`)) return;
+    try {
+      const { data } = await apiClient.post(`/pharmacy/medicines/${id}/recall`, {});
+      toast.success(`${medicineName} (Batch ${batchNumber}) recalled: ${data.unitsRemoved} unit(s) removed from sale.`);
+      fetchRisk();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Recall could not be recorded.');
+    }
   };
 
   const getRiskBadge = (level: string) => {
@@ -197,10 +207,13 @@ const ExpiryRisk: React.FC = () => {
                       </td>
 
                       <td className="p-3.5 text-right pr-5 space-x-2">
-                        {isCritical ? (
+                        {item.recalled ? (
+                          <span className="text-[11px] text-rose-600 font-semibold">Recalled</span>
+                        ) : isCritical ? (
                           <>
+                            {item.markdownPercent > 0 && <span className="text-[11px] text-amber-700 font-semibold mr-1">-{item.markdownPercent}%</span>}
                             <button
-                              onClick={() => handleApplyMarkdown(item.name, item.batchNumber)}
+                              onClick={() => handleApplyMarkdown(item._id, item.name, item.batchNumber)}
                               className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[11px] font-semibold transition-colors inline-flex items-center"
                               title="Mark down for quick dispensing"
                             >
@@ -208,7 +221,7 @@ const ExpiryRisk: React.FC = () => {
                               Markdown
                             </button>
                             <button
-                              onClick={() => handleReturnToVendor(item.name, item.batchNumber)}
+                              onClick={() => handleReturnToVendor(item._id, item.name, item.batchNumber)}
                               className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-[11px] font-semibold transition-colors inline-flex items-center"
                               title="Initiate Return to Manufacturer"
                             >
@@ -234,43 +247,5 @@ const ExpiryRisk: React.FC = () => {
   );
 };
 
-const fallbackExpiryRisks = [
-  {
-    _id: 'risk_1',
-    name: 'Benadryl Cough Relief Syrup (100ml)',
-    batchNumber: 'B-BND-110',
-    daysRemaining: 14,
-    riskLevel: 'High Risk',
-    suggestedAction: 'Apply 35% FEFO clearance discount or return to distributor',
-    manufacturer: 'Johnson & Johnson Ltd'
-  },
-  {
-    _id: 'risk_2',
-    name: 'Cefixime 200mg (Taxim-O 200)',
-    batchNumber: 'B-TAX-901',
-    daysRemaining: 22,
-    riskLevel: 'High Risk',
-    suggestedAction: 'Rotate to front dispensary rack for acute prescriptions',
-    manufacturer: 'Alkem Laboratories'
-  },
-  {
-    _id: 'risk_3',
-    name: 'Amoxicillin + Clavulanic Acid 625mg (Augmentin)',
-    batchNumber: 'B-AUG-625',
-    daysRemaining: 240,
-    riskLevel: 'Safe',
-    suggestedAction: 'Standard shelf monitoring',
-    manufacturer: 'GlaxoSmithKline (GSK)'
-  },
-  {
-    _id: 'risk_4',
-    name: 'Dolo 650mg Tablet',
-    batchNumber: 'B-DLO-650',
-    daysRemaining: 540,
-    riskLevel: 'Safe',
-    suggestedAction: 'Standard shelf monitoring',
-    manufacturer: 'Micro Labs Limited'
-  }
-];
 
 export default ExpiryRisk;

@@ -11,6 +11,13 @@ const medicineSchema = mongoose.Schema(
     prescriptionRequired: { type: Boolean, required: true, default: false },
     expiryDate: { type: Date, required: true },
     batchNumber: { type: String, default: 'UNKNOWN' },
+    // Pharmacist stock actions (Expiry Risk / Stock Risk pages).
+    markdownPercent: { type: Number, default: 0, min: 0, max: 90 },
+    originalPrice: { type: Number },
+    recalled: { type: Boolean, default: false },
+    recalledAt: { type: Date },
+    reorderRequestedQty: { type: Number, default: 0 },
+    reorderRequestedAt: { type: Date },
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',

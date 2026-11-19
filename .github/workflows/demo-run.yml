@@ -1,0 +1,71 @@
+name: Live demo run (recorded)
+
+# Runs the full app (MongoDB + API + web) on a GitHub runner with synthetic seed data,
+# records a captioned browser walkthrough, and publishes the video and screenshots to the
+# orphan branch demo-run-out. Only on the demo/** branches or by hand.
+on:
+  push:
+    branches: ['demo/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: demo-run
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports: ['27017:27017']
+    env:
+      MONGO_URI: mongodb://127.0.0.1:27017/pharmavault_e2e
+      JWT_SECRET: ci-only-demo-jwt-secret-not-for-production-0001
+      GEMINI_API_KEY: ci-only-not-used
+      MFA_ENCRYPTION_KEY: ci-only-mfa-key-0123456789abcdef0123
+      E2E_SETUP_ENABLED: 'true'
+      E2E_SETUP_KEY: ci-only-e2e-setup-key
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+      - name: Install
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm ci --prefix backend --ignore-scripts --no-audit --no-fund
+          npm install --prefix e2e --no-audit --no-fund
+          npx --prefix e2e playwright install --with-deps chromium
+      - name: Seed synthetic demo data
+        run: |
+          npm --prefix backend run seed:demo
+          npm --prefix backend run seed:showcase
+      - name: Run the app and record the walkthrough
+        working-directory: e2e
+        run: npx playwright test -c demo.config.ts
+      - name: Stitch scenes into one MP4
+        if: always()
+        working-directory: e2e/demo-out
+        run: |
+          sudo apt-get install -y -qq ffmpeg >/dev/null
+          : > list.txt
+          for d in raw/*/; do f=$(ls "$d"*.webm | head -1); [ -n "$f" ] && echo "file '$PWD/$f'" >> list.txt; done
+          ffmpeg -y -loglevel error -f concat -safe 0 -i list.txt -vf "scale=1440:900,fps=25,format=yuv420p" -c:v libx264 -preset veryfast -crf 26 -movflags +faststart PharmaVault_live_demo.mp4
+          rm -rf raw list.txt
+          ls -la . shots
+      - name: Publish to the demo-run-out branch
+        if: always()
+        working-directory: e2e/demo-out
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init -q && git checkout -q -b demo-run-out
+          git add -A && git -c user.name='demo-run' -c user.email='demo-run@users.noreply.github.com' commit -qm "Live demo run of ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" demo-run-out

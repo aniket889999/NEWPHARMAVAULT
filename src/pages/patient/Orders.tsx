@@ -5,52 +5,19 @@ import { Link } from 'react-router-dom';
 
 const PatientOrders: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const { data } = await apiClient.get('/orders/myorders');
-        if (data && data.length > 0) {
-          setOrders(data);
-        } else {
-          // Demo realistic orders fallback for demo presentation
-          setOrders([
-            {
-              _id: 'PV-ORD-9821',
-              createdAt: new Date().toISOString(),
-              totalPrice: 245.50,
-              status: 'Delivered',
-              orderItems: [
-                { name: 'Dolo 650mg (Micro Labs)', qty: 2, price: 30.50, batch: 'B-DLO-650' },
-                { name: 'Pantoprazole 40mg (Alkem)', qty: 1, price: 155.00, batch: 'B-PAN-040' },
-                { name: 'Paracetamol 500mg (GSK)', qty: 2, price: 14.75, batch: 'B-CRO-101' }
-              ]
-            },
-            {
-              _id: 'PV-ORD-9740',
-              createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-              totalPrice: 119.00,
-              status: 'Delivered',
-              orderItems: [
-                { name: 'Azithromycin 500mg (Cipla)', qty: 1, price: 119.00, batch: 'B-AZE-500' }
-              ]
-            }
-          ]);
-        }
+        setOrders(Array.isArray(data) ? data : []);
       } catch (error) {
-        // Fallback for offline demo
-        setOrders([
-          {
-            _id: 'PV-ORD-9821',
-            createdAt: new Date().toISOString(),
-            totalPrice: 245.50,
-            status: 'Delivered',
-            orderItems: [
-              { name: 'Dolo 650mg (Micro Labs)', qty: 2, price: 30.50, batch: 'B-DLO-650' },
-              { name: 'Pantoprazole 40mg (Alkem)', qty: 1, price: 155.00, batch: 'B-PAN-040' }
-            ]
-          }
-        ]);
+        setOrders([]);
+        setFailed(true);
+      } finally {
+        setLoading(false);
       }
     };
     fetchOrders();
@@ -73,13 +40,18 @@ const PatientOrders: React.FC = () => {
       </div>
 
       <div className="space-y-4">
+        {loading && <p className="text-xs text-slate-500">Loading your orders…</p>}
+        {!loading && failed && <p className="rounded-xl bg-rose-50 border border-rose-200 p-4 text-xs text-rose-800">Could not load your orders. Check that the server is running.</p>}
+        {!loading && !failed && orders.length === 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-xs text-slate-500">No orders yet. Browse medicines or upload a prescription to place your first order.</div>
+        )}
         {orders.map(order => (
           <div key={order._id} className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
             <div className="bg-slate-50/80 px-6 py-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-4 text-xs">
               <div className="flex items-center space-x-4">
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Order ID</p>
-                  <p className="font-mono font-bold text-slate-800">{order._id}</p>
+                  <p className="font-mono font-bold text-slate-800">{String(order._id).slice(-8).toUpperCase()}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Order Placed</p>
@@ -93,22 +65,34 @@ const PatientOrders: React.FC = () => {
 
               <div className="flex items-center space-x-3">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-                  order.status === 'Delivered' 
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                  ['Delivered', 'Ready', 'Approved'].includes(order.status)
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : ['Rejected', 'Cancelled'].includes(order.status)
+                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                      : order.status === 'Needs Clarification'
+                        ? 'bg-amber-50 text-amber-800 border-amber-200'
+                        : 'bg-blue-50 text-blue-700 border-blue-200'
                 }`}>
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                   {order.status}
                 </span>
 
-                <div className="flex items-center text-teal-700 text-[11px] font-semibold bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
-                  <ShieldCheck className="w-3.5 h-3.5 mr-1" />
-                  <span>Verified Authentic</span>
-                </div>
+                {order.requiresPrescription && (
+                  <div className="flex items-center text-teal-700 text-[11px] font-semibold bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
+                    <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                    <span>Prescription {order.prescription?.status ? `· ${order.prescription.status}` : 'attached'}</span>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="p-6">
+              {(order.pharmacyOrganizationId?.name || order.branchId?.name) && (
+                <p className="mb-3 text-[11px] text-slate-500">Pharmacy: <span className="font-semibold text-slate-700">{order.branchId?.name || order.pharmacyOrganizationId?.name}</span>{order.branchId?.location ? ` · ${order.branchId.location}` : ''}</p>
+              )}
+              {order.pharmacistNote && (
+                <p className="mb-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] text-amber-900">Pharmacist: {order.pharmacistNote}</p>
+              )}
               <ul className="divide-y divide-slate-100">
                 {order.orderItems.map((item: any, idx: number) => (
                   <li key={idx} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between text-xs">

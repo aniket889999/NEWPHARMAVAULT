@@ -27,7 +27,8 @@
     "validate:contract": "redocly lint contracts/openapi/pharmavault-trustrag-v1.yaml",
     "validate:schemas": "ajv compile -s 'contracts/schemas/*.schema.json' --spec=draft2020 -c ajv-formats",
     "seed:catalogue": "npm --prefix backend run seed:catalogue",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed:all": "npm --prefix backend run seed:all"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",

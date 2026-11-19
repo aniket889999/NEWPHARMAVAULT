@@ -19,7 +19,8 @@ const DISPOSABLE_TEST_DATABASES = new Set([
   'pharmavault_review_test',
   'pharmavault_account_test',
   'pharmavault_audit_test',
-  'pharmavault_privacy_test'
+  'pharmavault_privacy_test',
+  'pharmavault_claims_ocr_test'
 ]);
 
 // Explicitly protected databases

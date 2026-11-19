@@ -1,0 +1,35 @@
+# Ownership from CLAUDE.md. A PR that touches these paths requests review from the owner.
+# Turn on "Require review from Code Owners" in the main branch rule to enforce it.
+
+# Default: either author may review.
+*                                         @aniket889999 @samarth092005
+
+# Person A (Aniket): chatbot / RAG, OCR, catalogue, benchmark, legacy modules, iOS
+/backend/services/trustRag/               @aniket889999
+/backend/data/                            @aniket889999
+/backend/benchmark/                       @aniket889999
+/src/features/chat*/                      @aniket889999
+/src/features/caseAssistant/              @aniket889999
+/ios/                                     @aniket889999
+
+# Person B (Samarth): claims, platform, middleware, auth/MFA, Docker, CI, staging, admin UI
+/backend/services/claims/                 @samarth092005
+/backend/services/platform/               @samarth092005
+/backend/controllers/claimsController.js  @samarth092005
+/backend/routes/claimsRoutes.js           @samarth092005
+/backend/middleware/                      @samarth092005
+/src/pages/payer/                         @samarth092005
+/src/pages/patient/PatientClaims.tsx      @samarth092005
+/src/pages/admin/                         @samarth092005
+/backend/Dockerfile                       @samarth092005
+/deploy/                                  @samarth092005
+/docker-compose*.yml                      @samarth092005
+/ops/                                     @samarth092005
+/.github/                                 @samarth092005
+
+# Shared: change only with the other person's review (both are requested).
+/contracts/                               @aniket889999 @samarth092005
+/docs/DOMAIN_MODEL.md                     @aniket889999 @samarth092005
+/src/App.tsx                              @aniket889999 @samarth092005
+/src/features/navigation/portalPolicy.ts  @aniket889999 @samarth092005
+/CLAUDE.md                                @aniket889999 @samarth092005

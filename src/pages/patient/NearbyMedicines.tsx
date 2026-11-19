@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
 import { MapPin, Navigation, Clock, Store, IndianRupee, ArrowLeft, Star, ShoppingBag, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useCartStore } from '../../stores/cartStore';
 
 // Leaflet Imports
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -72,6 +73,9 @@ interface Pharmacy {
   medicineStock: number;
   medicinePrice: number;
   searchedMedicine: string;
+  medicineId?: string;
+  medicineName?: string;
+  prescriptionRequired?: boolean;
 }
 
 const NearbyMedicines: React.FC = () => {
@@ -84,9 +88,9 @@ const NearbyMedicines: React.FC = () => {
   const [filter, setFilter] = useState<'nearest' | 'cheapest' | 'instock'>('nearest');
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
   
-  // Used until the browser shares a location (demo pharmacies are in Bengaluru).
-  const DEFAULT_LAT = 12.9716;
-  const DEFAULT_LNG = 77.5946;
+  // Used until the browser shares a location (demo pharmacies are in Pune).
+  const DEFAULT_LAT = 18.5204;
+  const DEFAULT_LNG = 73.8567;
   
   const [userLocation, setUserLocation] = useState({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
   const [locationError, setLocationError] = useState(false);
@@ -133,8 +137,12 @@ const NearbyMedicines: React.FC = () => {
     return a.distance - b.distance; // nearest default
   });
 
+  const { addItem } = useCartStore();
   const handleReserve = (pharm: Pharmacy) => {
-    toast(`Online reservation is not available yet, so no reservation or SMS was sent. ${pharm.name} has ${pharm.medicineStock} unit(s) in stock — use Directions or call the pharmacy to hold it.`);
+    if (!pharm.medicineId) return;
+    // Adds this pharmacy's own stock item, so the order goes to this pharmacy.
+    addItem({ id: pharm.medicineId, name: `${pharm.medicineName || pharm.searchedMedicine} · ${pharm.name}`, price: pharm.medicinePrice });
+    toast.success(`Added to cart from ${pharm.name}.${pharm.prescriptionRequired ? ' This medicine needs your prescription at checkout.' : ''} Online reservation is not available yet, so no reservation or SMS was sent; place the order from your cart.`);
   };
 
   const handleGetDirections = (pharm: Pharmacy) => {
@@ -143,7 +151,7 @@ const NearbyMedicines: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col bg-slate-50">
-      <div className="bg-teal-50 px-6 py-3 text-sm text-teal-950">Live stock from pharmacies registered on PharmaVault (their own inventory), nearest first. Expired batches are not counted. <button type="button" className="ml-2 underline" onClick={requestLocation}>Use my location for map distances</button></div>
+      <div className="bg-teal-50 px-6 py-3 text-sm text-teal-950">The 5 nearest pharmacies on PharmaVault that have this medicine, with their own live stock and price. Expired batches are not counted. <button type="button" className="ml-2 underline" onClick={requestLocation}>Use my location for map distances</button></div>
       {/* Header */}
       <div className="bg-white border-b px-6 py-4 flex items-center justify-between shrink-0 shadow-sm z-10 relative">
         <div className="flex items-center">
@@ -252,7 +260,7 @@ const NearbyMedicines: React.FC = () => {
                         disabled={!inStock || !pharm.openStatus}
                         className="flex-1 bg-primary-600 text-white text-sm font-medium py-2 rounded-lg hover:bg-primary-700 disabled:bg-slate-300 transition-colors flex items-center justify-center shadow-sm"
                       >
-                        <ShoppingBag size={16} className="mr-2"/> Reserve
+                        <ShoppingBag size={16} className="mr-2"/> Add to Cart
                       </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleGetDirections(pharm); }}
@@ -278,7 +286,7 @@ const NearbyMedicines: React.FC = () => {
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             
             {/* Auto-pan to selected pharmacy */}
@@ -320,7 +328,7 @@ const NearbyMedicines: React.FC = () => {
                         disabled={!inStock || !pharm.openStatus}
                         className="w-full bg-primary-600 text-white text-xs font-bold py-1.5 rounded hover:bg-primary-700 disabled:bg-slate-300"
                       >
-                        Reserve Now
+                        Add to Cart
                       </button>
                     </div>
                   </Popup>

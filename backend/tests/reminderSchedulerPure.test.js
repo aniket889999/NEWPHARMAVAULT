@@ -18,6 +18,7 @@ test('a daily reminder is due once per day in IST and not twice', () => {
   assert.equal(due.toISOString(), '2026-11-18T02:30:00.000Z', '08:00 IST = 02:30 UTC');
   assert.equal(isDue({ ...r, lastSentAt: at('2026-11-18T02:31:00Z') }, at('2026-11-18T02:40:00Z')), null, 'already sent today');
   assert.equal(isDue(r, at('2026-11-18T05:00:00Z')), null, 'more than 2 h late is skipped');
-  assert.equal(isDue({ ...r, status: 'taken' }, at('2026-11-18T02:31:00Z')), null);
+  assert.equal(isDue({ ...r, status: 'inactive' }, at('2026-11-18T02:31:00Z')), null);
+  assert.ok(isDue({ ...r, status: 'taken', lastSentAt: at('2026-11-17T02:31:00Z') }, at('2026-11-18T02:35:00Z')), 'a dose taken yesterday is due again today');
   assert.ok(isDue({ ...r, lastSentAt: at('2026-11-17T02:31:00Z') }, at('2026-11-18T02:35:00Z')), 'due again the next day');
 });

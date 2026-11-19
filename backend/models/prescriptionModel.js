@@ -45,7 +45,10 @@ const prescriptionSchema = mongoose.Schema({
   pharmacistNotes: {
     type: String,
     default: ""
-  }
+  },
+  // Set when the patient orders against this prescription: the pharmacy that must review it.
+  organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true },
+  orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' }
 }, {
   timestamps: true,
 });

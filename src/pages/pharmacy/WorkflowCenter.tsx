@@ -29,13 +29,13 @@ const WorkflowCenter: React.FC = () => {
         apiClient.get('/workflows/audit').catch(() => ({ data: [] }))
       ]);
 
-      setActiveWorkflows(activeRes.data?.length ? activeRes.data : fallbackActive);
-      setPendingApprovals(pendingRes.data?.length ? pendingRes.data : fallbackPending);
-      setAuditHistory(auditRes.data?.length ? auditRes.data : fallbackAudit);
+      setActiveWorkflows(Array.isArray(activeRes.data) ? activeRes.data : []);
+      setPendingApprovals(Array.isArray(pendingRes.data) ? pendingRes.data : []);
+      setAuditHistory(Array.isArray(auditRes.data) ? auditRes.data : []);
     } catch {
-      setActiveWorkflows(fallbackActive);
-      setPendingApprovals(fallbackPending);
-      setAuditHistory(fallbackAudit);
+      setActiveWorkflows([]);
+      setPendingApprovals([]);
+      setAuditHistory([]);
     }
   };
 
@@ -61,10 +61,7 @@ const WorkflowCenter: React.FC = () => {
       toast.success("Demo workflows re-synchronized!");
       fetchWorkflows();
     } catch {
-      toast.success("Demo workflows loaded from clinical templates.");
-      setActiveWorkflows(fallbackActive);
-      setPendingApprovals(fallbackPending);
-      setAuditHistory(fallbackAudit);
+      toast.error('Workflows could not be loaded. Check that the server is running.');
     } finally {
       setIsSeeding(false);
     }
@@ -325,56 +322,7 @@ const WorkflowCenter: React.FC = () => {
   );
 };
 
-const fallbackActive = [
-  { 
-    _id: 'wf_act_1', 
-    workflowName: 'Prescription Optical Validation & CDSCO Check', 
-    priority: 'Medium', 
-    trigger: 'PATIENT_UPLOAD'
-  },
-  { 
-    _id: 'wf_act_2', 
-    workflowName: 'FEFO Expiry Horizon Automation', 
-    priority: 'Low', 
-    trigger: 'DAILY_CRON'
-  }
-];
 
-const fallbackPending = [
-  { 
-    _id: 'wf_pen_1', 
-    workflowName: 'Counterfeit Batch Quarantine Sign-off', 
-    priority: 'Critical', 
-    trigger: 'TAMPER_ALERT', 
-    metadata: { 
-      reason: 'Barcode genesis hash mismatch on batch B-FAKE-999. Inbound package held at gate.' 
-    } 
-  }
-];
 
-const fallbackAudit = [
-  { 
-    workflowName: 'Prescription Auto-Verification Pipeline', 
-    priority: 'Low', 
-    status: 'Completed', 
-    trigger: 'PATIENT_UPLOAD', 
-    timestamp: new Date().toISOString() 
-  },
-  { 
-    workflowName: 'Counterfeit Batch Interception & CDSCO Reporting', 
-    priority: 'Critical', 
-    status: 'Pending', 
-    approvalStatus: 'pending',
-    trigger: 'BARCODE_TAMPER_DETECTED', 
-    timestamp: new Date().toISOString() 
-  },
-  { 
-    workflowName: 'FEFO Stock Expiry Markdown Rotation', 
-    priority: 'Medium', 
-    status: 'Completed', 
-    trigger: 'SCHEDULED_EXPIRY_SCAN', 
-    timestamp: new Date().toISOString() 
-  }
-];
 
 export default WorkflowCenter;

@@ -4,6 +4,10 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [main, 'version-**']
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 21 * * *' # nightly 02:47 IST on main: catches drift from dependencies and time
 
 concurrency:
   group: e2e-${{ github.ref }}

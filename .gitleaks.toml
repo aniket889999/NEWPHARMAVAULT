@@ -1,0 +1,24 @@
+# gitleaks configuration: default rules, plus an allowlist for values that are
+# synthetic by design (test-only secrets, demo password, placeholder examples).
+# Never add a real key here: rotate it instead.
+title = "PharmaVault gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic test fixtures and documented placeholders"
+regexTarget = "line"
+regexes = [
+  '''synthetic[-_a-z0-9]*''',
+  '''test-only[-_a-z0-9]*''',
+  '''password123''',
+  '''example\.(invalid|org|com)''',
+]
+paths = [
+  '''^backend/tests/''',
+  '''^tests/''',
+  '''^e2e/''',
+  '''\.env\.example$''',
+  '''package-lock\.json$''',
+]
