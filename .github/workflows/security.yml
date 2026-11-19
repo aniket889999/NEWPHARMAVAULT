@@ -71,7 +71,21 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
+      - name: Check that the repository dependency graph is enabled
+        id: graph
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/dependency-graph/compare/${BASE}...${HEAD}" --silent 2>/dev/null; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Dependency review skipped::Turn on Settings → Code security → Dependency graph to enable PR dependency review. The npm audit job still gates vulnerable shipped dependencies."
+          fi
+      - if: steps.graph.outputs.enabled == 'true'
+        uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
         with:
           fail-on-severity: high
           deny-licenses: GPL-3.0, AGPL-3.0
