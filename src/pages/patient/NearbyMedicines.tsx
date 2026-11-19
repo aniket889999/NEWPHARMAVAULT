@@ -79,9 +79,16 @@ interface Pharmacy {
 }
 
 const NearbyMedicines: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const medicineName = searchParams.get('medicine') || 'Dolo 650';
+  const [query, setQuery] = useState(medicineName);
+  useEffect(() => { setQuery(medicineName); }, [medicineName]);
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (q && q !== medicineName) setSearchParams({ medicine: q });
+  };
   
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,6 +172,11 @@ const NearbyMedicines: React.FC = () => {
             <p className="text-sm text-slate-500 mt-0.5">Searching for: <span className="font-bold text-slate-700">{medicineName}</span></p>
           </div>
         </div>
+        <form onSubmit={submitSearch} className="hidden md:flex items-center gap-2 mx-4 flex-1 max-w-sm" role="search">
+          <label htmlFor="nearby-medicine-search" className="sr-only">Medicine to find nearby</label>
+          <input id="nearby-medicine-search" value={query} onChange={(e) => setQuery(e.target.value)} maxLength={80} placeholder="Search a medicine, e.g. Dolo 650" className="flex-1 text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-600" />
+          <button type="submit" disabled={!query.trim()} className="px-4 py-2 text-sm font-medium rounded-lg bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50">Search</button>
+        </form>
         <div className="flex bg-slate-100 p-1 rounded-lg">
           <button onClick={() => setFilter('nearest')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${filter === 'nearest' ? 'bg-white shadow text-primary-700' : 'text-slate-600 hover:text-slate-900'}`}>Nearest</button>
           <button onClick={() => setFilter('cheapest')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${filter === 'cheapest' ? 'bg-white shadow text-primary-700' : 'text-slate-600 hover:text-slate-900'}`}>Cheapest</button>
@@ -174,7 +186,7 @@ const NearbyMedicines: React.FC = () => {
 
       {locationError && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-2 flex items-center text-yellow-800 text-sm shrink-0">
-          <Info size={16} className="mr-2 text-yellow-600"/> Location unavailable. Showing the synthetic Mumbai demo region.
+          <Info size={16} className="mr-2 text-yellow-600"/> Location unavailable. Showing the synthetic Pune demo region.
         </div>
       )}
 
