@@ -133,8 +133,18 @@ const PayerClaimWorkspace: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px]">
+        <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-4 gap-3 text-[11px]">
           <p className="flex items-center gap-1.5 text-slate-500"><Lock className="w-3.5 h-3.5 text-indigo-600" /> Consent valid until {new Date(data.consent.expiresAt).toLocaleDateString('en-IN')}</p>
+          {data.amountCheck && (
+            <p data-testid="amount-check" className={`flex items-center gap-1.5 ${data.amountCheck.status === 'EXCEEDS_INVOICE' ? 'text-red-700' : data.amountCheck.status === 'WITHIN_INVOICE' ? 'text-emerald-700' : 'text-slate-500'}`}>
+              {data.amountCheck.status === 'EXCEEDS_INVOICE' ? <AlertTriangle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+              {data.amountCheck.invoiceTotal === null
+                ? 'No invoice total recorded for this case'
+                : data.amountCheck.status === 'EXCEEDS_INVOICE'
+                  ? `Claimed amount is more than the verified bill (${formatInr(data.amountCheck.invoiceTotal)})`
+                  : `Within the verified bill of ${formatInr(data.amountCheck.invoiceTotal)}`}
+            </p>
+          )}
           <p className={`flex items-center gap-1.5 ${unresolved ? 'text-amber-700' : 'text-emerald-700'}`}>
             {unresolved ? <AlertTriangle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
             {unresolved ? `${unresolved} checks or signals need attention` : 'No open consistency issues recorded'}

@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import {
   ShieldCheck, FileText, Plus, RefreshCw, X, MessageSquare, Lock, CheckCircle2, Clock, AlertTriangle, ChevronRight, Building2
 } from 'lucide-react';
-import { claimsApi, Claim, CLAIM_STATUS_LABEL, CLAIM_STATUS_STYLE, formatInr, errorMessage } from '../../api/claimsApi';
+import { claimsApi, Claim, CLAIM_STATUS_LABEL, CLAIM_STATUS_STYLE, formatInr, errorMessage, type EligibleCase } from '../../api/claimsApi';
 
 const CONSENT_POINTS = [
   'Prescription, invoice and claim-form documents of this case',
@@ -22,7 +22,7 @@ const PatientClaims: React.FC = () => {
   const [showSubmit, setShowSubmit] = useState(false);
 
   const [payers, setPayers] = useState<{ id: string; name: string }[]>([]);
-  const [cases, setCases] = useState<{ id: string; caseReference: string }[]>([]);
+  const [cases, setCases] = useState<EligibleCase[]>([]);
   const [form, setForm] = useState({ caseId: '', payerOrganizationId: '', claimedAmount: '', policyNumber: '' });
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -48,6 +48,8 @@ const PatientClaims: React.FC = () => {
   };
 
   useEffect(() => { void load(); }, []);
+
+  const selectedCase = cases.find((c) => c.id === form.caseId);
 
   const openSubmit = async () => {
     setShowSubmit(true);
@@ -345,7 +347,7 @@ const PatientClaims: React.FC = () => {
               <div>
                 <label htmlFor="claim-case" className="block font-semibold text-slate-700 mb-1">{t('Verified Case *')}</label>
                 <select id="claim-case" required value={form.caseId} onChange={(e) => setForm({ ...form, caseId: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
-                  {cases.map((c) => <option key={c.id} value={c.id}>{c.caseReference}</option>)}
+                  {cases.map((c) => <option key={c.id} value={c.id}>{c.caseReference}{c.subjectReference ? ` · ${c.subjectReference}` : ''}</option>)}
                 </select>
               </div>
               <div>
@@ -357,13 +359,16 @@ const PatientClaims: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="claim-amount" className="block font-semibold text-slate-700 mb-1">{t('Claimed Amount (₹) *')}</label>
-                  <input id="claim-amount" required type="number" min="0.01" step="0.01" value={form.claimedAmount} onChange={(e) => setForm({ ...form, claimedAmount: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 font-mono" />
+                  <input id="claim-amount" required type="number" min="0.01" step="0.01" max={selectedCase?.invoiceTotal ?? undefined} value={form.claimedAmount} onChange={(e) => setForm({ ...form, claimedAmount: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 font-mono" />
                 </div>
                 <div>
                   <label htmlFor="claim-policy" className="block font-semibold text-slate-700 mb-1">{t('Policy Number *')}</label>
                   <input id="claim-policy" required pattern="[A-Za-z0-9-]{4,64}" value={form.policyNumber} onChange={(e) => setForm({ ...form, policyNumber: e.target.value })} placeholder="SYN-POL-0001" className="w-full border border-slate-300 rounded-lg px-3 py-2 font-mono" />
                 </div>
               </div>
+              {selectedCase?.invoiceTotal != null && (
+                <p className="text-slate-600">{t('Verified pharmacy bill')}: <span className="font-mono font-semibold">{formatInr(selectedCase.invoiceTotal)}</span> · {t('you can claim up to this amount')}</p>
+              )}
               <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-4 space-y-2">
                 <p className="font-bold text-slate-800 flex items-center gap-1.5"><Lock className="w-4 h-4 text-teal-700" /> Data-sharing consent</p>
                 <p className="text-slate-600">{t('The selected insurer will be able to view, for 90 days and only for this claim:')}</p>

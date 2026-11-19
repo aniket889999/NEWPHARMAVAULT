@@ -24,6 +24,7 @@ const { notifyUsers, notifyOrganizationRoles } = require('../services/claims/not
 const { buildClaimBundle } = require('../services/fhir/fhirBundleBuilder');
 const { validateBundle } = require('../services/fhir/fhirR4Validator');
 const { setPagingHeaders } = require('../services/review/reviewPolicy');
+const { invoiceTotalForCase } = require('../services/claims/invoiceTotal');
 
 const PAYER_ROLES = ['payer_reviewer', 'payer_admin'];
 const PHARMACY_STAFF = ['pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'branch_manager'];
@@ -125,8 +126,9 @@ const listPayers = handle(async (req, res) => {
 });
 
 const listEligibleCases = handle(async (req, res) => {
-  const cases = await VerificationCase.find({ createdBy: req.user._id, status: 'VERIFIED' }).select('caseReference status updatedAt').sort('-updatedAt').limit(50).lean();
-  res.json(cases.map((c) => ({ id: String(c._id), caseReference: c.caseReference, status: c.status, updatedAt: c.updatedAt })));
+  const cases = await VerificationCase.find({ createdBy: req.user._id, status: 'VERIFIED' }).select('caseReference subjectReference status updatedAt').sort('-updatedAt').limit(50).lean();
+  const totals = await Promise.all(cases.map((c) => invoiceTotalForCase(c._id)));
+  res.json(cases.map((c, i) => ({ id: String(c._id), caseReference: c.caseReference, subjectReference: c.subjectReference || null, status: c.status, updatedAt: c.updatedAt, invoiceTotal: totals[i] })));
 });
 
 const submitClaim = handle(async (req, res) => {
@@ -140,6 +142,10 @@ const submitClaim = handle(async (req, res) => {
   const vCase = await VerificationCase.findOne({ _id: caseId, createdBy: req.user._id });
   if (!vCase) throw sm.controlled(404, 'CASE_NOT_FOUND', 'Verification case not found.');
   if (vCase.status !== 'VERIFIED') throw sm.controlled(409, 'CASE_NOT_VERIFIED', 'Only a case verified by a pharmacist can be submitted as a claim.');
+  const invoiceTotal = await invoiceTotalForCase(vCase._id);
+  if (invoiceTotal !== null && amount > invoiceTotal + 0.005) {
+    throw sm.controlled(400, 'CLAIM_EXCEEDS_INVOICE', `The claimed amount cannot be more than the verified pharmacy bill (₹${invoiceTotal.toFixed(2)}).`);
+  }
   const payer = await Organization.findOne({ _id: payerOrganizationId, kind: 'payer', status: 'active' });
   if (!payer) throw sm.controlled(404, 'PAYER_NOT_FOUND', 'Insurer not found.');
 
@@ -277,6 +283,13 @@ const payerGetClaim = handle(async (req, res) => {
     Organization.findById(claim.pharmacyOrganizationId).select('name').lean()
   ]);
 
+  const invoiceTotal = scope.has('extracted_fields') ? await invoiceTotalForCase(caseId) : null;
+  const amountCheck = {
+    invoiceTotal,
+    claimedAmount: claim.claimedAmount,
+    status: invoiceTotal === null ? 'UNKNOWN' : (claim.claimedAmount > invoiceTotal + 0.005 ? 'EXCEEDS_INVOICE' : 'WITHIN_INVOICE')
+  };
+
   await auditLoggerService.logEvent({ caseId, actorId: req.user._id, actorRole: req.user.role, action: 'PAYER_VIEWED_CASE', targetType: 'Claim', targetId: claim._id, metadata: { claimReference: claim.claimReference } });
 
   const strip = (rows) => rows.map(({ _id, ...rest }) => ({ id: String(_id), ...rest }));
@@ -290,6 +303,7 @@ const payerGetClaim = handle(async (req, res) => {
     consistencyChecks: strip(checks),
     riskSignals: strip(signals),
     reviewDecisions: strip(reviews),
+    amountCheck,
     reasonCodes: { rejected: sm.REJECTION_REASON_CODES, partial: sm.PARTIAL_REASON_CODES }
   });
 });

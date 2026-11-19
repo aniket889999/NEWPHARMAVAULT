@@ -104,7 +104,7 @@ components:
       properties:
         code:
           type: string
-          description: Stable machine code, e.g. CONSENT_REQUIRED, CASE_NOT_VERIFIED, INVALID_CLAIM_TRANSITION, CLAIM_CHANGED, CONSENT_INACTIVE
+          description: Stable machine code, e.g. CONSENT_REQUIRED, CASE_NOT_VERIFIED, CLAIM_EXCEEDS_INVOICE, INVALID_CLAIM_TRANSITION, CLAIM_CHANGED, CONSENT_INACTIVE
         message:
           type: string
       required: [ code, message ]
@@ -1587,8 +1587,12 @@ paths:
                   properties:
                     id: { type: string }
                     caseReference: { type: string }
+                    subjectReference: { type: [ string, 'null' ] }
                     status: { const: VERIFIED }
                     updatedAt: { type: string, format: date-time }
+                    invoiceTotal:
+                      type: [ number, 'null' ]
+                      description: Verified pharmacy bill total in INR from the case's invoice fields; null when unknown. A claim may not exceed it.
                   required: [ id, caseReference, status ]
 
   /claims:
@@ -1624,7 +1628,7 @@ paths:
               properties:
                 caseId: { type: string, pattern: '^[0-9a-fA-F]{24}$' }
                 payerOrganizationId: { type: string, pattern: '^[0-9a-fA-F]{24}$' }
-                claimedAmount: { type: number, exclusiveMinimum: 0, maximum: 10000000, multipleOf: 0.01 }
+                claimedAmount: { type: number, exclusiveMinimum: 0, maximum: 10000000, multipleOf: 0.01, description: "Must not exceed the case invoice total when it is known (400 CLAIM_EXCEEDS_INVOICE)." }
                 policyNumber: { type: string, pattern: '^[A-Za-z0-9-]{4,64}$' }
                 consent:
                   type: object
@@ -1848,6 +1852,13 @@ paths:
                   consistencyChecks: { type: array, items: { type: object } }
                   riskSignals: { type: array, items: { type: object } }
                   reviewDecisions: { type: array, items: { type: object } }
+                  amountCheck:
+                    type: object
+                    description: Claimed amount compared with the verified invoice total (a review prompt, not a decision).
+                    properties:
+                      invoiceTotal: { type: [ number, 'null' ] }
+                      claimedAmount: { type: number }
+                      status: { enum: [ WITHIN_INVOICE, EXCEEDS_INVOICE, UNKNOWN ] }
                   reasonCodes:
                     type: object
                     properties:

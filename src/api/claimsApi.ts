@@ -48,8 +48,11 @@ export interface PayerClaimDetail {
   consistencyChecks: { id: string; checkType: string; status: string; severity: string; message: string; reviewRequired?: boolean }[];
   riskSignals: { id: string; signalType: string; severity: string; description: string; reviewRequired?: boolean }[];
   reviewDecisions: { id: string; decision: string; reasonCode?: string; notes?: string; createdAt: string }[];
+  amountCheck?: { invoiceTotal: number | null; claimedAmount: number; status: 'WITHIN_INVOICE' | 'EXCEEDS_INVOICE' | 'UNKNOWN' };
   reasonCodes: { rejected: string[]; partial: string[] };
 }
+
+export interface EligibleCase { id: string; caseReference: string; subjectReference?: string | null; status: string; updatedAt: string; invoiceTotal?: number | null }
 
 export interface NotificationItem { id: string; type: string; title: string; body: string; link: string | null; readAt: string | null; createdAt: string; emailDelivery?: string }
 
@@ -86,7 +89,7 @@ export const errorMessage = (err: unknown, fallback: string) =>
 export const claimsApi = {
   // Claimant
   payers: async () => (await apiClient.get<{ id: string; name: string }[]>('/v1/claims/payers')).data,
-  eligibleCases: async () => (await apiClient.get<{ id: string; caseReference: string; status: string; updatedAt: string }[]>('/v1/claims/eligible-cases')).data,
+  eligibleCases: async () => (await apiClient.get<EligibleCase[]>('/v1/claims/eligible-cases')).data,
   myClaims: async () => (await apiClient.get<Claim[]>('/v1/claims')).data,
   submit: async (body: { caseId: string; payerOrganizationId: string; claimedAmount: number; policyNumber: string; consent: { accepted: boolean } }) =>
     (await apiClient.post<Claim>('/v1/claims', body)).data,

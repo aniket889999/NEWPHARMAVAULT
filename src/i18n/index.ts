@@ -53,6 +53,8 @@ const HI: Record<string, string> = {
   'The selected insurer will be able to view, for 90 days and only for this claim:': 'चुनी गई बीमा कंपनी 90 दिनों तक और केवल इस दावे के लिए यह देख सकेगी:',
   'You can withdraw the claim and revoke access before a decision is made.': 'निर्णय होने से पहले आप दावा वापस लेकर अनुमति हटा सकते हैं।',
   'I agree to share this case with the selected insurer.': 'मैं यह केस चुनी गई बीमा कंपनी के साथ साझा करने के लिए सहमत हूँ।',
+  'Verified pharmacy bill': 'सत्यापित फ़ार्मेसी बिल',
+  'you can claim up to this amount': 'आप इतनी राशि तक दावा कर सकते हैं',
   'Prescription, invoice and claim-form documents of this case': 'इस केस के पर्चे, बिल और दावा-फ़ॉर्म दस्तावेज़',
   'Extracted medicine fields, consistency checks and risk signals': 'निकाली गई दवा जानकारी, मिलान जाँच और जोखिम संकेत',
   'Pharmacist review decisions on this case': 'इस केस पर फ़ार्मासिस्ट के निर्णय',
