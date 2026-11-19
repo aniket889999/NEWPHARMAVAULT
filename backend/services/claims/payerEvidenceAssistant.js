@@ -27,7 +27,7 @@ const DECISION_REQUEST = /\b(?:(?:should|can|could|do|shall) (?:i|we) (?:approve
 const PAYER_DISCLAIMER = `${DISCLAIMER} Insurer view: answers use only the evidence the claimant consented to share for this claim.`;
 
 const SUGGESTED_QUESTIONS = Object.freeze([
-  'What strength is on the prescription and the invoice?',
+  'Compare the prescription and the invoice',
   'Does the quantity match between prescription and invoice?',
   'Which medicine is on this case?',
   'What is the case verification status?'

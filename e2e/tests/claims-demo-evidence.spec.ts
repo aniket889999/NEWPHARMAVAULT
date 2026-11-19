@@ -83,7 +83,7 @@ test.describe.serial('Demo claim on seeded evidence: claimant → insurer → se
     await page.getByRole('row', { name: new RegExp(ref) }).getByRole('link', { name: 'Open' }).click();
     const panel = page.getByTestId('payer-assistant');
     await expect(panel.getByRole('heading', { name: 'Evidence Assistant' })).toBeVisible();
-    await panel.getByRole('button', { name: 'What strength is on the prescription and the invoice?' }).click();
+    await panel.getByRole('button', { name: 'Compare the prescription and the invoice' }).click();
     const first = panel.getByTestId('assistant-answer').first();
     await expect(first).toBeVisible();
     await expect(first).toContainText('40');

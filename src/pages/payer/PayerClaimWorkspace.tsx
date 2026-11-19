@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { claimsApi, PayerClaimDetail, PayerAssistantAnswer, CLAIM_STATUS_LABEL, CLAIM_STATUS_STYLE, formatInr, errorMessage } from '../../api/claimsApi';
 
 const STARTER_QUESTIONS = [
-  'What strength is on the prescription and the invoice?',
+  'Compare the prescription and the invoice',
   'Does the quantity match between prescription and invoice?',
   'Which medicine is on this case?'
 ];

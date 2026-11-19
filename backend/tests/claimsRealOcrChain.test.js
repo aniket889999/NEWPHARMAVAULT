@@ -263,8 +263,10 @@ test('Claims real chain: upload → OCR → pharmacist → claim → insurer + e
 
   await t.test('A. insurer asks the evidence assistant: cited answer from both documents; it refuses to decide', async () => {
     const ask = (message, medicineItemId = null) => api('post', `/payer/claims/${claimId}/assistant/answers`, reviewer).send({ message, medicineItemId });
-    let answer = (await ask('What strength is on the prescription and the invoice?')).body;
-    if (answer.mode === 'CLARIFY' && answer.choices?.length) answer = (await ask('What strength is on the prescription and the invoice?', answer.choices[0].itemId)).body;
+    // A single-document question asks which item first (the reviewer picks); a comparison cites both documents.
+    const single = (await ask('What strength is on the prescription?')).body;
+    assert.ok(['LOCAL_CASE_EVIDENCE', 'CLARIFY'].includes(single.mode), JSON.stringify(single));
+    const answer = (await ask('Compare the prescription and the invoice')).body;
     assert.equal(answer.mode, 'LOCAL_CASE_EVIDENCE', JSON.stringify(answer));
     assert.match(answer.reply, /500/);
     const rx = matching.documents.find((d) => d.type === 'PRESCRIPTION').id;
