@@ -171,8 +171,8 @@ jobs:
             "${{ secrets.STAGING_HOST }}" "${{ secrets.STAGING_USER }}" > ~/.ssh/config
       - name: Ship the compose file and record the running version for rollback
         run: |
-          # shellcheck disable=SC2029 # values are expanded on the runner on purpose
           scp docker-compose.staging.yml staging:"$DEPLOY_DIR/docker-compose.staging.yml"
+          # shellcheck disable=SC2029 # values are expanded on the runner on purpose
           ssh staging "cd '$DEPLOY_DIR' && touch .deployed && cp .deployed .previous"
       - name: Pull and start the new image digests
         run: |
