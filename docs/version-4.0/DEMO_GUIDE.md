@@ -55,8 +55,9 @@ Restarting terminal 1 wipes the data: run `npm run seed:all` again.
 12. Claimant → *Insurance Claims*: one finished claim (approved, simulated settlement) is already there as history.
 13. *New Claim* → case `PV-DEMO-ANANYA-002 · Pantoprazole 40` → the form shows **Verified pharmacy bill ₹230.00**. Insurer *Sahyog Health Assurance (Demo)*, amount up to ₹230, policy `SYN-POL-24018`, tick consent → *Submit Claim*. A claim above the bill is refused by the server.
 14. Reviewer & Insurer → Staff role *Insurer claims reviewer* (`rohit.mehta@…`) → *Claims Queue* → open the claim. Show: **Within the verified bill**, the prescription and invoice images (*View*), extracted fields, the low-confidence signal the claimant confirmed, and the pharmacist's decision note.
-15. *Start Review* → raise a query, or *Approve* / *Partial* / *Reject* with a note → claimant sees the decision and can appeal once (a different insurer user decides the appeal).
-16. Insurer administrator (`kavya.iyer@…`) → open the approved claim → *Mark Settled (demo)* → claimant sees the settlement reference (simulated, no payment).
+15. *Start Review* → raise a query, or *Approve* / *Partial* / *Reject* with a note → claimant sees the decision and the date until which they can appeal (7 days, once; a different insurer user decides the appeal — the original reviewer sees that they cannot decide it).
+16. Insurer administrator (`kavya.iyer@…`) → open the approved claim → *Mark Settled (demo)* → claimant sees the settled amount and reference (simulated, no payment). A **partial** approval can be settled only after the claimant clicks *Accept Decision*, appeals, or the 7 days pass.
+17. Show the double-claim guard: *New Claim* again → `PV-DEMO-ANANYA-001` and `-002` are greyed out as **already claimed**. One bill is never paid twice: one open claim per case across insurers, an insurer that decided is not asked again, and a second insurer can only be asked for the part of the bill not yet approved.
 
 Live demo tip: each run of `npm run seed:all` resets nothing it already created; to repeat step 13, restart `mongo:local` (fresh in-memory data) and seed again.
 

@@ -50,6 +50,9 @@ const PatientClaims: React.FC = () => {
   useEffect(() => { void load(); }, []);
 
   const selectedCase = cases.find((c) => c.id === form.caseId);
+  const claimableCases = cases.filter((c) => c.claimable !== false);
+  // The most the claimant may still claim on the selected case: bill minus what insurers already approved.
+  const claimLimit = selectedCase?.remainingAmount ?? selectedCase?.invoiceTotal ?? null;
 
   const openSubmit = async () => {
     setShowSubmit(true);
@@ -57,7 +60,8 @@ const PatientClaims: React.FC = () => {
       const [p, c] = await Promise.all([claimsApi.payers(), claimsApi.eligibleCases()]);
       setPayers(p);
       setCases(c);
-      setForm((f) => ({ ...f, caseId: c[0]?.id || '', payerOrganizationId: p[0]?.id || '' }));
+      const firstClaimable = c.find((x) => x.claimable !== false);
+      setForm((f) => ({ ...f, caseId: firstClaimable?.id || '', payerOrganizationId: p[0]?.id || '' }));
     } catch (err) {
       toast.error(errorMessage(err, 'Could not load insurers or verified cases.'));
     }
@@ -124,6 +128,20 @@ const PatientClaims: React.FC = () => {
       setAppealReason('');
     } catch (err) {
       toast.error(errorMessage(err, 'Appeal could not be sent.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const acceptPartial = async (claim: Claim) => {
+    if (!claim.decision) return;
+    if (!(await confirm({ title: t('Accept the partial approval?'), message: `You accept ${formatInr(claim.decision.approvedAmount)} for claim ${claim.claimReference}. The insurer can then settle it, and you can no longer appeal.`, confirmLabel: t('Accept Decision') }))) return;
+    setBusy(true);
+    try {
+      replace(await claimsApi.acceptDecision(claim.id));
+      toast.success(t('Decision accepted. The insurer can now settle the claim.'));
+    } catch (err) {
+      toast.error(errorMessage(err, 'Decision could not be accepted.'));
     } finally {
       setBusy(false);
     }
@@ -232,6 +250,15 @@ const PatientClaims: React.FC = () => {
                   <p className="text-xs font-bold text-slate-800 mb-1">Insurer decision · {t(CLAIM_STATUS_LABEL[selected.decision.decision])}</p>
                   <p className="text-xs text-slate-700">Approved amount: <span className="font-mono font-semibold">{formatInr(selected.decision.approvedAmount)}</span>{selected.decision.reasonCode ? ` · Reason: ${selected.decision.reasonCode.replace(/_/g, ' ').toLowerCase()}` : ''}</p>
                   <p className="text-xs text-slate-600 mt-2 leading-relaxed">{selected.decision.note}</p>
+                  {selected.appealDeadline && (
+                    <p data-testid="appeal-deadline" className="text-xs text-slate-500 mt-2">
+                      {t('You can appeal until')} {new Date(selected.appealDeadline).toLocaleDateString('en-IN')}.
+                      {selected.status === 'PARTIALLY_APPROVED' ? ` ${t('The insurer settles the approved amount after you accept or this date passes.')}` : ''}
+                    </p>
+                  )}
+                  {selected.decisionAcceptedAt && (
+                    <p className="text-xs font-semibold text-emerald-800 mt-2">{t('You accepted this decision on')} {new Date(selected.decisionAcceptedAt).toLocaleDateString('en-IN')}.</p>
+                  )}
                 </div>
               )}
               {selected.appeal && (
@@ -245,7 +272,7 @@ const PatientClaims: React.FC = () => {
               )}
               {selected.settlement && (
                 <p className="text-xs rounded-lg bg-slate-50 border border-slate-200 p-3 text-slate-600">
-                  Settlement reference {selected.settlement.reference}. This is a simulated settlement; no payment was made.
+                  {selected.settlement.amount != null ? <>Settled amount <span className="font-mono font-semibold">{formatInr(selected.settlement.amount)}</span> · </> : null}Settlement reference {selected.settlement.reference}. This is a simulated settlement; no payment was made.
                 </p>
               )}
 
@@ -295,7 +322,12 @@ const PatientClaims: React.FC = () => {
                 <Link to={`/cases/${selected.caseId}`} className="text-xs font-semibold text-teal-700 hover:text-teal-800 flex items-center gap-1">
                   View verification case <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
-                {['REJECTED', 'PARTIALLY_APPROVED'].includes(selected.status) && !selected.appeal && (
+                {selected.status === 'PARTIALLY_APPROVED' && !selected.decisionAcceptedAt && (
+                  <button disabled={busy} onClick={() => acceptPartial(selected)} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-50">
+                    {t('Accept Decision')}
+                  </button>
+                )}
+                {['REJECTED', 'PARTIALLY_APPROVED'].includes(selected.status) && !selected.appeal && selected.appealDeadline !== null && !selected.decisionAcceptedAt && (
                   <button disabled={busy} onClick={() => setAppealFor(selected.id)} className="px-3 py-1.5 rounded-lg border border-purple-200 text-purple-800 hover:bg-purple-50 text-xs font-semibold disabled:opacity-50">
                     {t('Appeal Decision')}
                   </button>
@@ -344,11 +376,21 @@ const PatientClaims: React.FC = () => {
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" /> You have no pharmacist-verified case yet. Only verified cases can be claimed.
                 </p>
               )}
+              {cases.length > 0 && claimableCases.length === 0 && (
+                <p className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-amber-900 flex gap-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {t('All your verified cases are already claimed or have an open claim.')}
+                </p>
+              )}
               <div>
                 <label htmlFor="claim-case" className="block font-semibold text-slate-700 mb-1">{t('Verified Case *')}</label>
                 <select id="claim-case" required value={form.caseId} onChange={(e) => setForm({ ...form, caseId: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
-                  {cases.map((c) => <option key={c.id} value={c.id}>{c.caseReference}{c.subjectReference ? ` · ${c.subjectReference}` : ''}</option>)}
+                  {cases.map((c) => (
+                    <option key={c.id} value={c.id} disabled={c.claimable === false}>
+                      {c.caseReference}{c.subjectReference ? ` · ${c.subjectReference}` : ''}{c.claimable === false ? ` · ${c.blockedCode === 'CASE_FULLY_CLAIMED' ? t('already claimed') : t('claim open')}` : ''}
+                    </option>
+                  ))}
                 </select>
+                {selectedCase?.claimable === false && selectedCase.blockedReason && <p className="mt-1 text-amber-800">{selectedCase.blockedReason}</p>}
               </div>
               <div>
                 <label htmlFor="claim-payer" className="block font-semibold text-slate-700 mb-1">{t('Insurer *')}</label>
@@ -359,7 +401,7 @@ const PatientClaims: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="claim-amount" className="block font-semibold text-slate-700 mb-1">{t('Claimed Amount (₹) *')}</label>
-                  <input id="claim-amount" required type="number" min="0.01" step="0.01" max={selectedCase?.invoiceTotal ?? undefined} value={form.claimedAmount} onChange={(e) => setForm({ ...form, claimedAmount: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 font-mono" />
+                  <input id="claim-amount" required type="number" min="0.01" step="0.01" max={claimLimit ?? undefined} value={form.claimedAmount} onChange={(e) => setForm({ ...form, claimedAmount: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 font-mono" />
                 </div>
                 <div>
                   <label htmlFor="claim-policy" className="block font-semibold text-slate-700 mb-1">{t('Policy Number *')}</label>
@@ -367,7 +409,11 @@ const PatientClaims: React.FC = () => {
                 </div>
               </div>
               {selectedCase?.invoiceTotal != null && (
-                <p className="text-slate-600">{t('Verified pharmacy bill')}: <span className="font-mono font-semibold">{formatInr(selectedCase.invoiceTotal)}</span> · {t('you can claim up to this amount')}</p>
+                <p data-testid="claim-limit" className="text-slate-600">
+                  {t('Verified pharmacy bill')}: <span className="font-mono font-semibold">{formatInr(selectedCase.invoiceTotal)}</span>
+                  {selectedCase.approvedSoFar ? <> · {t('already approved')}: <span className="font-mono font-semibold">{formatInr(selectedCase.approvedSoFar)}</span></> : null}
+                  {' · '}{t('you can claim up to')} <span className="font-mono font-semibold">{formatInr(claimLimit)}</span>
+                </p>
               )}
               <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-4 space-y-2">
                 <p className="font-bold text-slate-800 flex items-center gap-1.5"><Lock className="w-4 h-4 text-teal-700" /> Data-sharing consent</p>
@@ -381,7 +427,7 @@ const PatientClaims: React.FC = () => {
               </div>
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button type="button" onClick={() => setShowSubmit(false)} className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg font-medium">{t('Cancel')}</button>
-                <button type="submit" disabled={submitting || !consent || cases.length === 0} className="bg-teal-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50">
+                <button type="submit" disabled={submitting || !consent || !selectedCase || selectedCase.claimable === false} className="bg-teal-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50">
                   {submitting ? 'Submitting…' : 'Submit Claim'}
                 </button>
               </div>

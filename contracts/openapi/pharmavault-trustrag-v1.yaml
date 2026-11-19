@@ -104,7 +104,7 @@ components:
       properties:
         code:
           type: string
-          description: Stable machine code, e.g. CONSENT_REQUIRED, CASE_NOT_VERIFIED, CLAIM_EXCEEDS_INVOICE, INVALID_CLAIM_TRANSITION, CLAIM_CHANGED, CONSENT_INACTIVE
+          description: Stable machine code, e.g. CONSENT_REQUIRED, CASE_NOT_VERIFIED, CLAIM_EXCEEDS_INVOICE, DUPLICATE_OPEN_CLAIM, CASE_HAS_OPEN_CLAIM, ALREADY_DECIDED_BY_PAYER, CASE_FULLY_CLAIMED, APPEAL_WINDOW_CLOSED, APPEAL_WINDOW_OPEN, DECISION_ACCEPTED, INVALID_CLAIM_TRANSITION, CLAIM_CHANGED, CONSENT_INACTIVE
         message:
           type: string
       required: [ code, message ]
@@ -1593,6 +1593,13 @@ paths:
                     invoiceTotal:
                       type: [ number, 'null' ]
                       description: Verified pharmacy bill total in INR from the case's invoice fields; null when unknown. A claim may not exceed it.
+                    approvedSoFar: { type: number, description: Amount insurers already approved or settled on this bill. }
+                    remainingAmount:
+                      type: [ number, 'null' ]
+                      description: invoiceTotal minus approvedSoFar (never below 0); null when the bill total is unknown. The most a new claim may ask for.
+                    claimable: { type: boolean, description: False while another claim on the case is open or when the bill is fully approved. }
+                    blockedReason: { type: [ string, 'null' ] }
+                    blockedCode: { type: [ string, 'null' ], enum: [ CASE_HAS_OPEN_CLAIM, CASE_FULLY_CLAIMED, null ] }
                   required: [ id, caseReference, status ]
 
   /claims:
@@ -1613,7 +1620,11 @@ paths:
                   $ref: '#/components/schemas/Claim'
     post:
       summary: Submit a claim on a VERIFIED case with explicit data-sharing consent
-      description: Creates a CaseShareGrant (all scopes, 90-day expiry) for the chosen insurer and a SUBMITTED claim. One open claim per case and insurer.
+      description: >-
+        Creates a CaseShareGrant (all scopes, 90-day expiry) for the chosen insurer and a SUBMITTED claim.
+        One pharmacy bill is never paid twice: only one open claim per case across all insurers (409 DUPLICATE_OPEN_CLAIM / CASE_HAS_OPEN_CLAIM),
+        no new claim with an insurer that already decided one on this case (409 ALREADY_DECIDED_BY_PAYER), none once the bill is fully approved
+        (409 CASE_FULLY_CLAIMED), and never more than the part of the bill not yet approved (400 CLAIM_EXCEEDS_INVOICE).
       operationId: submitClaim
       security:
         - bearerAuth: [ "patient" ]
@@ -1628,7 +1639,7 @@ paths:
               properties:
                 caseId: { type: string, pattern: '^[0-9a-fA-F]{24}$' }
                 payerOrganizationId: { type: string, pattern: '^[0-9a-fA-F]{24}$' }
-                claimedAmount: { type: number, exclusiveMinimum: 0, maximum: 10000000, multipleOf: 0.01, description: "Must not exceed the case invoice total when it is known (400 CLAIM_EXCEEDS_INVOICE)." }
+                claimedAmount: { type: number, exclusiveMinimum: 0, maximum: 10000000, multipleOf: 0.01, description: "Must not exceed the case invoice total minus amounts other insurers already approved, when the total is known (400 CLAIM_EXCEEDS_INVOICE)." }
                 policyNumber: { type: string, pattern: '^[A-Za-z0-9-]{4,64}$' }
                 consent:
                   type: object
@@ -1764,7 +1775,9 @@ paths:
   /claims/{claimId}/appeal:
     post:
       summary: Claimant appeals a REJECTED or PARTIALLY_APPROVED decision (once)
-      description: Requires an active consent grant. A different insurer reviewer must decide the appeal (403 FOUR_EYES_APPEAL otherwise).
+      description: >-
+        Requires an active consent grant and must be sent within 7 days of the decision (409 APPEAL_WINDOW_CLOSED) and before the claimant
+        accepted it (409 DECISION_ACCEPTED). A different insurer reviewer must decide the appeal (403 FOUR_EYES_APPEAL otherwise).
       operationId: appealClaim
       security:
         - bearerAuth: [ "patient" ]
@@ -1788,6 +1801,29 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Claim' }
         '400':
+          $ref: '#/components/responses/ClaimsError'
+        '409':
+          $ref: '#/components/responses/ClaimsError'
+
+  /claims/{claimId}/accept-decision:
+    post:
+      summary: Claimant accepts a PARTIALLY_APPROVED decision
+      description: >-
+        Gives up the appeal so the insurer can settle the approved amount. Without acceptance a partial approval can be settled only after
+        the 7-day appeal window ends or an appeal was used. The claim status stays PARTIALLY_APPROVED; decisionAcceptedAt is set and audited.
+      operationId: acceptClaimDecision
+      security:
+        - bearerAuth: [ "patient" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Claim with decisionAcceptedAt set
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Claim' }
+        '404':
           $ref: '#/components/responses/ClaimsError'
         '409':
           $ref: '#/components/responses/ClaimsError'
@@ -1857,8 +1893,18 @@ paths:
                     description: Claimed amount compared with the verified invoice total (a review prompt, not a decision).
                     properties:
                       invoiceTotal: { type: [ number, 'null' ] }
+                      approvedElsewhere: { type: number, description: Amount other insurers already approved on the same bill (amount only). }
                       claimedAmount: { type: number }
                       status: { enum: [ WITHIN_INVOICE, EXCEEDS_INVOICE, UNKNOWN ] }
+                  settleCheck:
+                    type: object
+                    description: Whether this user can mark the claim settled now, and why not.
+                    properties:
+                      allowed: { type: boolean }
+                      reason: { type: [ string, 'null' ] }
+                  youDecidedAppealedDecision:
+                    type: boolean
+                    description: True when this reviewer made the decision under appeal; a different reviewer must decide it.
                   reasonCodes:
                     type: object
                     properties:
@@ -2016,6 +2062,9 @@ paths:
   /payer/claims/{claimId}/settle:
     post:
       summary: Mark an approved claim settled (simulated, no payment moves)
+      description: >-
+        Records the approved amount as settlement.amount. A PARTIALLY_APPROVED claim can be settled only after the claimant accepted it,
+        used the appeal, or the 7-day appeal window ended (409 APPEAL_WINDOW_OPEN otherwise).
       operationId: settlePayerClaim
       security:
         - bearerAuth: [ "payer_admin" ]

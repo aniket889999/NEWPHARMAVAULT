@@ -99,6 +99,53 @@ test.describe.serial('Claims golden flow (claimant ↔ insurer)', () => {
     await page.getByRole('button', { name: new RegExp(claimReference) }).click();
     await expect(page.getByText('Insurer decision · Partially approved')).toBeVisible();
     await expect(page.getByText('Policy covers up to 300 for this medicine per claim.')).toBeVisible();
+    await expect(page.getByTestId('appeal-deadline')).toContainText('You can appeal until');
+    await page.context().close();
+  });
+
+  test('insurer admin cannot settle a partial approval while the claimant can still appeal', async ({ browser }) => {
+    const page = await newPage(browser);
+    await signIn(page, { tab: 'claims_reviewer', staffRole: 'payer_admin', email: 'insureradmin@test.com' });
+    await page.waitForURL('**/payer/**');
+    await page.goto('/payer/claims');
+    await page.getByPlaceholder('Claim reference').fill(claimReference);
+    await page.getByRole('row', { name: new RegExp(claimReference) }).getByRole('link', { name: 'Open' }).click();
+    await expect(page.getByTestId('settle-check')).toContainText('Waiting for the claimant to accept or appeal');
+    await expect(page.getByRole('button', { name: 'Mark Settled (demo)' })).toBeDisabled();
+    await page.context().close();
+  });
+
+  test('claimant accepts the partial approval', async ({ browser }) => {
+    const page = await newPage(browser);
+    await signIn(page, { tab: 'patient', email: 'patient@test.com' });
+    await page.waitForURL('**/patient/dashboard');
+    await page.goto('/patient/claims');
+    await page.getByRole('button', { name: new RegExp(claimReference) }).click();
+    await page.getByRole('button', { name: 'Accept Decision' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Accept Decision' }).click();
+    await expect(page.getByText(/You accepted this decision on/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Appeal Decision' })).toHaveCount(0);
+    await page.context().close();
+  });
+
+  test('insurer admin settles the approved ₹300 and the claimant sees it', async ({ browser }) => {
+    const admin = await newPage(browser);
+    await signIn(admin, { tab: 'claims_reviewer', staffRole: 'payer_admin', email: 'insureradmin@test.com' });
+    await admin.waitForURL('**/payer/**');
+    await admin.goto('/payer/claims');
+    await admin.getByPlaceholder('Claim reference').fill(claimReference);
+    await admin.getByRole('row', { name: new RegExp(claimReference) }).getByRole('link', { name: 'Open' }).click();
+    await expect(admin.getByText(/Claimant accepted this decision/)).toBeVisible();
+    await admin.getByRole('button', { name: 'Mark Settled (demo)' }).click();
+    await expect(admin.getByText('Marked settled (simulated)')).toBeVisible();
+    await admin.context().close();
+
+    const page = await newPage(browser);
+    await signIn(page, { tab: 'patient', email: 'patient@test.com' });
+    await page.waitForURL('**/patient/dashboard');
+    await page.goto('/patient/claims');
+    await page.getByRole('button', { name: new RegExp(claimReference) }).click();
+    await expect(page.getByText(/Settled amount/)).toContainText('₹300');
     await page.context().close();
   });
 });

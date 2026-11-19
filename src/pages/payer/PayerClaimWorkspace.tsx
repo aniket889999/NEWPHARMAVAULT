@@ -125,7 +125,7 @@ const PayerClaimWorkspace: React.FC = () => {
                 </button>
               )}
               {user?.role === 'payer_admin' && ['APPROVED', 'PARTIALLY_APPROVED'].includes(claim.status) && (
-                <button disabled={busy} onClick={() => run(() => claimsApi.settle(claimId), 'Marked settled (simulated)')} className="px-3 py-2 rounded-lg bg-slate-800 text-white text-xs font-semibold disabled:opacity-50">Mark Settled (demo)</button>
+                <button disabled={busy || data.settleCheck?.allowed === false} title={data.settleCheck?.reason || undefined} onClick={() => run(() => claimsApi.settle(claimId), 'Marked settled (simulated)')} className="px-3 py-2 rounded-lg bg-slate-800 text-white text-xs font-semibold disabled:opacity-50">Mark Settled (demo)</button>
               )}
               <button onClick={downloadFhir} className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-50">
                 <Download className="w-3.5 h-3.5" /> FHIR Bundle
@@ -133,6 +133,15 @@ const PayerClaimWorkspace: React.FC = () => {
             </div>
           </div>
         </div>
+        {['APPROVED', 'PARTIALLY_APPROVED'].includes(claim.status) && data.settleCheck?.reason && (
+          <p data-testid="settle-check" className="mt-3 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{data.settleCheck.reason}</p>
+        )}
+        {claim.decisionAcceptedAt && (
+          <p className="mt-3 text-[11px] text-emerald-800">Claimant accepted this decision on {new Date(claim.decisionAcceptedAt).toLocaleDateString('en-IN')}.</p>
+        )}
+        {claim.settlement && (
+          <p className="mt-3 text-[11px] text-slate-600">Settled {claim.settlement.amount != null ? formatInr(claim.settlement.amount) : ''} · {claim.settlement.reference} (simulated, no payment moved)</p>
+        )}
         <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-4 gap-3 text-[11px]">
           <p className="flex items-center gap-1.5 text-slate-500"><Lock className="w-3.5 h-3.5 text-indigo-600" /> Consent valid until {new Date(data.consent.expiresAt).toLocaleDateString('en-IN')}</p>
           {data.amountCheck && (
@@ -143,6 +152,7 @@ const PayerClaimWorkspace: React.FC = () => {
                 : data.amountCheck.status === 'EXCEEDS_INVOICE'
                   ? `Claimed amount is more than the verified bill (${formatInr(data.amountCheck.invoiceTotal)})`
                   : `Within the verified bill of ${formatInr(data.amountCheck.invoiceTotal)}`}
+              {data.amountCheck.approvedElsewhere ? ` (${formatInr(data.amountCheck.approvedElsewhere)} already approved by another insurer)` : ''}
             </p>
           )}
           <p className={`flex items-center gap-1.5 ${unresolved ? 'text-amber-700' : 'text-emerald-700'}`}>
@@ -273,6 +283,8 @@ const PayerClaimWorkspace: React.FC = () => {
                 <p className="text-slate-600">{claim.decision.note}</p>
                 <p className="text-slate-400">{new Date(claim.decision.decidedAt).toLocaleString('en-IN')}</p>
               </div>
+            ) : claim.status === 'UNDER_PAYER_REVIEW' && data.youDecidedAppealedDecision ? (
+              <p data-testid="four-eyes-note" className="text-xs text-purple-800">You made the decision that is under appeal. A different reviewer at your organization must decide it.</p>
             ) : claim.status !== 'UNDER_PAYER_REVIEW' ? (
               <p className="text-xs text-slate-500">{claim.status === 'SUBMITTED' || claim.status === 'APPEALED' ? 'Start the review to record a decision.' : claim.status === 'QUERY_RAISED' ? 'Waiting for the claimant to answer your query.' : 'No decision can be recorded in this state.'}</p>
             ) : (

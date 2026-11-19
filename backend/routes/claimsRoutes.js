@@ -15,6 +15,7 @@ router.get('/claims/:claimId', authorize('patient'), c.getMyClaim);
 router.post('/claims/:claimId/queries/:queryId/answer', authorize('patient'), c.answerQuery);
 router.post('/claims/:claimId/withdraw', authorize('patient'), c.withdrawClaim);
 router.post('/claims/:claimId/appeal', authorize('patient'), c.appealClaim);
+router.post('/claims/:claimId/accept-decision', authorize('patient'), c.acceptDecision);
 
 // Insurer (payer tenant)
 router.get('/payer/claims', authorize(...c.PAYER_ROLES), c.payerListClaims);

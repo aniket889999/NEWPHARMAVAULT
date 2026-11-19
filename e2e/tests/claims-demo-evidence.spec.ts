@@ -104,7 +104,35 @@ test.describe.serial('Demo claim on seeded evidence: claimant → insurer → se
     await page.goto('/patient/claims');
     await page.getByRole('button', { name: new RegExp(ref) }).click();
     await expect(page.getByText(/simulated settlement/i)).toBeVisible();
+    await expect(page.getByText(/Settled amount/)).toContainText('₹230');
     await page.context().close();
+  });
+
+  test('a settled bill cannot be claimed again, with any insurer', async ({ browser, request }) => {
+    const page = await as(browser, CLAIMANT);
+    await page.goto('/patient/claims');
+    await page.getByRole('button', { name: 'New Claim' }).click();
+    const option = page.locator('#claim-case option', { hasText: CASE_REF });
+    await expect(option).toContainText('already claimed');
+    await expect(option).toBeDisabled();
+    // The seeded case 001 was settled in full earlier, so it is blocked too.
+    await expect(page.locator('#claim-case option', { hasText: 'PV-DEMO-ANANYA-001' })).toBeDisabled();
+    await page.context().close();
+
+    const login = await request.post(`${API}/users/login`, { data: { email: CLAIMANT.email, password: DEMO_PASSWORD, role: 'patient' } });
+    const auth = { Authorization: `Bearer ${(await login.json()).token}` };
+    const cases = await (await request.get(`${API}/v1/claims/eligible-cases`, { headers: auth })).json();
+    const demo = cases.find((c: { caseReference: string }) => c.caseReference === CASE_REF);
+    expect([demo.claimable, demo.remainingAmount, demo.blockedCode]).toEqual([false, 0, 'CASE_FULLY_CLAIMED']);
+    const payers = await (await request.get(`${API}/v1/claims/payers`, { headers: auth })).json();
+    for (const payer of payers) {
+      const res = await request.post(`${API}/v1/claims`, {
+        headers: auth,
+        data: { caseId: demo.id, payerOrganizationId: payer.id, claimedAmount: 10, policyNumber: 'SYN-POL-AGAIN', consent: { accepted: true } }
+      });
+      expect(res.status(), `re-claim with ${payer.name}`).toBe(409);
+      expect(['ALREADY_DECIDED_BY_PAYER', 'CASE_FULLY_CLAIMED']).toContain((await res.json()).code);
+    }
   });
 
   test('seeded history: the insurer queue already holds a settled demo claim', async ({ browser }) => {

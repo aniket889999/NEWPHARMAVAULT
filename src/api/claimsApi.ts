@@ -26,7 +26,10 @@ export interface Claim {
   payerName?: string;
   queries: ClaimQuery[];
   decision: ClaimDecision | null;
-  settlement: { reference: string; settledAt: string; simulated: true } | null;
+  decisionAcceptedAt?: string | null;
+  /** Last day to appeal; null when the decision cannot be appealed (any more). */
+  appealDeadline?: string | null;
+  settlement: { reference: string; settledAt: string; amount?: number | null; simulated: true } | null;
   history: { status: ClaimStatus; at: string; byRole: string }[];
   appeal: null | { count: number; reason: string; appealedAt: string; previousDecision: ClaimDecision | null };
   createdAt: string;
@@ -48,11 +51,24 @@ export interface PayerClaimDetail {
   consistencyChecks: { id: string; checkType: string; status: string; severity: string; message: string; reviewRequired?: boolean }[];
   riskSignals: { id: string; signalType: string; severity: string; description: string; reviewRequired?: boolean }[];
   reviewDecisions: { id: string; decision: string; reasonCode?: string; notes?: string; createdAt: string }[];
-  amountCheck?: { invoiceTotal: number | null; claimedAmount: number; status: 'WITHIN_INVOICE' | 'EXCEEDS_INVOICE' | 'UNKNOWN' };
+  amountCheck?: { invoiceTotal: number | null; approvedElsewhere?: number; claimedAmount: number; status: 'WITHIN_INVOICE' | 'EXCEEDS_INVOICE' | 'UNKNOWN' };
+  settleCheck?: { allowed: boolean; reason: string | null };
+  /** True when this reviewer made the decision now under appeal (four-eyes: someone else must decide). */
+  youDecidedAppealedDecision?: boolean;
   reasonCodes: { rejected: string[]; partial: string[] };
 }
 
-export interface EligibleCase { id: string; caseReference: string; subjectReference?: string | null; status: string; updatedAt: string; invoiceTotal?: number | null }
+export interface EligibleCase {
+  id: string; caseReference: string; subjectReference?: string | null; status: string; updatedAt: string;
+  invoiceTotal?: number | null;
+  /** Already approved by insurers on this bill. */
+  approvedSoFar?: number;
+  /** Part of the verified bill still claimable; null when the bill total is unknown. */
+  remainingAmount?: number | null;
+  claimable?: boolean;
+  blockedReason?: string | null;
+  blockedCode?: string | null;
+}
 
 export interface NotificationItem { id: string; type: string; title: string; body: string; link: string | null; readAt: string | null; createdAt: string; emailDelivery?: string }
 
@@ -97,6 +113,7 @@ export const claimsApi = {
     (await apiClient.post<Claim>(`/v1/claims/${claimId}/queries/${queryId}/answer`, { answer })).data,
   withdraw: async (claimId: string) => (await apiClient.post<Claim>(`/v1/claims/${claimId}/withdraw`, {})).data,
   appeal: async (claimId: string, reason: string) => (await apiClient.post<Claim>(`/v1/claims/${claimId}/appeal`, { reason })).data,
+  acceptDecision: async (claimId: string) => (await apiClient.post<Claim>(`/v1/claims/${claimId}/accept-decision`, {})).data,
 
   // Insurer
   /** Server-side paged insurer queue; totals come from X-Total-Count. */

@@ -136,7 +136,7 @@ async function upsertUser({ email, name, role, organizationId }) {
         caseId: caseOne._id, claimantId: claimant._id, pharmacyOrganizationId: caseOne.organizationId || pharmacyOrg?._id, payerOrganizationId: insurer._id, shareGrantId: grant._id,
         policyNumber: 'SYN-POL-24017', claimedAmount: 139.5, status: 'SETTLED', reviewStartedAt: new Date(t0 + 0.2 * day),
         decision: { decision: 'APPROVED', approvedAmount: 139.5, reasonCode: null, note: 'Bill matches the verified prescription; medicines are covered under the outpatient benefit.', decidedBy: reviewer._id, decidedAt: new Date(t0 + day) },
-        settlement: { reference: 'SIM-SETTLE-0001', settledAt: new Date(t0 + 2 * day), simulated: true },
+        settlement: { reference: 'SIM-SETTLE-0001', amount: 139.5, settledAt: new Date(t0 + 2 * day), simulated: true },
         history: [
           { status: 'SUBMITTED', at: new Date(t0), byRole: 'patient', by: claimant._id },
           { status: 'UNDER_PAYER_REVIEW', at: new Date(t0 + 0.2 * day), byRole: 'payer_reviewer', by: reviewer._id },
