@@ -3,10 +3,17 @@ import { useConfirm } from '../../components/common/ConfirmDialog';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  ChevronLeft, FileText, AlertTriangle, CheckCircle2, ShieldCheck, MessageSquare, Download, Play, Lock, Eye, X, Gavel
+  ChevronLeft, FileText, AlertTriangle, CheckCircle2, ShieldCheck, MessageSquare, Download, Play, Lock, Eye, X, Gavel, Sparkles, Send
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { claimsApi, PayerClaimDetail, CLAIM_STATUS_LABEL, CLAIM_STATUS_STYLE, formatInr, errorMessage } from '../../api/claimsApi';
+import { claimsApi, PayerClaimDetail, PayerAssistantAnswer, CLAIM_STATUS_LABEL, CLAIM_STATUS_STYLE, formatInr, errorMessage } from '../../api/claimsApi';
+
+const STARTER_QUESTIONS = [
+  'What strength is on the prescription and the invoice?',
+  'Does the quantity match between prescription and invoice?',
+  'Which medicine is on this case?'
+];
+type AssistantTurn = { question: string; answer?: PayerAssistantAnswer; error?: string };
 
 const severityStyle = (s: string) =>
   /high|critical/i.test(s) ? 'bg-rose-50 text-rose-700 border-rose-200' : /medium|warn/i.test(s) ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200';
@@ -25,6 +32,9 @@ const PayerClaimWorkspace: React.FC = () => {
   const [reasonCode, setReasonCode] = useState('');
   const [note, setNote] = useState('');
   const [preview, setPreview] = useState<{ url: string; type: string; title: string } | null>(null);
+  const [askText, setAskText] = useState('');
+  const [asking, setAsking] = useState(false);
+  const [turns, setTurns] = useState<AssistantTurn[]>([]);
 
   const load = async () => {
     try {
@@ -62,6 +72,23 @@ const PayerClaimWorkspace: React.FC = () => {
       setPreview({ url: URL.createObjectURL(blob), type: mimeType, title });
     } catch (err) {
       toast.error(errorMessage(err, 'Document could not be opened.'));
+    }
+  };
+
+  const ask = async (question: string, medicineItemId: string | null = null) => {
+    const q = question.trim();
+    if (!q || asking) return;
+    setAsking(true);
+    setAskText('');
+    setTurns((t) => [...t, { question: q }]);
+    try {
+      const answer = await claimsApi.askAssistant(claimId, q, medicineItemId);
+      setTurns((t) => t.map((turn, i) => (i === t.length - 1 ? { ...turn, answer } : turn)));
+    } catch (err) {
+      const message = errorMessage(err, 'The assistant could not answer.');
+      setTurns((t) => t.map((turn, i) => (i === t.length - 1 ? { ...turn, error: message } : turn)));
+    } finally {
+      setAsking(false);
     }
   };
 
@@ -258,6 +285,65 @@ const PayerClaimWorkspace: React.FC = () => {
                 <button disabled={busy || question.trim().length < 5} onClick={() => run(async () => { await claimsApi.raiseQuery(claimId, question.trim()); setQuestion(''); }, 'Query sent to claimant')} className="w-full py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold disabled:opacity-50">Raise Query</button>
               </div>
             )}
+          </section>
+
+          <section data-testid="payer-assistant" className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
+            <h2 className="text-sm font-bold text-slate-900 mb-1 flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-indigo-600" /> Evidence Assistant</h2>
+            <p className="text-[11px] text-slate-500 mb-3">Answers from the documents the claimant shared, with citations. It does not approve or reject claims.</p>
+            <div className="space-y-3 max-h-[420px] overflow-y-auto">
+              {turns.length === 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {STARTER_QUESTIONS.map((q) => (
+                    <button key={q} type="button" disabled={asking} onClick={() => ask(q)} className="text-left text-[11px] px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50/50 text-indigo-800 hover:bg-indigo-50 disabled:opacity-50">{q}</button>
+                  ))}
+                </div>
+              )}
+              {turns.map((turn, i) => (
+                <div key={i} className="space-y-1.5 text-xs">
+                  <p className="font-semibold text-slate-800">{turn.question}</p>
+                  {!turn.answer && !turn.error && <p className="text-slate-400">Reading the case evidence…</p>}
+                  {turn.error && <p className="text-amber-700">{turn.error}</p>}
+                  {turn.answer && (
+                    <div data-testid="assistant-answer" className={`rounded-lg border p-3 space-y-2 ${turn.answer.mode === 'SAFETY' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'}`}>
+                      <p className="text-slate-700 whitespace-pre-line leading-relaxed">{turn.answer.reply}</p>
+                      {turn.answer.choices.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {turn.answer.choices.map((c) => (
+                            <button key={c.itemId} type="button" disabled={asking} onClick={() => ask(turn.question, c.itemId)} className="px-2 py-1 rounded-md border border-indigo-200 text-indigo-800 text-[11px] hover:bg-indigo-50">{c.label}</button>
+                          ))}
+                        </div>
+                      )}
+                      {turn.answer.sources.length > 0 && (
+                        <ul className="space-y-1">
+                          {turn.answer.sources.map((src) => (
+                            <li key={src.citation + src.title}>
+                              <button
+                                type="button"
+                                data-testid="assistant-source"
+                                disabled={!src.documentId}
+                                onClick={() => src.documentId && openDocument(src.documentId, data.documents.find((d) => d.id === src.documentId)?.mimeType || 'image/png', docName.get(src.documentId) || 'Document')}
+                                className="w-full text-left rounded-md border border-slate-200 bg-white px-2 py-1.5 hover:border-indigo-300 disabled:cursor-default"
+                              >
+                                <span className="font-mono text-[10px] text-indigo-700 mr-1">[{src.citation}]</span>
+                                <span className="font-semibold text-slate-700">{src.title}</span>
+                                <span className="block text-[11px] text-slate-500">{src.excerpt}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {turn.answer.warnings.map((w) => <p key={w} className="text-[11px] text-amber-700">{w}</p>)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); void ask(askText); }} className="mt-3 flex gap-2">
+              <label htmlFor="assistant-question" className="sr-only">Ask about this claim's evidence</label>
+              <input id="assistant-question" value={askText} onChange={(e) => setAskText(e.target.value)} maxLength={2000} placeholder="Ask about this claim's evidence" className="flex-1 text-xs border border-slate-300 rounded-lg px-2.5 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-600" />
+              <button type="submit" aria-label="Ask" disabled={asking || !askText.trim()} className="px-3 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white disabled:opacity-50"><Send className="w-3.5 h-3.5" /></button>
+            </form>
+            <p className="text-[10px] text-slate-400 mt-2">Local evidence only: nothing is sent to web search or an external AI. You make the decision.</p>
           </section>
 
           {claim.appeal && (

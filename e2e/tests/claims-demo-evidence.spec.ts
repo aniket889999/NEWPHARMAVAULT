@@ -76,6 +76,30 @@ test.describe.serial('Demo claim on seeded evidence: claimant → insurer → se
     await page.context().close();
   });
 
+  test('insurer asks the AI evidence assistant: cited answer from prescription and invoice; it will not decide', async ({ browser }) => {
+    const page = await as(browser, REVIEWER);
+    await page.goto('/payer/claims');
+    await page.getByPlaceholder('Claim reference').fill(ref);
+    await page.getByRole('row', { name: new RegExp(ref) }).getByRole('link', { name: 'Open' }).click();
+    const panel = page.getByTestId('payer-assistant');
+    await expect(panel.getByRole('heading', { name: 'Evidence Assistant' })).toBeVisible();
+    await panel.getByRole('button', { name: 'What strength is on the prescription and the invoice?' }).click();
+    const first = panel.getByTestId('assistant-answer').first();
+    await expect(first).toBeVisible();
+    await expect(first).toContainText('40');
+    await expect(first.getByTestId('assistant-source').filter({ hasText: /Prescription/i }).first()).toBeVisible();
+    await expect(first.getByTestId('assistant-source').filter({ hasText: /Invoice/i }).first()).toBeVisible();
+    // A citation opens the cited document.
+    await first.getByTestId('assistant-source').filter({ hasText: /Invoice/i }).first().click();
+    await expect(page.getByRole('img', { name: /invoice/i })).toBeVisible();
+    await page.reload();
+
+    await panel.getByLabel("Ask about this claim's evidence").fill('Should I approve this claim?');
+    await panel.getByRole('button', { name: 'Ask' }).click();
+    await expect(panel.getByTestId('assistant-answer').last()).toContainText('cannot approve, reject');
+    await page.context().close();
+  });
+
   test('insurer reviews and approves in full with a note', async ({ browser }) => {
     const page = await as(browser, REVIEWER);
     await page.goto('/payer/claims');

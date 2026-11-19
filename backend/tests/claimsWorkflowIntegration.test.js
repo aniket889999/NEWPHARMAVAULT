@@ -234,6 +234,36 @@ test('Claims module: consent, tenant isolation, human decisions, FHIR and MFA', 
     assert.ok(actions.includes('CLAIM_DECISION_ACCEPTED'));
   });
 
+  await t.test('insurer evidence assistant: consent-bound, tenant-scoped, never decides', async () => {
+    const ownClaim = await Claim.findOne({ payerOrganizationId: payerA._id, status: 'SETTLED' }).sort('-createdAt');
+    const ask = (user, id, body) => auth(request(app).post(`/api/v1/payer/claims/${id}/assistant/answers`).send(body), user);
+    const ok = await ask(payerReviewer, ownClaim._id, { message: 'Which medicine is on this case?' });
+    assert.equal(ok.status, 200, JSON.stringify(ok.body));
+    assert.equal(ok.body.audience, 'PAYER');
+    assert.equal(ok.body.bindingToken, null, 'no pharmacy-case freshness receipt is issued to insurers');
+    assert.ok(['LOCAL_CASE_EVIDENCE', 'CLARIFY', 'ABSTAIN'].includes(ok.body.mode));
+    assert.equal(ok.headers['cache-control'], 'private, no-store');
+
+    for (const message of ['Should I approve this claim?', 'Is this fraud?', 'can we reject it']) {
+      const refusal = await ask(payerReviewer, ownClaim._id, { message });
+      assert.equal(refusal.body.mode, 'SAFETY', message);
+      assert.deepEqual(refusal.body.sources, []);
+    }
+    assert.equal((await Claim.findById(ownClaim._id)).status, 'SETTLED', 'the assistant changes nothing');
+
+    assert.equal((await ask(otherPayerReviewer, ownClaim._id, { message: 'Which medicine?' })).status, 404, 'other insurer');
+    assert.equal((await ask(pharmacist, ownClaim._id, { message: 'Which medicine?' })).status, 403, 'pharmacy staff');
+    assert.equal((await ask(patient, ownClaim._id, { message: 'Which medicine?' })).status, 403, 'claimant');
+    assert.equal((await ask(payerReviewer, ownClaim._id, { message: 'x', caseId: String(verifiedCase._id) })).status, 400, 'no extra fields');
+    assert.equal((await ask(payerReviewer, ownClaim._id, { message: '' })).status, 400);
+
+    const withdrawn = await Claim.findOne({ payerOrganizationId: payerB._id, status: 'WITHDRAWN' });
+    const revoked = await ask(otherPayerReviewer, withdrawn._id, { message: 'Which medicine is on this case?' });
+    assert.equal(revoked.status, 403);
+    assert.equal(revoked.body.code, 'CONSENT_INACTIVE');
+    assert.ok(await AuditEvent.exists({ action: 'PAYER_ASSISTANT_QUERY', actorId: payerReviewer._id }));
+  });
+
   await t.test('team admin: staff list is org-scoped and roles must match the organization type', async () => {
     const team = await auth(request(app).get('/api/users/staff'), payerAdmin);
     assert.equal(team.status, 200);

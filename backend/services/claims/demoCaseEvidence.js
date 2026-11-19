@@ -14,6 +14,8 @@ const ConsistencyCheck = require('../../models/consistencyCheckModel');
 const RiskSignal = require('../../models/riskSignalModel');
 const ReviewDecision = require('../../models/reviewDecisionModel');
 const storageService = require('../trustRag/storageService');
+const { computeDocumentFieldSetFingerprint } = require('../trustRag/caseReconciliationService');
+const { buildDocumentMedicineItems } = require('../trustRag/medicineItemContract');
 
 const DOC_DIR = path.join(__dirname, '..', '..', 'data', 'demo-documents');
 
@@ -72,6 +74,35 @@ async function storeImage(caseId, file, uploadedBy, type) {
   });
 }
 
+/**
+ * The case is pharmacist-VERIFIED, so its medicine grouping was confirmed by that pharmacist.
+ * Store it exactly as the medicine-groups endpoint does, but only when the shared validator
+ * accepts it (otherwise the reconciliation keeps its auto-proposed grouping).
+ */
+async function confirmGrouping(doc, caseIdStr, pharmacistId) {
+  const docFields = await ExtractedField.find({ caseId: doc.caseId, documentId: doc._id }).sort({ pageNumber: 1, _id: 1 });
+  const rowKeys = [...new Set(docFields.map((f) => f.candidateRowKey).filter(Boolean))];
+  const groups = rowKeys.map((key) => {
+    const fields = docFields.filter((f) => f.candidateRowKey === key);
+    const anchor = fields.find((f) => f.fieldType === 'medicine_name');
+    return anchor ? { anchorFieldId: String(anchor._id), fieldIds: fields.map((f) => String(f._id)) } : null;
+  }).filter(Boolean);
+  if (!groups.length) return false;
+  const envelope = buildDocumentMedicineItems({ document: doc, extractedFields: docFields, groups });
+  if (envelope.groupingStatus !== 'GROUPED' || envelope.medicineItems.length !== groups.length) return false;
+  doc.metadata = {
+    ...(doc.metadata || {}),
+    medicineGrouping: {
+      mode: 'HUMAN_CONFIRMED', observedItemCount: groups.length, completenessAttested: true, groups,
+      confirmedBy: String(pharmacistId), confirmedAt: new Date().toISOString(),
+      fieldSetFingerprint: computeDocumentFieldSetFingerprint(doc, docFields, caseIdStr)
+    }
+  };
+  doc.markModified('metadata');
+  await doc.save();
+  return true;
+}
+
 async function seedDemoCaseEvidence(vCase, { claimantId, pharmacistId }) {
   const spec = CASES[vCase.caseReference];
   if (!spec) return false;
@@ -90,6 +121,9 @@ async function seedDemoCaseEvidence(vCase, { claimantId, pharmacistId }) {
     }
   }
   await ExtractedField.insertMany(rows);
+  if (pharmacistId) {
+    for (const doc of [rx, inv]) await confirmGrouping(doc, String(caseId), pharmacistId);
+  }
   await ConsistencyCheck.insertMany(spec.checks.map(([checkType, status, severity, message]) => ({ caseId, checkType, status, severity, message, rulesetVersion: '2.0', reviewRequired: false })));
   if (spec.signals.length) {
     await RiskSignal.insertMany(spec.signals.map(([signalType, severity, description, detectedBy]) => ({ caseId, signalType, severity, description, detectedBy, rulesetVersion: '2.0', reviewRequired: false })));

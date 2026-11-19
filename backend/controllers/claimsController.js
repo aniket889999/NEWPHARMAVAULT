@@ -26,6 +26,7 @@ const { validateBundle } = require('../services/fhir/fhirR4Validator');
 const { setPagingHeaders } = require('../services/review/reviewPolicy');
 const { invoiceTotalForCase } = require('../services/claims/invoiceTotal');
 const { claimEligibility, amountBlocker } = require('../services/claims/claimEligibility');
+const { answerForPayer } = require('../services/claims/payerEvidenceAssistant');
 
 const PAYER_ROLES = ['payer_reviewer', 'payer_admin'];
 const PHARMACY_STAFF = ['pharmacy', 'pharmacist', 'claims_reviewer', 'org_admin', 'branch_manager'];
@@ -394,6 +395,23 @@ const payerDocumentContent = handle(async (req, res) => {
   res.status(200).send(buffer);
 });
 
+const payerAssistantAnswer = handle(async (req, res) => {
+  const claim = await payerClaim(req);
+  const grant = await activeGrantFor(claim);
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some((k) => !['message', 'medicineItemId'].includes(k))) {
+    throw sm.controlled(400, 'INVALID_ASSISTANT_REQUEST', 'Send only message and an optional medicineItemId.');
+  }
+  const answer = await answerForPayer({ claim, grant, user: req.user, message: body.message, medicineItemId: body.medicineItemId ?? null });
+  // Audit that the insurer used the assistant on this case; the question text itself is not stored.
+  await auditLoggerService.logEvent({
+    caseId: claim.caseId, actorId: req.user._id, actorRole: req.user.role, action: 'PAYER_ASSISTANT_QUERY', targetType: 'Claim', targetId: claim._id,
+    metadata: { claimReference: claim.claimReference, mode: answer.mode, intent: answer.intent, sourceCount: (answer.sources || []).length }
+  });
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.json(answer);
+});
+
 const payerStartReview = handle(async (req, res) => {
   const claim = await payerClaim(req);
   await activeGrantFor(claim);
@@ -522,7 +540,7 @@ module.exports = {
   PAYER_ROLES,
   PHARMACY_STAFF,
   listPayers, listEligibleCases, submitClaim, listMyClaims, getMyClaim, answerQuery, withdrawClaim, appealClaim, acceptDecision,
-  payerListClaims, payerGetClaim, payerDocumentContent, payerStartReview, payerRaiseQuery, payerDecide, payerSettle, payerFhirBundle, payerAnalytics,
+  payerListClaims, payerGetClaim, payerDocumentContent, payerAssistantAnswer, payerStartReview, payerRaiseQuery, payerDecide, payerSettle, payerFhirBundle, payerAnalytics,
   pharmacyLinkedClaims,
   listNotifications, markNotificationRead, markAllNotificationsRead
 };

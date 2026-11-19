@@ -2059,6 +2059,72 @@ paths:
         '409':
           $ref: '#/components/responses/ClaimsError'
 
+  /payer/claims/{claimId}/assistant/answers:
+    post:
+      summary: Evidence assistant for the insurer reviewer (consent-bound, cited, never decides)
+      description: >-
+        Answers a question about this claim's verification case using only the evidence the claimant shared through the active
+        CaseShareGrant (403 CONSENT_INACTIVE otherwise). Uses the local TrustRAG case-assistant pipeline: no web search, no external LLM.
+        Every evidence answer cites prescription / invoice fields. Requests to approve, reject, settle or judge fraud return mode SAFETY:
+        humans decide. No freshness receipt is issued (bindingToken is null). Use is audited as PAYER_ASSISTANT_QUERY without storing the question.
+      operationId: askPayerClaimAssistant
+      security:
+        - bearerAuth: [ "payer_reviewer", "payer_admin" ]
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                message: { type: string, minLength: 1, maxLength: 2000 }
+                medicineItemId: { type: [ string, 'null' ], pattern: '^mi_[a-f0-9]{24}$' }
+              required: [ message ]
+      responses:
+        '200':
+          description: Cited answer, a clarification with medicine choices, an abstention, or a SAFETY refusal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audience: { const: PAYER }
+                  claimReference: { type: string }
+                  caseId: { type: string }
+                  reply: { type: string }
+                  mode: { enum: [ LOCAL_CASE_EVIDENCE, CLARIFY, ABSTAIN, SAFETY ] }
+                  intent: { type: string }
+                  medicineItemId: { type: [ string, 'null' ] }
+                  choices: { type: array, items: { type: object } }
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        citation: { type: string }
+                        documentId: { type: [ string, 'null' ] }
+                        fieldId: { type: [ string, 'null' ] }
+                        pageNumber: { type: [ integer, 'null' ] }
+                        title: { type: string }
+                        excerpt: { type: string }
+                  warnings: { type: array, items: { type: string } }
+                  bindingToken: { const: null }
+                  suggestedQuestions: { type: array, items: { type: string } }
+                  disclaimer: { type: string }
+                required: [ audience, reply, mode, sources, disclaimer ]
+        '400':
+          $ref: '#/components/responses/ClaimsError'
+        '403':
+          $ref: '#/components/responses/ClaimsError'
+        '404':
+          $ref: '#/components/responses/ClaimsError'
+        '429':
+          $ref: '#/components/responses/ClaimsError'
+
   /payer/claims/{claimId}/settle:
     post:
       summary: Mark an approved claim settled (simulated, no payment moves)

@@ -58,6 +58,15 @@ export interface PayerClaimDetail {
   reasonCodes: { rejected: string[]; partial: string[] };
 }
 
+export interface PayerAssistantAnswer {
+  audience: 'PAYER'; claimReference: string; caseId: string; reply: string;
+  mode: 'LOCAL_CASE_EVIDENCE' | 'CLARIFY' | 'ABSTAIN' | 'SAFETY'; intent: string;
+  medicineItemId: string | null;
+  choices: { itemId: string; label: string; documentType: string }[];
+  sources: { citation: string; documentId: string | null; fieldId: string | null; pageNumber: number | null; title: string; excerpt: string }[];
+  warnings: string[]; suggestedQuestions: string[]; disclaimer: string;
+}
+
 export interface EligibleCase {
   id: string; caseReference: string; subjectReference?: string | null; status: string; updatedAt: string;
   invoiceTotal?: number | null;
@@ -126,6 +135,8 @@ export const claimsApi = {
   payerClaim: async (claimId: string) => (await apiClient.get<PayerClaimDetail>(`/v1/payer/claims/${claimId}`)).data,
   payerDocumentBlob: async (claimId: string, documentId: string) =>
     (await apiClient.get<Blob>(`/v1/payer/claims/${claimId}/documents/${documentId}/content`, { responseType: 'blob' })).data,
+  askAssistant: async (claimId: string, message: string, medicineItemId: string | null = null) =>
+    (await apiClient.post<PayerAssistantAnswer>(`/v1/payer/claims/${claimId}/assistant/answers`, { message, medicineItemId })).data,
   startReview: async (claimId: string) => (await apiClient.post<Claim>(`/v1/payer/claims/${claimId}/start-review`, {})).data,
   raiseQuery: async (claimId: string, question: string) => (await apiClient.post<Claim>(`/v1/payer/claims/${claimId}/queries`, { question })).data,
   decide: async (claimId: string, body: { decision: string; approvedAmount?: number; reasonCode?: string; note: string }) =>
