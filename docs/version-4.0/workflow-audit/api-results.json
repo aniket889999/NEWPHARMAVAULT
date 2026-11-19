@@ -1,0 +1,466 @@
+{
+  "info": {
+    "ready": true,
+    "root": "/Users/aniket/Documents/Codex/2026-07-26/y/NEWPHARMAVAULT-v3",
+    "dbName": "pharmavault_workflow_audit_20261118_409c99ac",
+    "api": "http://127.0.0.1:5011/api",
+    "browser": "http://localhost:5175",
+    "createdAt": "2026-11-18T18:24:01.485Z",
+    "syntheticOnly": true,
+    "paidProviders": false,
+    "outboundNotifications": false
+  },
+  "checkedAt": "2026-11-18T18:29:04.309Z",
+  "rows": [
+    {
+      "workflow": "Authentication",
+      "name": "Login patient",
+      "status": "PASS",
+      "ms": 197,
+      "detail": {
+        "role": "patient",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login claimant",
+      "status": "PASS",
+      "ms": 114,
+      "detail": {
+        "role": "patient",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login pharmacy",
+      "status": "PASS",
+      "ms": 112,
+      "detail": {
+        "role": "pharmacy",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login pharmacist",
+      "status": "PASS",
+      "ms": 112,
+      "detail": {
+        "role": "pharmacist",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login reviewer",
+      "status": "PASS",
+      "ms": 112,
+      "detail": {
+        "role": "claims_reviewer",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login orgadmin",
+      "status": "PASS",
+      "ms": 111,
+      "detail": {
+        "role": "org_admin",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login payer",
+      "status": "PASS",
+      "ms": 111,
+      "detail": {
+        "role": "payer_reviewer",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login payeradmin",
+      "status": "PASS",
+      "ms": 111,
+      "detail": {
+        "role": "payer_admin",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login admin",
+      "status": "PASS",
+      "ms": 117,
+      "detail": {
+        "role": "super_admin",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login research",
+      "status": "PASS",
+      "ms": 112,
+      "detail": {
+        "role": "research_evaluator",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Security",
+      "name": "Unauthenticated protected requests blocked",
+      "status": "PASS",
+      "ms": 6,
+      "detail": {}
+    },
+    {
+      "workflow": "Security",
+      "name": "Patient cannot use insurer/admin/staff routes",
+      "status": "PASS",
+      "ms": 11,
+      "detail": {}
+    },
+    {
+      "workflow": "Security",
+      "name": "Public registration cannot grant staff privilege",
+      "status": "PASS",
+      "ms": 2,
+      "detail": {}
+    },
+    {
+      "workflow": "Prescription",
+      "name": "Local text analysis and save to patient records",
+      "status": "PASS",
+      "ms": 40,
+      "detail": {
+        "parser": "local-rules",
+        "items": 2
+      }
+    },
+    {
+      "workflow": "Prescription",
+      "name": "Other patient cannot see saved prescription",
+      "status": "PASS",
+      "ms": 5,
+      "detail": {}
+    },
+    {
+      "workflow": "Nearby stock",
+      "name": "Pune top-five sorted real inventory",
+      "status": "PASS",
+      "ms": 35,
+      "detail": {
+        "pharmacies": 5
+      }
+    },
+    {
+      "workflow": "Authenticity",
+      "name": "Known ledger batch and unknown batch",
+      "status": "PASS",
+      "ms": 13,
+      "detail": {
+        "known": "verified",
+        "unknown": "suspicious"
+      }
+    },
+    {
+      "workflow": "Orders",
+      "name": "Select prescription stock owned by demo pharmacy",
+      "status": "PASS",
+      "ms": 7,
+      "detail": {
+        "stock": 18,
+        "price": 185
+      }
+    },
+    {
+      "workflow": "Orders",
+      "name": "Missing prescription is refused",
+      "status": "FAIL",
+      "ms": 6,
+      "detail": {
+        "message": "Wrong refusal code"
+      }
+    },
+    {
+      "workflow": "Orders",
+      "name": "Malformed quantities refused",
+      "status": "PASS",
+      "ms": 7,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "Create synthetic order at server price and await pharmacist",
+      "status": "PASS",
+      "ms": 13,
+      "detail": {
+        "status": "Awaiting Pharmacist",
+        "serverTotal": 185
+      }
+    },
+    {
+      "workflow": "Orders",
+      "name": "Pharmacy sees prescription in own review queue",
+      "status": "PASS",
+      "ms": 14,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "Other pharmacy cannot decide order",
+      "status": "PASS",
+      "ms": 5,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "Pharmacy clarification reaches patient",
+      "status": "PASS",
+      "ms": 21,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "Pharmacy approval and ready status reach patient",
+      "status": "PASS",
+      "ms": 28,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "In-app order notification delivered",
+      "status": "PASS",
+      "ms": 6,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "Reject second synthetic order and block repeat stock return",
+      "status": "PASS",
+      "ms": 21,
+      "detail": {}
+    },
+    {
+      "workflow": "Pharmacy",
+      "name": "Inventory and workflow read endpoints",
+      "status": "PASS",
+      "ms": 39,
+      "detail": {}
+    },
+    {
+      "workflow": "Pharmacy",
+      "name": "Stock markdown/reorder/recall on an audit-only batch",
+      "status": "PASS",
+      "ms": 25,
+      "detail": {}
+    },
+    {
+      "workflow": "Pharmacy",
+      "name": "Automation trigger records an audit workflow",
+      "status": "PASS",
+      "ms": 15,
+      "detail": {
+        "statuses": [
+          "active",
+          "completed"
+        ]
+      }
+    },
+    {
+      "workflow": "Claims",
+      "name": "Eligible cases and payer listing",
+      "status": "PASS",
+      "ms": 9,
+      "detail": {
+        "eligibleCases": 2,
+        "precondition": "Seeded verified fixture, not measured OCR or review."
+      }
+    },
+    {
+      "workflow": "Claims",
+      "name": "Consent required before submission",
+      "status": "PASS",
+      "ms": 5,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "Claimant submits synthetic claim",
+      "status": "PASS",
+      "ms": 108,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "Other claimant and other insurer denied",
+      "status": "PASS",
+      "ms": 20,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "Insurer query and claimant response",
+      "status": "PASS",
+      "ms": 42,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "Human partial decision recorded",
+      "status": "PASS",
+      "ms": 10,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "Appeal with independent reviewer and simulated settlement",
+      "status": "PASS",
+      "ms": 40,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "FHIR export is structurally valid",
+      "status": "PASS",
+      "ms": 7,
+      "detail": {
+        "validation": "Structural only, not NHCX certification."
+      }
+    },
+    {
+      "workflow": "Claims",
+      "name": "Withdrawal revokes payer access",
+      "status": "PASS",
+      "ms": 37,
+      "detail": {}
+    },
+    {
+      "workflow": "Case verification",
+      "name": "Create case and secure image upload",
+      "status": "FAIL",
+      "ms": 679,
+      "detail": {
+        "message": "HTTP 400 expected 201; Raw text payloads are not accepted. Document must be uploaded as a valid base64 data URI (PDF, PNG, JPEG, or WEBP)."
+      }
+    },
+    {
+      "workflow": "Case verification",
+      "name": "Authorized image bytes and private isolation",
+      "status": "BLOCKED",
+      "ms": 0,
+      "detail": {
+        "message": "Prerequisite missing: document"
+      }
+    },
+    {
+      "workflow": "Case verification",
+      "name": "Real local OCR processing of printed images",
+      "status": "FAIL",
+      "ms": 9,
+      "detail": {
+        "message": "HTTP 400 expected 200,202; Cannot process case in current state 'DRAFT'. Expected one of: READY_FOR_PROCESSING, DOCUMENTS_PENDING, NEEDS_CORRECTION, NEEDS_REVIEW, FAILED"
+      }
+    },
+    {
+      "workflow": "Case verification",
+      "name": "Incomplete evidence cannot be verified",
+      "status": "PASS",
+      "ms": 28,
+      "detail": {}
+    },
+    {
+      "workflow": "Chatbot",
+      "name": "Local cited answer and follow-up context",
+      "status": "PASS",
+      "ms": 1269,
+      "detail": {
+        "modes": [
+          "PRECISE_LOCAL_EVIDENCE",
+          "PRECISE_LOCAL_EVIDENCE"
+        ],
+        "sources": 1
+      }
+    },
+    {
+      "workflow": "Chatbot",
+      "name": "Official web evidence with visible provenance",
+      "status": "PASS",
+      "ms": 172,
+      "detail": {
+        "mode": "PRECISE_WEB_EVIDENCE",
+        "sources": 1
+      }
+    },
+    {
+      "workflow": "Chatbot",
+      "name": "Brand identity, personal advice and private access boundaries",
+      "status": "PASS",
+      "ms": 18,
+      "detail": {}
+    },
+    {
+      "workflow": "Chatbot",
+      "name": "Opt-in public history saves/reopens and isolates accounts",
+      "status": "PASS",
+      "ms": 25,
+      "detail": {
+        "savedMessages": 2
+      }
+    },
+    {
+      "workflow": "Account security",
+      "name": "Team view is scoped and hides secrets",
+      "status": "PASS",
+      "ms": 5,
+      "detail": {}
+    },
+    {
+      "workflow": "Account security",
+      "name": "MFA setup, recovery sign-in and replay rejection on audit-only user",
+      "status": "PASS",
+      "ms": 577,
+      "detail": {
+        "recoveryCodesIssued": 8,
+        "replayRejected": true
+      }
+    },
+    {
+      "workflow": "Privacy",
+      "name": "Own-data export and erasure request/cancel",
+      "status": "PASS",
+      "ms": 39,
+      "detail": {}
+    },
+    {
+      "workflow": "Audit",
+      "name": "Administrator can verify tamper-evident chain",
+      "status": "PASS",
+      "ms": 13,
+      "detail": {
+        "valid": true,
+        "events": 18
+      }
+    },
+    {
+      "workflow": "Reminders",
+      "name": "Create due reminder and read actual scheduled notification",
+      "status": "PASS",
+      "ms": 15063,
+      "detail": {
+        "delivery": "Actual in-app notification; external email/text disabled."
+      }
+    }
+  ],
+  "totals": {
+    "PASS": 48,
+    "FAIL": 3,
+    "BLOCKED": 1
+  }
+}

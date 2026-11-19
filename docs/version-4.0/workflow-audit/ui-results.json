@@ -1,0 +1,472 @@
+{
+  "rows": [
+    {
+      "role": "patient",
+      "route": "/patient/dashboard",
+      "actualPath": "/patient/dashboard",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Patient Care & Medication Overview",
+        "Clinical Workflows & Features"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/medicines",
+      "actualPath": "/patient/medicines",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Medicine Directory & Formulary"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/authenticity",
+      "actualPath": "/patient/authenticity",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Medicine Authenticity Verifier"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/health-assistant",
+      "actualPath": "/patient/health-assistant",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Health Assistant / TrustRAG",
+        "What would you like to understand?"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/health-tracker",
+      "actualPath": "/patient/health-tracker",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Personal Health Tracker",
+        "Recent Medical Reports",
+        "AI Health Insights"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/reminders",
+      "actualPath": "/patient/reminders",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Smart Medication Reminders & Adherence Hub",
+        "Active Dose Schedule",
+        "Active Medication Schedule"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/comparisons",
+      "actualPath": "/patient/comparisons",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Medicine Comparison",
+        "Select Medicines"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/prescriptions",
+      "actualPath": "/patient/prescriptions",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Prescription Scanner & OCR Parsing",
+        "Document Upload",
+        "Extracted Formulations (0)"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/cases",
+      "actualPath": "/patient/cases",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Prescription Verifications & Clinical Audits",
+        "Verification Case Records"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/cart",
+      "actualPath": "/patient/cart",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Your Dispensary Cart is Empty"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/orders",
+      "actualPath": "/patient/orders",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Prescription & Medicine Orders"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/doctor-consult",
+      "actualPath": "/patient/doctor-consult",
+      "status": "FUTURE_WORK",
+      "headings": [
+        "Doctor Consultation"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/nearby-medicines",
+      "actualPath": "/patient/nearby-medicines",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Nearby Availability"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/health-records",
+      "actualPath": "/patient/health-records",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Personal Health Records & Archive"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/intelligence",
+      "actualPath": "/patient/intelligence",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Patient Intelligence"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/accessibility",
+      "actualPath": "/patient/accessibility",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Accessibility & Localization"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/claims",
+      "actualPath": "/patient/claims",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Insurance Claims"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/security",
+      "actualPath": "/patient/security",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Account Security",
+        " Text alerts",
+        "Your Data"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/dashboard",
+      "actualPath": "/pharmacy/dashboard",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Pharmacy Operations & Inventory Hub"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/inventory",
+      "actualPath": "/pharmacy/inventory",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Dispensary Inventory Catalog"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/orders",
+      "actualPath": "/pharmacy/orders",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Patient Dispensary Orders"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/blockchain",
+      "actualPath": "/pharmacy/blockchain",
+      "status": "LOAD_PASS",
+      "headings": [
+        "CDSCO Blockchain Ledger"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/expiry-risk",
+      "actualPath": "/pharmacy/expiry-risk",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Expiry Risk Intelligence"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/stock-risk",
+      "actualPath": "/pharmacy/stock-risk",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Stock Deficiency & Shortage Predictor"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/prescription-queue",
+      "actualPath": "/pharmacy/prescription-queue",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Prescription Review Queue"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/operations-intelligence",
+      "actualPath": "/pharmacy/operations-intelligence",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Operations Intelligence"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/workflow-center",
+      "actualPath": "/pharmacy/workflow-center",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Healthcare Workflow Center",
+        "Human-in-the-Loop Sign-off Queue",
+        "Operational Execution Trail"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/claims",
+      "actualPath": "/pharmacy/claims",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Insurance Claims on Our Cases"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/security",
+      "actualPath": "/pharmacy/security",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Account Security",
+        "Your Data"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/organization-settings",
+      "actualPath": "/pharmacy/organization-settings",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Organization & Branch Management",
+        "Corporate Dispensary Identity"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/accessibility",
+      "actualPath": "/pharmacy/accessibility",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Accessibility & Localization"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/review-queue",
+      "actualPath": "/review-queue",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Reviewer Adjudication Queue"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/cases",
+      "actualPath": "/cases",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Verification Cases"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/cases/new",
+      "actualPath": "/cases/new",
+      "status": "LOAD_PASS",
+      "headings": [
+        "New Verification Case Wizard"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/assistant",
+      "actualPath": "/assistant",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Health Assistant / TrustRAG",
+        "What would you like to understand?"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/account/security",
+      "actualPath": "/account/security",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Account Security",
+        "Your Data"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/staff/claims",
+      "actualPath": "/staff/claims",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Insurance Claims on Our Cases"
+      ]
+    },
+    {
+      "role": "org_admin",
+      "route": "/review-queue",
+      "actualPath": "/review-queue",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Reviewer Adjudication Queue"
+      ]
+    },
+    {
+      "role": "org_admin",
+      "route": "/team",
+      "actualPath": "/team",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Team & Access"
+      ]
+    },
+    {
+      "role": "org_admin",
+      "route": "/account/security",
+      "actualPath": "/account/security",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Account Security",
+        "Your Data"
+      ]
+    },
+    {
+      "role": "payer_reviewer",
+      "route": "/payer/dashboard",
+      "actualPath": "/payer/dashboard",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Pharmacy Claims Review"
+      ]
+    },
+    {
+      "role": "payer_reviewer",
+      "route": "/payer/claims",
+      "actualPath": "/payer/claims",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Claims Queue"
+      ]
+    },
+    {
+      "role": "payer_reviewer",
+      "route": "/payer/security",
+      "actualPath": "/payer/security",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Account Security",
+        "Your Data"
+      ]
+    },
+    {
+      "role": "payer_admin",
+      "route": "/payer/team",
+      "actualPath": "/payer/team",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Team & Access"
+      ]
+    },
+    {
+      "role": "super_admin",
+      "route": "/admin/saas",
+      "actualPath": "/admin/saas",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Enterprise Control Center",
+        "Active Tenants",
+        " Data Deletion Requests"
+      ]
+    },
+    {
+      "role": "super_admin",
+      "route": "/research/dashboard",
+      "actualPath": "/research/dashboard",
+      "status": "LOAD_PASS",
+      "headings": [
+        "TrustRAG Research Evidence",
+        "Source retrieval: identical four-source budget",
+        "Answer freshness: same signed-answer cohort"
+      ]
+    },
+    {
+      "role": "super_admin",
+      "route": "/research/knowledge-graph",
+      "actualPath": "/research/knowledge-graph",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Enterprise Knowledge Graph"
+      ]
+    },
+    {
+      "role": "super_admin",
+      "route": "/research/ai-safety",
+      "actualPath": "/research/ai-safety",
+      "status": "LOAD_PASS",
+      "headings": [
+        "AI Safety & Governance"
+      ]
+    },
+    {
+      "role": "research_evaluator",
+      "route": "/research/dashboard",
+      "actualPath": "/research/dashboard",
+      "status": "LOAD_PASS",
+      "headings": [
+        "TrustRAG Research Evidence",
+        "Source retrieval: identical four-source budget",
+        "Answer freshness: same signed-answer cohort"
+      ]
+    }
+  ],
+  "note": "Rendering only, not all UI actions. Browser OCR/archive separately observed; download-event wait stalled and was abandoned."
+}

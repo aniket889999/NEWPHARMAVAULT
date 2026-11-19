@@ -1,0 +1,38 @@
+{
+  "rows": [
+    {
+      "name": "Missing prescription is refused",
+      "status": "PASS",
+      "detail": {
+        "http": 400,
+        "requirementEnforced": true,
+        "machineCodeIncluded": false,
+        "note": "Legacy error middleware omits err.code; functional refusal is correct."
+      }
+    },
+    {
+      "name": "Create case and secure image upload",
+      "status": "PASS",
+      "detail": {
+        "uploads": 2
+      }
+    },
+    {
+      "name": "Authorized image bytes and private isolation",
+      "status": "PASS",
+      "detail": {
+        "bytes": 14180,
+        "unauthenticated": 401,
+        "crossTenant": 404
+      }
+    },
+    {
+      "name": "Real local OCR processing of printed images",
+      "status": "BLOCKED",
+      "detail": {
+        "message": "Required local eng.traineddata language asset is unavailable. Real printed-image OCR workflow is blocked."
+      }
+    }
+  ],
+  "note": "Corrected audit request format and response assertion; no application fix applied."
+}

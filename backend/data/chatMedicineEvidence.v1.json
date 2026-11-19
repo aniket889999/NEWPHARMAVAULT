@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "academic-medicine-evidence-v1",
+  "checkedAt": "2026-11-18",
+  "publisher": "NHS",
+  "jurisdiction": "UK",
+  "licenceBasis": "Original short summaries with NHS attribution under Open Government Licence v3.0; no logos or third-party media",
+  "reviewStatus": "ACADEMIC_SOURCE_CHECKED_NOT_CLINICAL_APPROVAL",
+  "records": [
+    {
+      "key": "academic-ibuprofen-uses-v1", "topicId": "ibuprofen", "attribute": "USES",
+      "title": "Ibuprofen: general adult uses",
+      "text": "Ibuprofen is an anti-inflammatory pain medicine used for problems such as toothache, period pain and muscle pain. It also reduces fever. This adult UK overview does not establish personal suitability or a dose.",
+      "sourceUrl": "https://www.nhs.uk/medicines/ibuprofen-for-adults/"
+    },
+    {
+      "key": "academic-ibuprofen-effects-v1", "topicId": "ibuprofen", "attribute": "SIDE_EFFECTS",
+      "title": "Ibuprofen: possible oral side effects",
+      "text": "Oral ibuprofen can cause side effects including digestive discomfort, nausea, dizziness and headache. Less frequent serious problems include digestive bleeding, kidney problems and severe allergy. This is not a complete list; consult the leaflet and a pharmacist about concerns.",
+      "sourceUrl": "https://www.nhs.uk/medicines/ibuprofen-for-adults/"
+    },
+    {
+      "key": "academic-atorvastatin-uses-v1", "topicId": "atorvastatin", "attribute": "USES",
+      "title": "Atorvastatin: general uses",
+      "text": "Atorvastatin belongs to the statin group and is prescribed to reduce cholesterol. It is also used to help prevent cardiovascular problems such as heart attack and stroke. This UK reference is not an individual prescription recommendation.",
+      "sourceUrl": "https://www.nhs.uk/medicines/atorvastatin/"
+    },
+    {
+      "key": "academic-atorvastatin-effects-v1", "topicId": "atorvastatin", "attribute": "SIDE_EFFECTS",
+      "title": "Atorvastatin: possible side effects",
+      "text": "Atorvastatin can cause side effects such as headache, dizziness, nausea, digestive disturbance and muscle aches. Rare serious problems include muscle damage, liver inflammation and severe allergy. This is not a complete list; persistent or concerning symptoms need professional assessment.",
+      "sourceUrl": "https://www.nhs.uk/medicines/atorvastatin/"
+    },
+    {
+      "key": "academic-losartan-uses-v1", "topicId": "losartan", "attribute": "USES",
+      "title": "Losartan: general uses",
+      "text": "Losartan is an angiotensin receptor blocker prescribed for high blood pressure. It is also used for heart failure and kidney disease associated with type 2 diabetes. This UK overview cannot establish whether it is suitable for an individual.",
+      "sourceUrl": "https://www.nhs.uk/medicines/losartan/"
+    },
+    {
+      "key": "academic-losartan-effects-v1", "topicId": "losartan", "attribute": "SIDE_EFFECTS",
+      "title": "Losartan: possible side effects",
+      "text": "Losartan can cause side effects including dizziness, tiredness, headache, nausea and leg or ankle swelling. Less frequent serious problems include severe allergy, irregular heartbeat and liver problems. This is not a complete list; a pharmacist or doctor should assess concerning symptoms.",
+      "sourceUrl": "https://www.nhs.uk/medicines/losartan/"
+    },
+    {
+      "key": "academic-omeprazole-uses-v1", "topicId": "omeprazole", "attribute": "USES",
+      "title": "Omeprazole: general uses",
+      "text": "Omeprazole is a proton pump inhibitor that reduces stomach acid. It is used for conditions including heartburn, reflux disease and stomach ulcers. This UK educational overview does not choose a treatment or establish personal suitability.",
+      "sourceUrl": "https://www.nhs.uk/medicines/omeprazole/"
+    },
+    {
+      "key": "academic-omeprazole-effects-v1", "topicId": "omeprazole", "attribute": "SIDE_EFFECTS",
+      "title": "Omeprazole: possible side effects",
+      "text": "Omeprazole can cause side effects such as headache, abdominal discomfort, nausea, constipation and diarrhoea. Serious problems are uncommon, and some risks increase with prolonged use. This is not a complete list; consult the product leaflet and a healthcare professional about concerns.",
+      "sourceUrl": "https://www.nhs.uk/medicines/omeprazole/"
+    },
+    {
+      "key": "academic-pantoprazole-uses-v1", "topicId": "pantoprazole", "attribute": "USES",
+      "title": "Pantoprazole: general uses",
+      "text": "Pantoprazole reduces stomach acid and is used for heartburn, acid reflux and reflux disease. It is also used to prevent or treat stomach ulcers. This UK reference cannot establish personal suitability or recommend a dose.",
+      "sourceUrl": "https://www.nhs.uk/medicines/pantoprazole/about-pantoprazole/"
+    },
+    {
+      "key": "academic-pantoprazole-effects-v1", "topicId": "pantoprazole", "attribute": "SIDE_EFFECTS",
+      "title": "Pantoprazole: possible side effects",
+      "text": "Most people have no side effects from pantoprazole. Uncommon side effects include headache, diarrhoea, nausea, constipation, dry mouth and tiredness. Serious reactions are rare. This is not a complete list; a pharmacist or doctor should assess persistent or concerning symptoms.",
+      "sourceUrl": "https://www.nhs.uk/medicines/pantoprazole/side-effects-of-pantoprazole/"
+    },
+    {
+      "key": "academic-azithromycin-uses-v1", "topicId": "azithromycin", "attribute": "USES",
+      "title": "Azithromycin: general uses",
+      "text": "Azithromycin is a prescription macrolide antibiotic used for certain bacterial infections involving the chest, ear, nose, throat or skin, and some sexually transmitted infections. This UK reference does not identify an infection or recommend a prescription.",
+      "sourceUrl": "https://www.nhs.uk/medicines/azithromycin/about-azithromycin/"
+    },
+    {
+      "key": "academic-azithromycin-effects-v1", "topicId": "azithromycin", "attribute": "SIDE_EFFECTS",
+      "title": "Azithromycin: possible side effects",
+      "text": "Azithromycin can cause side effects such as nausea, diarrhoea, vomiting, appetite loss, headache and dizziness. Rare serious reactions can affect heart rhythm or cause severe allergy. This is not a complete list; concerning symptoms need professional assessment.",
+      "sourceUrl": "https://www.nhs.uk/medicines/azithromycin/side-effects-of-azithromycin/"
+    }
+  ]
+}

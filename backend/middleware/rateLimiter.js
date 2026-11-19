@@ -10,7 +10,9 @@ const parseLimit = (val, defaultVal) => {
 };
 
 const windowMs = parseLimit(process.env.RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000);
-const defaultAuthMax = process.env.NODE_ENV === 'production' ? 10 : 200;
+// A larger sign-in budget is for explicit local development only, not every
+// non-production/unspecified deployment environment.
+const defaultAuthMax = process.env.NODE_ENV === 'development' ? 200 : 10;
 const authMax = parseLimit(process.env.RATE_LIMIT_AUTH_MAX, defaultAuthMax);
 const aiMax = parseLimit(process.env.RATE_LIMIT_AI_MAX, 30);
 

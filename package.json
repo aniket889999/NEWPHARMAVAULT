@@ -9,6 +9,12 @@
   "scripts": {
     "dev": "vite",
     "dev:all": "node scripts/dev-local.cjs",
+    "dev:web": "node scripts/dev-public-web.cjs",
+    "dev:chat": "node scripts/dev-public-chat.cjs",
+    "validate:chatbot:reference": "node scripts/validate-chatbot-reference.cjs",
+    "evaluate:chatbot:reference": "node scripts/evaluate-chatbot-reference.cjs",
+    "evaluate:chatbot:current": "node scripts/evaluate-chatbot-reference.cjs --candidate-current",
+    "test:chatbot:reference": "node --test tests/chatbot-reference-standard.test.cjs",
     "test:integration-ui": "node --test tests/project-integration/client.test.cjs",
     "test:readiness": "node --test backend/tests/chatProviderReadiness.test.js backend/tests/publicProviderProbe.test.js tests/v2-01/readiness-client.test.cjs tests/v2-01/readiness-schema.test.cjs",
     "test:readiness:http": "node --test backend/tests/chatProviderReadinessIntegration.test.js",

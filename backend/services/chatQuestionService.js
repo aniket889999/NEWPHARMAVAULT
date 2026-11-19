@@ -3,10 +3,19 @@
 const ATTRIBUTES = Object.freeze(['GENERAL', 'USES', 'SIDE_EFFECTS', 'STORAGE', 'PREVENTION', 'MECHANISM', 'SPECIFIC_FACT']);
 const languages = ['Marathi', 'Hindi', 'Tamil', 'Telugu', 'Bengali', 'Gujarati', 'Kannada', 'Malayalam', 'Punjabi', 'Urdu', 'Spanish', 'French', 'German'];
 const registry = require('../data/chatTopicRegistry');
+// Strip only standalone, trailing presentation instructions from retrieval
+// text. Safety, privacy, language and personal-context checks still see the
+// original message. Never truncate arbitrary text after a question mark.
+function questionContent(message) {
+  let text = String(message || '').trim();
+  const suffix = /([.!?])\s+(?:(?:please\s+)?answer only if (?:your |the )?(?:retrieved )?evidence supports (?:it|this|the answer)|(?:please\s+)?(?:show|include|provide|cite) (?:the |your )?(?:supporting )?(?:references?|sources?|citations?)|(?:please\s+)?keep (?:it|the answer) (?:concise|brief|short))[.!?]?\s*$/i;
+  for (let count = 0; count < 4 && suffix.test(text); count++) text = text.replace(suffix, '$1').trim();
+  return text;
+}
 const words = text => String(text || '').normalize('NFKC').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
-const STOP = new Set(('what which how why when where who is are was were do does did can could would should will may might a an the i me my you your it its that this those them about for of to from on in at by and or with without please tell explain describe list give briefly briefly general information reference available recorded possible associated affect affects effect effects cause causes causing make makes have has having need needs mean means more less simply simple simpler shorter short briefly exactly level levels regarding related also now old previous asking asked question answer respond translate english speak').split(/\s+/));
+const STOP = new Set(('what which how why when where who is are was were do does did can could would should will may might a an the i me my you your it its that this those them about for of to from on in at by and or with without please tell explain describe list give briefly briefly general information reference say says available recorded possible associated affect affects effect effects cause causes causing make makes have has having need needs mean means more less simply simple simpler shorter short briefly exactly level levels regarding related also now old previous asking asked question answer respond translate english speak').split(/\s+/));
 function concept(word) {
-  return ({ drowsiness: 'sleep', drowsy: 'sleep', sleepy: 'sleep', sleepiness: 'sleep', sleeping: 'sleep', diarrhoea: 'diarrhea', vomiting: 'vomit', vitamins: 'vitamin', b: 'vitamin', deficiency: 'deficiency', uses: 'use', used: 'use' })[word] || word;
+  return ({ viral: 'virus', viruses: 'virus', drowsiness: 'sleep', drowsy: 'sleep', sleepy: 'sleep', sleepiness: 'sleep', sleeping: 'sleep', diarrhoea: 'diarrhea', vomiting: 'vomit', vitamins: 'vitamin', b: 'vitamin', deficiency: 'deficiency', uses: 'use', used: 'use' })[word] || word;
 }
 function requestedLanguage(message) {
   const text = String(message || '');
@@ -15,8 +24,8 @@ function requestedLanguage(message) {
   return 'ENGLISH';
 }
 function planQuestion(message, topics, { previous, inherit = false } = {}) {
-  const text = String(message || '');
-  if (topics.length && topics.every(value => value.id.startsWith('workflow-'))) return { version: 'question-plan-v1', attribute: 'GENERAL', anchors: [], language: requestedLanguage(text), exactTemperature: false, multipleAttributes: false, inherited: false };
+  const text = questionContent(message), language = requestedLanguage(message);
+  if (topics.length && topics.every(value => value.id.startsWith('workflow-'))) return { version: 'question-plan-v1', attribute: 'GENERAL', anchors: [], language, exactTemperature: false, multipleAttributes: false, inherited: false };
   const explicitAttributes = [
     ['STORAGE', /\b(?:stor(?:e|age|ing)|refrigerat\w*|freez\w*|temperature)\b/i],
     ['SIDE_EFFECTS', /side effects?|adverse effects?/i],
@@ -35,14 +44,29 @@ function planQuestion(message, topics, { previous, inherit = false } = {}) {
   const specific = ['paracetamol', 'acetaminophen', 'metformin', 'cetirizine', 'amoxicillin', 'ibuprofen'];
   specific.forEach(value => excluded.add(value));
   const terms = [...new Set(words(text).filter(value => !STOP.has(value) && !excluded.has(value) && !/^\d+$/.test(value)).map(concept))];
-  const detailed = attribute === 'SPECIFIC_FACT' || /\b(?:b12|vitamin|nausea|vomit\w*|diarrh\w*|drows\w*|sleep\w*|headache|appetite|taste)\b/i.test(text);
+  const publicDetails = new Set(require('./publicAnswerTaskService').PUBLIC_MEDICAL_TERMS.split(' '));
+  const detailed = attribute === 'SPECIFIC_FACT' || terms.some(value => publicDetails.has(value)) || /\b(?:b12|vitamin|nausea|vomit\w*|diarrh\w*|drows\w*|sleep\w*|headache|appetite|taste)\b/i.test(text);
   const anchors = detailed ? terms.filter(value => !['side', 'adverse', 'risk', 'risks'].includes(value)).slice(0, 6) : [];
   if (/\bb\s*12\b/i.test(text) && !anchors.includes('b12')) anchors.push('b12');
   if (anchors.length && attribute === 'GENERAL') attribute = 'SPECIFIC_FACT';
-  if (inherit && previous && !anchors.length && !/stor(?:e|age|ing)|refrigerat|freez|temperature|side effects?|adverse|risks?|prevent|used for|uses? of|mechanism|how.*work/i.test(text)) return { ...previous, language: requestedLanguage(text), inherited: true };
-  return { version: 'question-plan-v1', attribute, anchors, language: requestedLanguage(text), exactTemperature: /temperature|degrees?|celsius|fahrenheit|\bc\b|\bf\b/i.test(text) && attribute === 'STORAGE', multipleAttributes: explicitAttributes.length > 1, inherited: false };
+  if (inherit && previous && !anchors.length && !/stor(?:e|age|ing)|refrigerat|freez|temperature|side effects?|adverse|risks?|prevent|used for|uses? of|mechanism|how.*work/i.test(text)) return { ...previous, language, inherited: true };
+  return { version: 'question-plan-v1', attribute, anchors, language, exactTemperature: /temperature|degrees?|celsius|fahrenheit|\bc\b|\bf\b/i.test(text) && attribute === 'STORAGE', multipleAttributes: explicitAttributes.length > 1, requestedAttributes: explicitAttributes.length > 1 ? explicitAttributes : [attribute], inherited: false };
 }
 function sentences(text) { return (String(text || '').match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) || []).map(value => value.trim()).filter(value => /[.!?]$/.test(value)); }
+function isDirectTopicDefinition(text, topics) {
+  if (!/[.!]$/.test(String(text).trim())) return false;
+  const normalized = words(text).join(' ');
+  return topics.some(topic => {
+    const entry = registry.find(value => value.id === topic.id);
+    return [topic.label, ...(entry?.aliases || [])].some(name => {
+      const phrase = words(name).join(' ');
+      return phrase && ['', 'a ', 'an ', 'the '].some(article => {
+        const prefix = article + phrase + ' ';
+        return normalized.startsWith(prefix) && /^(?:is|are|means|refers to|happens when)\b/.test(normalized.slice(prefix.length));
+      });
+    });
+  });
+}
 function sentenceSupports(text, plan) {
   if (!plan) return true;
   const tokens = new Set(words(text).map(concept));
@@ -53,7 +77,7 @@ function sentenceSupports(text, plan) {
     if (plan.exactTemperature) return /(?:\b\d+(?:\.\d+)?\s*(?:°\s*)?(?:celsius|fahrenheit|degrees?|[cf]\b)|room temperature)/i.test(text) && /stor|keep|temperat/i.test(text);
     return /\b(?:stor(?:e|age|ing)|refrigerat\w*|freez\w*|keep(?:ing)?|safety cap)\b/i.test(text);
   }
-  if (plan.attribute === 'USES') return /\b(?:used|use|relieve|treat|reduce|helps?)\b/i.test(text);
+  if (plan.attribute === 'USES') return /\b(?:used|indicated|prescribed)\s+(?:to|for)\b|\b(?:relieves?|treats?|reduces?)\b|\bhelps?\s+(?:with|to|relieve|reduce|lower|control|treat|prevent)\b/i.test(text);
   if (plan.attribute === 'MECHANISM') return /\b(?:works?|acts?|helps?|lowers?|reduces?)\b/i.test(text);
   if (plan.attribute === 'PREVENTION') return /prevent|unnecessary|incorrect|keep|maintain|check|ask|closing|reduce|avoid|appropriate/i.test(text);
   if (plan.attribute === 'SIDE_EFFECTS') return /side effects?|adverse|nausea|vomit|diarrh|sleep|drows|headache|allerg|deficien|appetite|taste/i.test(text);
@@ -63,12 +87,19 @@ function supportsRequest(passage, context) {
   const plan = context.questionPlan;
   // Existing project definitions keep the separate source/freshness contracts.
   if (!plan || context.topics.every(value => value.id.startsWith('workflow-'))) return true;
+  // Section-specific records cannot be repurposed into a different attribute
+  // just because a caution happens to share a keyword (for example "treat").
+  if (Array.isArray(passage.supportedAttributes) && !['GENERAL', 'SPECIFIC_FACT'].includes(plan.attribute) && !passage.supportedAttributes.includes(plan.attribute)) return false;
   if (passage.kind === 'OFFICIAL_WEB') {
     // The official site can return broad health topics. A keyword in the query
     // does not establish that a result describes the selected medicine/topic.
     const padded = ' ' + words(passage.title + ' ' + passage.excerpt).join(' ') + ' ';
     const matchingTopic = context.topics.some(topic => {
       const entry = registry.find(value => value.id === topic.id);
+      if (entry?.strictWebTopic) {
+        const title = words(String(passage.title || '').replace(/^MedlinePlus:\s*/i, '')).join(' ');
+        return [topic.label, entry.webTerm, ...entry.aliases].some(alias => words(alias).join(' ') === title);
+      }
       return [topic.label, ...(entry?.aliases || [])].some(alias => padded.includes(' ' + words(alias).join(' ') + ' '));
     });
     if (!matchingTopic) return false;
@@ -76,4 +107,4 @@ function supportsRequest(passage, context) {
   return sentences(passage.excerpt).some(value => sentenceSupports(value, plan));
 }
 function projection(plan, evidenceStatus = 'NOT_ASSESSED') { return { attribute: plan.attribute, language: plan.language, evidenceStatus, method: 'CONSERVATIVE_TEXT_MATCH_NOT_SEMANTIC_PROOF' }; }
-module.exports = { ATTRIBUTES, planQuestion, requestedLanguage, sentences, sentenceSupports, supportsRequest, projection };
+module.exports = { ATTRIBUTES, questionContent, planQuestion, requestedLanguage, sentences, isDirectTopicDefinition, sentenceSupports, supportsRequest, projection };

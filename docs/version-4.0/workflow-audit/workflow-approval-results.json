@@ -1,0 +1,26 @@
+{
+  "rows": [
+    {
+      "name": "Workflow Center required approvals enter the real sign-off queue",
+      "status": "FAIL",
+      "detail": {
+        "message": "Required approval stored as not_required instead of pending, and absent from sign-off queue."
+      }
+    },
+    {
+      "name": "Designated pharmacist can approve a pending workflow control fixture",
+      "status": "FAIL",
+      "detail": {
+        "message": "Designated pharmacist denied: HTTP 403; approval route allows pharmacy/admin, not pharmacist."
+      }
+    },
+    {
+      "name": "Foreign pharmacy cannot reject another pharmacy pending workflow",
+      "status": "FAIL",
+      "detail": {
+        "message": "Foreign pharmacy rejection was accepted: HTTP 200. Tenant ownership was not enforced."
+      }
+    }
+  ],
+  "fixturePolicy": "Isolated synthetic database only. Role/tenant checks use a separate explicitly pending control fixture; actual-trigger queue check uses the real earlier trigger."
+}

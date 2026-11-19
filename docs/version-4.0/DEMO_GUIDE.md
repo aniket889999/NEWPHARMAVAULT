@@ -2,6 +2,8 @@
 
 All data is synthetic. Password for every demo account: `password123`.
 
+**Integrated-workspace note (18 November):** the running Codex preview preserves its existing synthetic database. Do not run `seed:all` against existing data: the setup below is for a fresh, disposable demo database only. See `INTEGRATION_CHECKPOINT_2026-11-18.md` for the actual local checks, differences and remaining limits.
+
 ## Start (3 terminals → 2)
 
 ```bash
@@ -46,7 +48,7 @@ Restarting terminal 1 wipes the data: run `npm run seed:all` again.
 9. *Authenticity* → batch `B-DLO-650`, manufacturer `Micro Labs Limited` → **Verified**; any made-up batch → **Suspicious**.
 
 **Patient 3 — Health Assistant**
-10. Ask "What is Paracetamol used for?", "Does Cetirizine cause drowsiness?" (local evidence), "What is Telma used for?" / "What is fever?" (MedlinePlus web search, links shown), "Recommend the best medicine for my fever" (refers to a doctor).
+10. Ask "What is Paracetamol used for?", "Does Cetirizine cause drowsiness?" (local evidence), "What is fever?" (MedlinePlus web evidence when available), "What is Telma used for?" (asks for label confirmation), "Recommend the best medicine for my fever" (refers rather than recommending treatment). Source cards distinguish stored, cached and newly retrieved evidence.
 
 **Patient 5 — nearby in Pune**
 11. *Nearby medicines* → Dolo 650 → 5 nearest pharmacies, price, units.
@@ -61,7 +63,7 @@ Restarting terminal 1 wipes the data: run `npm run seed:all` again.
 ## Measured (CI, synthetic)
 
 - Browser tests: every screen of every portal, both claim journeys, the order → pharmacy approval flow, reminders, nearby, authenticity.
-- Health Assistant demo evaluation (`tests/chat-eval`, 30 developer-labelled questions, web search off): outcome matched the label for 18/30; safety questions referred 5/5 with 0 unsafe answers; 7/19 answerable questions answered from local evidence alone — most of the rest need the MedlinePlus web search, which is on in `dev:all`. Labels are not pharmacist-reviewed.
+- Upstream Health Assistant demo snapshot: 18/30 outcome matches, 7/19 expected answers and 5/5 safety referrals. The 18 November local integration measured 23/30 outcome matches, 14/19 expected answers with cited on-topic content and 5/5 safety referrals (0 unsafe direct answers on those five scenarios), with web/model disabled and the same developer labels. Brand-label clarification causes three policy differences; evidence and phrasing gaps also remain. These labels are not pharmacist-reviewed or an unseen gold standard. See the integration checkpoint rather than presenting either snapshot as clinical accuracy.
 
 ## Known limits
 

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "chat-launch-reference-standard/1.0.0",
+  "status": "BLANK_TEMPLATE_NOT_POPULATED",
+  "clinicalApproval": "NOT_CLINICALLY_APPROVED",
+  "splitPolicy": "FAMILY_DISJOINT",
+  "datasetFrozenAt": null,
+  "sourceCatalogSha256": null,
+  "authorId": null,
+  "clinicalReviewers": [],
+  "adjudicatorId": null,
+  "items": [
+    {
+      "itemId": null,
+      "familyId": null,
+      "split": null,
+      "scope": null,
+      "prompt": {
+        "message": null,
+        "history": [],
+        "caseFixtureId": null,
+        "medicineItemId": null
+      },
+      "expectedBoundary": {
+        "outcome": null,
+        "allowedSourceKeys": [],
+        "mustNotCitePrivateSources": true
+      },
+      "clinicalReferenceStandard": {
+        "authoredByReviewerId": null,
+        "authoredAt": null,
+        "requiredFacts": [],
+        "requiredSafetyCaveats": [],
+        "prohibitedClaims": []
+      },
+      "blindedGrades": [
+        {
+          "reviewerId": null,
+          "blindedCandidateId": null,
+          "gradedAt": null,
+          "factualSupportStatus": null,
+          "completenessStatus": null,
+          "boundaryOutcomeMatch": null,
+          "safetyViolation": null,
+          "notes": null
+        }
+      ],
+      "adjudicatedConsensus": {
+        "adjudicatorId": null,
+        "adjudicatedAt": null,
+        "finalFactualSupportStatus": null,
+        "finalCompletenessStatus": null,
+        "finalBoundaryOutcomeMatch": null,
+        "finalSafetyPass": null,
+        "resolutionNotes": null
+      }
+    }
+  ]
+}

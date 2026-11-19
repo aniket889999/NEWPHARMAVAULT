@@ -1,6 +1,7 @@
 // Deterministic domain boundary, not a medical triage or diagnostic model.
 // Run locally before retrieval/model egress. No identity or health text is logged.
 const POLICY_VERSION = 'pharmacy-domain-v1';
+const topicRegistry = require('../data/chatTopicRegistry');
 
 function routePharmacyQuestion({ message, caseId, resolved }) {
   const current = message.trim();
@@ -19,15 +20,21 @@ function routePharmacyQuestion({ message, caseId, resolved }) {
   }
   if (/^(thanks|thank you)[!.\s]*$/i.test(current)) return result('WORKFLOW_HELP', 'ACKNOWLEDGEMENT', 'You’re welcome. Ask a follow-up or select a verification case whenever you need to check the evidence.', 'CONVERSATIONAL_HELP');
   if (/\b(dog|cat|pet|veterinary|veterinarian)\b/i.test(current)) return result('CLINICAL_REFERRAL', 'HUMAN_REFERENCE_NOT_VETERINARY', 'These are human medicine references, not veterinary guidance. Please ask a veterinarian about an animal’s treatment.', 'ABSTAIN');
-  if (/\b(dosages?(?!\s+(form|strength))|how (many|much).*(take|give)|pregnan\w*|breastfeed\w*|my (baby|child)|diagnos\w*|should i (take|stop|switch)|can i take|is it safe for me|interactions?|banned|regulatory approval|live stock|current price)\b|\b(recommend|prescribe|choose|best)\b.{0,35}\b(medicine|drug|antibiotic|treatment)\b/i.test(context)) {
+  if (/\b(dosages?(?!\s+(form|strength))|personal treatment plan|dose schedule|dosing schedule|what dose.{0,40}(?:should|can) i|how (many|much).*(take|give)|pregnan\w*|breastfeed\w*|my (baby|child)|diagnos\w*|should i (take|stop|switch)|can i take|is it safe for me|interactions?|banned|regulatory approval|live stock|current price)\b|\b(recommend|prescribe|choose|best)\b.{0,35}\b(medicine|drug|antibiotic|treatment)\b/i.test(context)) {
     return result('CLINICAL_REFERRAL', 'PERSONAL_OR_UNVERIFIED_DECISION', 'I can explain general reference information, but I can’t choose a treatment or dose, diagnose symptoms, confirm personal suitability, or verify live stock or regulatory status. Please ask a qualified pharmacist or doctor for that decision.', 'ABSTAIN');
   }
   if (!caseId && /\bmy\s+(?:verification\s+)?(case|claim|prescription|invoice|bill|rx)\b|\b(our|this)\s+case\b/i.test(current)) {
     return result('CASE_DOCUMENT_QUERY', 'CASE_SELECTION_REQUIRED', 'Which verification case should I use? Select it under Evidence scope first. I won’t treat a general example or chat history as evidence about your documents.');
   }
-  if (/\b(swap|substitute|replace|interchangeable|switch to|take instead)\b/i.test(current)) {
+  // A clearly framed conversation change is not a therapeutic switch. Personal
+  // treatment/suitability and urgent checks already ran on the complete input.
+  const switchFrame=/^\s*switch to ([a-z -]{2,60})[.!]\s*(?:what is (?:it|this medicine) used for|explain (?:its|the) (?:uses|side effects))\b/i.exec(current);
+  const conversationSwitch = /\b(?:switch|change)(?: the)? topic to\b/i.test(current)
+    || Boolean(switchFrame && topicRegistry.some(topic=>!topic.concept && topic.aliases.includes(switchFrame[1].trim().toLowerCase())));
+  if (/\b(swap|substitute|replace|interchangeable|switch to|take instead)\b/i.test(current) && !conversationSwitch) {
     return result('MEDICINE_IDENTITY', 'SUBSTITUTION_NEEDS_PROFESSIONAL_REVIEW', 'I can compare recorded medicine identities, but I can’t recommend a substitution. What are the exact generic names, strengths and dosage forms shown on the two products? A pharmacist must decide whether substitution is appropriate.');
   }
+  if (resolved.topics.length && resolved.topics.every(topic => String(topic).startsWith('workflow-'))) return result('WORKFLOW_HELP', 'PROJECT_WORKFLOW_EXPLANATION');
   const brandOnly = /\b(dolo|crocin|calpol|glycomet|glucophage|cetzine|zyrtec)\b/i.test(current) && !/\b(paracetamol|metformin|cetirizine)\b/i.test(current);
   const identity = /\b(generic|brand|strength|dosage form|ingredient|identity|same medicine)\b/i.test(current);
   if (brandOnly && !/\d\s*(mg|mcg|ml)\b|\b(tablet|capsule|syrup|suspension)\b/i.test(current)) {

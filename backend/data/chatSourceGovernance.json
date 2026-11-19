@@ -1,0 +1,5 @@
+{
+  "schemaVersion": "chat-source-governance/1.0.0",
+  "description": "Deployment-reviewed source decisions. Empty means no medical source has clinical approval. Never infer approval from an official URL or developer test.",
+  "sources": {}
+}

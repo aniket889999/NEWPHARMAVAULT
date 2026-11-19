@@ -1,10 +1,11 @@
 const crypto = require('node:crypto');
 
 const SCHEMA_VERSION = 'chat-provider-readiness/1.0.0';
-const DEFAULT_MODEL = 'gemini-2.5-flash'; // Existing adapter default, not a model-availability claim.
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite'; // Documented model ID; access still requires a real accepted request.
 const OBSERVATION_TTL_MS = 5 * 60 * 1000;
-const FAILURE_REASONS = new Set(['PROVIDER_RATE_LIMIT', 'PROVIDER_UNAVAILABLE', 'PROVIDER_TIMEOUT', 'ANSWER_VALIDATION_FAILED']);
+const FAILURE_REASONS = new Set(['PROVIDER_RATE_LIMIT', 'PROVIDER_UNAVAILABLE', 'PROVIDER_TIMEOUT', 'ANSWER_VALIDATION_FAILED', 'LOCAL_TOOL_BUSY', 'LOCAL_TOOL_BUDGET_EXCEEDED', 'LOCAL_TOOL_CIRCUIT_OPEN']);
 const isModelIdentifier = value => typeof value === 'string' && value === value.trim() && value.length <= 100 && /^gemini-[a-z0-9.-]+$/.test(value);
+const hasProviderCredential = value => typeof value === 'string' && Boolean(value.trim()) && !/^(?:unused-local-preview-no-provider-access|changeme|your[_ -]?(?:gemini[_ -]?)?api[_ -]?key)$/i.test(value.trim());
 
 function configuration(env) {
   const requested = env.RAG_CHAT_LLM_ENABLED === 'true';
@@ -13,10 +14,11 @@ function configuration(env) {
   const candidate = env.RAG_CHAT_MODEL || DEFAULT_MODEL;
   const model = isModelIdentifier(candidate) ? candidate : null;
   const reasonCode = !requested ? 'GENERATION_DISABLED' : !exportAllowed ? 'PUBLIC_EXPORT_NOT_ALLOWED'
-    : !credential.trim() ? 'MISSING_CREDENTIAL' : !model ? 'INVALID_MODEL' : 'NOT_CHECKED';
+    : !hasProviderCredential(credential) ? 'MISSING_CREDENTIAL' : !model ? 'INVALID_MODEL' : 'NOT_CHECKED';
   const configured = reasonCode === 'NOT_CHECKED';
   // Internal binding only. Never expose key values, this digest or raw config.
-  const fingerprint = crypto.createHash('sha256').update(JSON.stringify([requested, exportAllowed, credential, candidate])).digest('hex');
+  const fingerprint = crypto.createHash('sha256').update(JSON.stringify([requested, exportAllowed, credential, candidate,
+    env.RAG_CHAT_ANSWER_STYLE || 'EXTRACTIVE', env.RAG_CHAT_WEB_SYNTHESIS_ALLOWED === 'true'])).digest('hex');
   return { configured, model, reasonCode, fingerprint, localOnly: !requested || !exportAllowed };
 }
 
@@ -41,7 +43,7 @@ function createReadinessMonitor({ environment = () => process.env, now = Date.no
     const success = result?.mode === 'GEMINI_RAG' && result.model === value.model && typeof result.reply === 'string' && result.reply.trim()
       && Array.isArray(result.sources) && result.sources.length > 0;
     const reasonCode = success ? 'LIVE_RESPONSE_VALIDATED'
-      : ['LOCAL_EXTRACTIVE', 'PRECISE_LOCAL_EVIDENCE', 'PRECISE_WEB_EVIDENCE'].includes(result?.mode) && FAILURE_REASONS.has(result.fallbackReason) ? result.fallbackReason : null;
+      : ['ABSTAIN', 'LOCAL_EXTRACTIVE', 'PRECISE_LOCAL_EVIDENCE', 'PRECISE_WEB_EVIDENCE'].includes(result?.mode) && FAILURE_REASONS.has(result.fallbackReason) ? result.fallbackReason : null;
     if (!reasonCode) return false;
     const checkedAt = now();
     observation = { checkedAt, expiresAt: checkedAt + ttlMs, reasonCode,
@@ -65,4 +67,4 @@ function createReadinessMonitor({ environment = () => process.env, now = Date.no
 }
 
 const providerReadiness = createReadinessMonitor();
-module.exports = { createReadinessMonitor, providerReadiness, isModelIdentifier, DEFAULT_MODEL, OBSERVATION_TTL_MS };
+module.exports = { createReadinessMonitor, providerReadiness, isModelIdentifier, hasProviderCredential, DEFAULT_MODEL, OBSERVATION_TTL_MS };

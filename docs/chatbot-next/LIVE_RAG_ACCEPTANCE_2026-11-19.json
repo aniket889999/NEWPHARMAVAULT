@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "academic-live-rag-acceptance-v1",
+  "date": "2026-11-19",
+  "scope": "PUBLIC_SYNTHETIC_HTTP_ACCEPTANCE_NOT_CLINICAL_VALIDATION",
+  "model": "gemini-3.5-flash-lite",
+  "privateDataSent": false,
+  "automaticRetries": 0,
+  "liveVerifiedCases": [
+    {
+      "id": "MULTI_ATTRIBUTE",
+      "question": "What are Metformin uses and possible side effects?",
+      "mode": "GEMINI_RAG",
+      "httpStatus": 200,
+      "providerRequests": 2,
+      "elapsedMs": 9783,
+      "citationsResolve": true,
+      "attributes": ["SIDE_EFFECTS", "USES"],
+      "contextTopic": "metformin",
+      "sourceUrls": ["https://www.nhs.uk/medicines/metformin/"],
+      "sourceReviewStatus": "NOT_CLINICALLY_APPROVED",
+      "verifiedAt": "2026-11-19T06:26:26.757Z",
+      "iteration": "Before final sentence-ID protocol enhancement; not repeated after enhancement to conserve API allowance."
+    },
+    {
+      "id": "CONTEXT_AND_WORDING",
+      "earlierUserTurn": "Explain Cetirizine in Marathi.",
+      "earlierAssistantTurn": "English-only clarification; no model generation.",
+      "question": "English please. Can it make me sleepy? Explain simply.",
+      "mode": "GEMINI_RAG",
+      "httpStatus": 200,
+      "providerRequests": 2,
+      "elapsedMs": 14459,
+      "citationsResolve": true,
+      "attributes": ["SPECIFIC_FACT"],
+      "contextTopic": "cetirizine",
+      "sourceUrls": ["https://www.nhs.uk/medicines/cetirizine/about-cetirizine/"],
+      "sourceReviewStatus": "NOT_CLINICALLY_APPROVED",
+      "verifiedAt": "2026-11-19T06:35:19.086Z",
+      "iteration": "Final server-resolved sentence-ID protocol; exact earlier failed follow-up rechecked over authenticated HTTP."
+    }
+  ],
+  "failuresRetained": [
+    {
+      "id": "INITIAL_MULTI_ATTRIBUTE",
+      "mode": "PRECISE_WEB_EVIDENCE",
+      "reason": "PROVIDER_UNAVAILABLE",
+      "elapsedMs": 14061,
+      "providerRequestCount": "Not captured; at most two.",
+      "rootCause": "Not established. Model metadata was subsequently available and a later request passed."
+    },
+    {
+      "id": "INITIAL_BROWSER_FOLLOWUP",
+      "mode": "PRECISE_WEB_EVIDENCE",
+      "reason": "ANSWER_VALIDATION_FAILED",
+      "providerRequestCount": "Not captured; at most two.",
+      "rootCause": "Only validation category was recorded, not the precise failing check. Server sentence selection was improved and the same follow-up later passed."
+    }
+  ],
+  "modelRequestBudget": {
+    "initialMaximum": 6,
+    "additionalExplicitlyApprovedMaximum": 2,
+    "totalMaximum": 8,
+    "exactTotal": "Unknown: two earlier failures preceded request-count instrumentation. Successful cases used two each; all attempts together were bounded to at most eight.",
+    "outputTokenCapsPerAnswer": [1024, 512],
+    "nonGenerationModelMetadataRequests": 1
+  },
+  "publicConnectorChecks": {
+    "realDirectChecksPassed": ["azithromycin GENERAL", "metformin USES", "metformin SIDE_EFFECTS", "cetirizine GENERAL"],
+    "crossDocumentRetrievalOnly": {
+      "question": "Does Azithromycin treat viral colds?",
+      "namedMedicineEvidence": true,
+      "antibioticClassEvidence": true,
+      "liveClassSource": true,
+      "modelRequests": 0,
+      "urls": ["https://www.nhs.uk/medicines/azithromycin/about-azithromycin/", "https://www.nhs.uk/medicines/antibiotics/"],
+      "generationForThisQuestionNotLiveVerified": true
+    }
+  },
+  "lastObservedReadiness": {
+    "state": "VERIFIED_RECENTLY",
+    "reasonCode": "LIVE_RESPONSE_VALIDATED",
+    "checkedAt": "2026-11-19T06:35:19.086Z",
+    "expiresAt": "2026-11-19T06:40:19.086Z",
+    "privateCasePolicy": "LOCAL_ONLY",
+    "note": "This is a historical observation with a five-minute TTL, not a permanent availability guarantee."
+  },
+  "clinicalValidation": "NOT_PERFORMED",
+  "heldOutOrSuperiorityEvaluation": "NOT_PERFORMED"
+}

@@ -9,7 +9,7 @@
   "properties": {
     "schemaVersion": { "const": "chat-provider-readiness/1.0.0" },
     "state": { "enum": ["LOCAL_ONLY", "MISCONFIGURED", "CONFIGURED_UNVERIFIED", "VERIFIED_RECENTLY", "DEGRADED"] },
-    "reasonCode": { "enum": ["GENERATION_DISABLED", "PUBLIC_EXPORT_NOT_ALLOWED", "MISSING_CREDENTIAL", "INVALID_MODEL", "NOT_CHECKED", "CHECK_EXPIRED", "LIVE_RESPONSE_VALIDATED", "PROVIDER_RATE_LIMIT", "PROVIDER_UNAVAILABLE", "PROVIDER_TIMEOUT", "ANSWER_VALIDATION_FAILED"] },
+    "reasonCode": { "enum": ["GENERATION_DISABLED", "PUBLIC_EXPORT_NOT_ALLOWED", "MISSING_CREDENTIAL", "INVALID_MODEL", "NOT_CHECKED", "CHECK_EXPIRED", "LIVE_RESPONSE_VALIDATED", "PROVIDER_RATE_LIMIT", "PROVIDER_UNAVAILABLE", "PROVIDER_TIMEOUT", "ANSWER_VALIDATION_FAILED", "LOCAL_TOOL_BUSY", "LOCAL_TOOL_BUDGET_EXCEEDED", "LOCAL_TOOL_CIRCUIT_OPEN"] },
     "configured": { "type": "boolean" },
     "model": { "anyOf": [{ "type": "null" }, { "type": "string", "maxLength": 100, "pattern": "^gemini-[a-z0-9.-]+$", "not": { "pattern": "\\s" } }] },
     "liveProviderVerified": { "type": "boolean" },
@@ -48,7 +48,7 @@
     },
     {
       "if": { "properties": { "state": { "const": "DEGRADED" } }, "required": ["state"] },
-      "then": { "properties": { "reasonCode": { "enum": ["PROVIDER_RATE_LIMIT", "PROVIDER_UNAVAILABLE", "PROVIDER_TIMEOUT", "ANSWER_VALIDATION_FAILED"] }, "checkedAt": { "type": "string" }, "expiresAt": { "type": "string" }, "verificationScope": { "const": "PUBLIC_REFERENCE_GENERATION" } } }
+      "then": { "properties": { "reasonCode": { "enum": ["PROVIDER_RATE_LIMIT", "PROVIDER_UNAVAILABLE", "PROVIDER_TIMEOUT", "ANSWER_VALIDATION_FAILED", "LOCAL_TOOL_BUSY", "LOCAL_TOOL_BUDGET_EXCEEDED", "LOCAL_TOOL_CIRCUIT_OPEN"] }, "checkedAt": { "type": "string" }, "expiresAt": { "type": "string" }, "verificationScope": { "const": "PUBLIC_REFERENCE_GENERATION" } } }
     }
   ]
 }

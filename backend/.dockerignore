@@ -15,6 +15,9 @@ data/*
 !data/chatTopicRegistry.js
 !data/chatReferenceExtensions.js
 !data/precisionRanker.v1.json
+!data/chatSourceGovernance.json
+!data/chatMedicineEvidence.v1.json
+!data/nhsMedicineDirectory.v1.json
 eng.traineddata
 **/*.traineddata
 **/*.traineddata.gz

@@ -1,0 +1,74 @@
+{
+  "status": "VERIFIED_GAPS_345_PUBLIC_FLOW",
+  "observedAt": "2026-11-19T07:35:49Z",
+  "scope": "Two synthetic authenticated public-only HTTP answers; not clinical validation or a universal coverage benchmark",
+  "providerBudget": {
+    "embeddingRequests": 2,
+    "generationAndReviewRequests": 4,
+    "maximumEmbeddingRequests": 2,
+    "maximumGenerationAndReviewRequests": 4,
+    "automaticRetries": 0,
+    "privateDataSent": false
+  },
+  "sourceDirectory": {
+    "nhsIndexedTopics": 256,
+    "fdaFallbackTopics": ["ondansetron", "telmisartan"],
+    "metadataPolicy": "OFFICIAL_INDEX_NOT_CLINICAL_APPROVAL"
+  },
+  "semantic": {
+    "model": "gemini-embedding-001",
+    "dimension": 768,
+    "vectorRetrievalVerified": true,
+    "publicMongoCacheRowsObserved": 7,
+    "cacheStoresRawText": false,
+    "cacheStoresUserId": false,
+    "cachePolicy": "PUBLIC_ONLY_30_DAY_MONGO_TTL_AND_BOUNDED_MEMORY"
+  },
+  "results": [
+    {
+      "id": "NEW_OFFICIAL_TOPIC_HYBRID",
+      "question": "What is Allopurinol used for?",
+      "httpStatus": 200,
+      "passed": true,
+      "mode": "GEMINI_RAG",
+      "model": "gemini-3.5-flash-lite",
+      "elapsedMs": 4992,
+      "retrieval": {"method": "HYBRID_BM25_VECTOR", "matchedPassages": 2, "embeddingRequests": 1},
+      "citationsResolve": true,
+      "contextTopic": "nhs-allopurinol",
+      "followupResolved": false,
+      "encryptedContextReturned": true,
+      "fallbackReason": null,
+      "sourceUrl": "https://www.nhs.uk/medicines/allopurinol/",
+      "reviewStatus": "NOT_CLINICALLY_APPROVED",
+      "reply": "Allopurinol is a prescription medicine mainly used to treat gout by helping to reduce the amount of uric acid in your body. [S1]\n\nIt can also be used to prevent gout attacks, prevent certain types of kidney stones, and prevent problems caused by uric acid build-up during specific cancer treatments. [S2]"
+    },
+    {
+      "id": "CONTEXT_BEYOND_RAW_WINDOW",
+      "question": "What about its common side effects? Keep it concise.",
+      "rawHistory": "Ten synthetic neutral turns, with no medicine name; encrypted context from the first answer supplied separately",
+      "httpStatus": 200,
+      "passed": true,
+      "mode": "GEMINI_RAG",
+      "model": "gemini-3.5-flash-lite",
+      "elapsedMs": 4964,
+      "retrieval": {"method": "HYBRID_BM25_VECTOR", "matchedPassages": 3, "embeddingRequests": 1},
+      "citationsResolve": true,
+      "contextTopic": "nhs-allopurinol",
+      "followupResolved": true,
+      "encryptedContextReturned": true,
+      "fallbackReason": null,
+      "sourceUrl": "https://www.nhs.uk/medicines/allopurinol/",
+      "reviewStatus": "NOT_CLINICALLY_APPROVED",
+      "reply": "Allopurinol can cause side effects like feeling sick, vomiting, diarrhoea, rashes, and skin reactions, though not everyone experiences them. [S2]\n\nOther potential effects include drowsiness, dizziness, sleepiness, or coordination issues, while serious side effects are sometimes possible though rare. [S1] [S3]"
+    }
+  ],
+  "memory": {
+    "session": "ENCRYPTED_ACCOUNT_AND_CHAT_BOUND_CONTEXT",
+    "saved": "OPT_IN_ACCOUNT_SCOPED_30_DAYS",
+    "maxSavedMessages": 200,
+    "historyIsEvidence": false,
+    "autoTraining": false
+  },
+  "clinicalValidation": "NOT_PERFORMED"
+}

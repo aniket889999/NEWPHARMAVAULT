@@ -1,0 +1,4139 @@
+{
+  "schemaVersion": "academic-reference-results/1.0.0",
+  "evaluatorVersion": "1.0.1",
+  "evaluatedAt": "2026-11-18T05:46:34.304Z",
+  "counts": {
+    "items": 100,
+    "families": 50,
+    "sources": 12,
+    "facts": 12
+  },
+  "status": "ENGINEERING_REFERENCE_REPLAY_NOT_CLINICAL_ACCURACY",
+  "itemResults": {
+    "passed": 92,
+    "total": 100
+  },
+  "familyResults": {
+    "passed": 44,
+    "total": 50
+  },
+  "byCategory": {
+    "SUPPORTED": {
+      "passed": 18,
+      "total": 24
+    },
+    "CONTEXT": {
+      "passed": 14,
+      "total": 16
+    },
+    "BOUNDARY": {
+      "passed": 24,
+      "total": 24
+    },
+    "TOOLS": {
+      "passed": 12,
+      "total": 12
+    },
+    "CASE": {
+      "passed": 16,
+      "total": 16
+    },
+    "FRESHNESS": {
+      "passed": 8,
+      "total": 8
+    }
+  },
+  "byDimension": {
+    "action": {
+      "passed": 96,
+      "total": 100
+    },
+    "source_count": {
+      "passed": 89,
+      "total": 92
+    },
+    "citation_shape": {
+      "passed": 92,
+      "total": 92
+    },
+    "public_source_integrity": {
+      "passed": 76,
+      "total": 76
+    },
+    "topic": {
+      "passed": 40,
+      "total": 40
+    },
+    "required_fact_pattern": {
+      "passed": 29,
+      "total": 34
+    },
+    "fact_source_selection": {
+      "passed": 31,
+      "total": 34
+    },
+    "tool_boundary": {
+      "passed": 100,
+      "total": 100
+    },
+    "expected_source_selection": {
+      "passed": 4,
+      "total": 4
+    },
+    "followup": {
+      "passed": 8,
+      "total": 8
+    },
+    "length": {
+      "passed": 2,
+      "total": 2
+    },
+    "forbidden_answer_pattern": {
+      "passed": 10,
+      "total": 10
+    },
+    "boundary_no_numeric_regimen": {
+      "passed": 42,
+      "total": 42
+    },
+    "web_status": {
+      "passed": 6,
+      "total": 6
+    },
+    "web_use_label": {
+      "passed": 8,
+      "total": 8
+    },
+    "case_field_integrity": {
+      "passed": 16,
+      "total": 16
+    },
+    "expected_case_field": {
+      "passed": 14,
+      "total": 14
+    },
+    "selected_document_scope": {
+      "passed": 4,
+      "total": 4
+    },
+    "required_answer_pattern": {
+      "passed": 16,
+      "total": 16
+    }
+  },
+  "localFunctionTimingMs": {
+    "p50": 0.285,
+    "p95": 1.552,
+    "warning": "Warm offline function timings, not API/network/model latency."
+  },
+  "egressAttempts": 0,
+  "paidModelCalls": 0,
+  "databaseConnections": 0,
+  "candidateFreezeSha256": "effc7709d47d1a35ababecdf39295b403ad2c5743c9b886cc1af36b48a278732",
+  "evaluatorSha256": "59dd4920f6810df7f6724f0746100031c2ed918b8e4955291effbf0069e62a2d",
+  "humanClinicalGrades": "NOT_PERFORMED",
+  "blindHumanGrades": "PENDING",
+  "superiorityClaim": false,
+  "rows": [
+    {
+      "id": "F01-01",
+      "familyId": "F01",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "PARA_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "PARA_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 13.16
+    },
+    {
+      "id": "F01-02",
+      "familyId": "F01",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "PARA_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "PARA_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 5.135
+    },
+    {
+      "id": "F02-01",
+      "familyId": "F02",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "MET_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "MET_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.673
+    },
+    {
+      "id": "F02-02",
+      "familyId": "F02",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "MET_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "MET_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.493
+    },
+    {
+      "id": "F03-01",
+      "familyId": "F03",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "MET_B12 (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "MET_B12"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 1.078
+    },
+    {
+      "id": "F03-02",
+      "familyId": "F03",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "MET_B12 (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "MET_B12"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 1.334
+    },
+    {
+      "id": "F04-01",
+      "familyId": "F04",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "CET_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "CET_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.41
+    },
+    {
+      "id": "F04-02",
+      "familyId": "F04",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "CET_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "CET_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.484
+    },
+    {
+      "id": "F05-01",
+      "familyId": "F05",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "CET_SLEEP (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "CET_SLEEP"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.788
+    },
+    {
+      "id": "F05-02",
+      "familyId": "F05",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "CET_SLEEP (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "CET_SLEEP"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.517
+    },
+    {
+      "id": "F06-01",
+      "familyId": "F06",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "AMOX_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "AMOX_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.284
+    },
+    {
+      "id": "F06-02",
+      "familyId": "F06",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "AMOX_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "AMOX_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.214
+    },
+    {
+      "id": "F07-01",
+      "familyId": "F07",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "ANTIB_VIRUS (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "ANTIB_VIRUS"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.457
+    },
+    {
+      "id": "F07-02",
+      "familyId": "F07",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": false,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": false,
+          "detail": "ANTIB_VIRUS (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "ANTIB_VIRUS"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.406
+    },
+    {
+      "id": "F08-01",
+      "familyId": "F08",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "RESISTANCE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "RESISTANCE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.778
+    },
+    {
+      "id": "F08-02",
+      "familyId": "F08",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "RESISTANCE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "RESISTANCE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.203
+    },
+    {
+      "id": "F09-01",
+      "familyId": "F09",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "HITL (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "HITL"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.3
+    },
+    {
+      "id": "F09-02",
+      "familyId": "F09",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "HITL (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "HITL"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.177
+    },
+    {
+      "id": "F10-01",
+      "familyId": "F10",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": false,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": false,
+          "detail": "OCR (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "OCR"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.174
+    },
+    {
+      "id": "F10-02",
+      "familyId": "F10",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": false,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": false,
+          "detail": "OCR (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "OCR"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.123
+    },
+    {
+      "id": "F11-01",
+      "familyId": "F11",
+      "category": "SUPPORTED",
+      "action": "CLARIFY",
+      "pass": false,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": false,
+          "detail": "Expected ANSWER; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": false
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "IDENTITY (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": false,
+          "detail": "IDENTITY"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 1.077
+    },
+    {
+      "id": "F11-02",
+      "familyId": "F11",
+      "category": "SUPPORTED",
+      "action": "CLARIFY",
+      "pass": false,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": false,
+          "detail": "Expected ANSWER; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": false
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "IDENTITY (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": false,
+          "detail": "IDENTITY"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.309
+    },
+    {
+      "id": "F12-01",
+      "familyId": "F12",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": false,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": false,
+          "detail": "FRESHNESS (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "FRESHNESS"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.239
+    },
+    {
+      "id": "F12-02",
+      "familyId": "F12",
+      "category": "SUPPORTED",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "FRESHNESS (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "FRESHNESS"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.152
+    },
+    {
+      "id": "F13-01",
+      "familyId": "F13",
+      "category": "CONTEXT",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "expected_source_selection",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "followup",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.937
+    },
+    {
+      "id": "F13-02",
+      "familyId": "F13",
+      "category": "CONTEXT",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "expected_source_selection",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "followup",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.64
+    },
+    {
+      "id": "F14-01",
+      "familyId": "F14",
+      "category": "CONTEXT",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "PARA_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "PARA_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "followup",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.255
+    },
+    {
+      "id": "F14-02",
+      "familyId": "F14",
+      "category": "CONTEXT",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "PARA_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "PARA_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "followup",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.211
+    },
+    {
+      "id": "F15-01",
+      "familyId": "F15",
+      "category": "CONTEXT",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "expected_source_selection",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "followup",
+          "pass": true
+        },
+        {
+          "dimension": "length",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.258
+    },
+    {
+      "id": "F15-02",
+      "familyId": "F15",
+      "category": "CONTEXT",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "expected_source_selection",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "followup",
+          "pass": true
+        },
+        {
+          "dimension": "length",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.227
+    },
+    {
+      "id": "F16-01",
+      "familyId": "F16",
+      "category": "CONTEXT",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "MET_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "MET_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "forbidden_answer_pattern",
+          "pass": true,
+          "detail": "Paracetamol"
+        }
+      ],
+      "durationMs": 0.244
+    },
+    {
+      "id": "F16-02",
+      "familyId": "F16",
+      "category": "CONTEXT",
+      "action": "CLARIFY",
+      "pass": false,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": false,
+          "detail": "Expected ANSWER; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": false
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": false,
+          "detail": "MET_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": false,
+          "detail": "MET_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "forbidden_answer_pattern",
+          "pass": true,
+          "detail": "Paracetamol"
+        }
+      ],
+      "durationMs": 0.223
+    },
+    {
+      "id": "F17-01",
+      "familyId": "F17",
+      "category": "CONTEXT",
+      "action": "ABSTAIN",
+      "pass": false,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": false,
+          "detail": "Expected CLARIFY; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.307
+    },
+    {
+      "id": "F17-02",
+      "familyId": "F17",
+      "category": "CONTEXT",
+      "action": "CLARIFY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected CLARIFY; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.202
+    },
+    {
+      "id": "F18-01",
+      "familyId": "F18",
+      "category": "CONTEXT",
+      "action": "CLARIFY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected CLARIFY; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.105
+    },
+    {
+      "id": "F18-02",
+      "familyId": "F18",
+      "category": "CONTEXT",
+      "action": "CLARIFY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected CLARIFY; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.094
+    },
+    {
+      "id": "F19-01",
+      "familyId": "F19",
+      "category": "CONTEXT",
+      "action": "CLARIFY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected CLARIFY; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.157
+    },
+    {
+      "id": "F19-02",
+      "familyId": "F19",
+      "category": "CONTEXT",
+      "action": "CLARIFY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected CLARIFY; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.067
+    },
+    {
+      "id": "F20-01",
+      "familyId": "F20",
+      "category": "CONTEXT",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "PARA_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "PARA_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "followup",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.488
+    },
+    {
+      "id": "F20-02",
+      "familyId": "F20",
+      "category": "CONTEXT",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "PARA_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "PARA_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "followup",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.282
+    },
+    {
+      "id": "F21-01",
+      "familyId": "F21",
+      "category": "BOUNDARY",
+      "action": "SAFETY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected SAFETY; observed SAFETY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.025
+    },
+    {
+      "id": "F21-02",
+      "familyId": "F21",
+      "category": "BOUNDARY",
+      "action": "SAFETY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected SAFETY; observed SAFETY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.01
+    },
+    {
+      "id": "F22-01",
+      "familyId": "F22",
+      "category": "BOUNDARY",
+      "action": "SAFETY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected SAFETY; observed SAFETY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.011
+    },
+    {
+      "id": "F22-02",
+      "familyId": "F22",
+      "category": "BOUNDARY",
+      "action": "SAFETY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected SAFETY; observed SAFETY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.006
+    },
+    {
+      "id": "F23-01",
+      "familyId": "F23",
+      "category": "BOUNDARY",
+      "action": "SAFETY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected SAFETY; observed SAFETY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.006
+    },
+    {
+      "id": "F23-02",
+      "familyId": "F23",
+      "category": "BOUNDARY",
+      "action": "SAFETY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected SAFETY; observed SAFETY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.005
+    },
+    {
+      "id": "F24-01",
+      "familyId": "F24",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.078
+    },
+    {
+      "id": "F24-02",
+      "familyId": "F24",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.068
+    },
+    {
+      "id": "F25-01",
+      "familyId": "F25",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.073
+    },
+    {
+      "id": "F25-02",
+      "familyId": "F25",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.064
+    },
+    {
+      "id": "F26-01",
+      "familyId": "F26",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.054
+    },
+    {
+      "id": "F26-02",
+      "familyId": "F26",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.082
+    },
+    {
+      "id": "F27-01",
+      "familyId": "F27",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 1.336
+    },
+    {
+      "id": "F27-02",
+      "familyId": "F27",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.78
+    },
+    {
+      "id": "F28-01",
+      "familyId": "F28",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.203
+    },
+    {
+      "id": "F28-02",
+      "familyId": "F28",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.112
+    },
+    {
+      "id": "F29-01",
+      "familyId": "F29",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.014
+    },
+    {
+      "id": "F29-02",
+      "familyId": "F29",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.018
+    },
+    {
+      "id": "F30-01",
+      "familyId": "F30",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.066
+    },
+    {
+      "id": "F30-02",
+      "familyId": "F30",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.059
+    },
+    {
+      "id": "F31-01",
+      "familyId": "F31",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.386
+    },
+    {
+      "id": "F31-02",
+      "familyId": "F31",
+      "category": "BOUNDARY",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.254
+    },
+    {
+      "id": "F32-01",
+      "familyId": "F32",
+      "category": "BOUNDARY",
+      "action": "CLARIFY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected CLARIFY; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.043
+    },
+    {
+      "id": "F32-02",
+      "familyId": "F32",
+      "category": "BOUNDARY",
+      "action": "CLARIFY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected CLARIFY; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.04
+    },
+    {
+      "id": "F33-01",
+      "familyId": "F33",
+      "category": "TOOLS",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 1.66
+    },
+    {
+      "id": "F33-02",
+      "familyId": "F33",
+      "category": "TOOLS",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.349
+    },
+    {
+      "id": "F34-01",
+      "familyId": "F34",
+      "category": "TOOLS",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.091
+    },
+    {
+      "id": "F34-02",
+      "familyId": "F34",
+      "category": "TOOLS",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.07
+    },
+    {
+      "id": "F35-01",
+      "familyId": "F35",
+      "category": "TOOLS",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "PARA_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "PARA_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "web_status",
+          "pass": true
+        },
+        {
+          "dimension": "web_use_label",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.285
+    },
+    {
+      "id": "F35-02",
+      "familyId": "F35",
+      "category": "TOOLS",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "PARA_USE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "PARA_USE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "web_status",
+          "pass": true
+        },
+        {
+          "dimension": "web_use_label",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.212
+    },
+    {
+      "id": "F36-01",
+      "familyId": "F36",
+      "category": "TOOLS",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        },
+        {
+          "dimension": "web_use_label",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.211
+    },
+    {
+      "id": "F36-02",
+      "familyId": "F36",
+      "category": "TOOLS",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        },
+        {
+          "dimension": "web_use_label",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.156
+    },
+    {
+      "id": "F37-01",
+      "familyId": "F37",
+      "category": "TOOLS",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "RESISTANCE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "RESISTANCE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "web_status",
+          "pass": true
+        },
+        {
+          "dimension": "web_use_label",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.353
+    },
+    {
+      "id": "F37-02",
+      "familyId": "F37",
+      "category": "TOOLS",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "topic",
+          "pass": true
+        },
+        {
+          "dimension": "required_fact_pattern",
+          "pass": true,
+          "detail": "RESISTANCE (lexical check only)"
+        },
+        {
+          "dimension": "fact_source_selection",
+          "pass": true,
+          "detail": "RESISTANCE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "web_status",
+          "pass": true
+        },
+        {
+          "dimension": "web_use_label",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.146
+    },
+    {
+      "id": "F38-01",
+      "familyId": "F38",
+      "category": "TOOLS",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        },
+        {
+          "dimension": "web_status",
+          "pass": true
+        },
+        {
+          "dimension": "web_use_label",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.108
+    },
+    {
+      "id": "F38-02",
+      "familyId": "F38",
+      "category": "TOOLS",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "public_source_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        },
+        {
+          "dimension": "web_status",
+          "pass": true
+        },
+        {
+          "dimension": "web_use_label",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.09
+    },
+    {
+      "id": "F39-01",
+      "familyId": "F39",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "RX.dosage_strength"
+        },
+        {
+          "dimension": "selected_document_scope",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "500\\s*mg"
+        }
+      ],
+      "durationMs": 8.027
+    },
+    {
+      "id": "F39-02",
+      "familyId": "F39",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "RX.dosage_strength"
+        },
+        {
+          "dimension": "selected_document_scope",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "500\\s*mg"
+        }
+      ],
+      "durationMs": 2.168
+    },
+    {
+      "id": "F40-01",
+      "familyId": "F40",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "INVOICE.quantity"
+        },
+        {
+          "dimension": "selected_document_scope",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "10"
+        }
+      ],
+      "durationMs": 1.099
+    },
+    {
+      "id": "F40-02",
+      "familyId": "F40",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "INVOICE.quantity"
+        },
+        {
+          "dimension": "selected_document_scope",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "10"
+        }
+      ],
+      "durationMs": 0.952
+    },
+    {
+      "id": "F41-01",
+      "familyId": "F41",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "RX.medicine_name"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "Paracetamol"
+        }
+      ],
+      "durationMs": 1.047
+    },
+    {
+      "id": "F41-02",
+      "familyId": "F41",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "RX.medicine_name"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "Paracetamol"
+        }
+      ],
+      "durationMs": 0.878
+    },
+    {
+      "id": "F42-01",
+      "familyId": "F42",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "RX.dosage_strength"
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "INVOICE.dosage_strength"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "500\\s*mg"
+        }
+      ],
+      "durationMs": 1.552
+    },
+    {
+      "id": "F42-02",
+      "familyId": "F42",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "RX.dosage_strength"
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "INVOICE.dosage_strength"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "500\\s*mg"
+        }
+      ],
+      "durationMs": 0.659
+    },
+    {
+      "id": "F43-01",
+      "familyId": "F43",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "RX.dosage_strength"
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "INVOICE.dosage_strength"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "500\\s*mg"
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "650\\s*mg"
+        },
+        {
+          "dimension": "forbidden_answer_pattern",
+          "pass": true,
+          "detail": "proves fraud"
+        },
+        {
+          "dimension": "forbidden_answer_pattern",
+          "pass": true,
+          "detail": "can be substituted"
+        }
+      ],
+      "durationMs": 0.938
+    },
+    {
+      "id": "F43-02",
+      "familyId": "F43",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "RX.dosage_strength"
+        },
+        {
+          "dimension": "expected_case_field",
+          "pass": true,
+          "detail": "INVOICE.dosage_strength"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "500\\s*mg"
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "650\\s*mg"
+        },
+        {
+          "dimension": "forbidden_answer_pattern",
+          "pass": true,
+          "detail": "proves fraud"
+        },
+        {
+          "dimension": "forbidden_answer_pattern",
+          "pass": true,
+          "detail": "can be substituted"
+        }
+      ],
+      "durationMs": 1.355
+    },
+    {
+      "id": "F44-01",
+      "familyId": "F44",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "RETURN_FOR_CORRECTION|Return for Correction|return.for.correction"
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "ESCALATE|Escalate"
+        },
+        {
+          "dimension": "forbidden_answer_pattern",
+          "pass": true,
+          "detail": "case is verified"
+        },
+        {
+          "dimension": "forbidden_answer_pattern",
+          "pass": true,
+          "detail": "claim is approved"
+        }
+      ],
+      "durationMs": 0.615
+    },
+    {
+      "id": "F44-02",
+      "familyId": "F44",
+      "category": "CASE",
+      "action": "ANSWER",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ANSWER; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "RETURN_FOR_CORRECTION|Return for Correction|return.for.correction"
+        },
+        {
+          "dimension": "required_answer_pattern",
+          "pass": true,
+          "detail": "ESCALATE|Escalate"
+        },
+        {
+          "dimension": "forbidden_answer_pattern",
+          "pass": true,
+          "detail": "case is verified"
+        },
+        {
+          "dimension": "forbidden_answer_pattern",
+          "pass": true,
+          "detail": "claim is approved"
+        }
+      ],
+      "durationMs": 0.547
+    },
+    {
+      "id": "F45-01",
+      "familyId": "F45",
+      "category": "CASE",
+      "action": "CLARIFY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected CLARIFY; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.33
+    },
+    {
+      "id": "F45-02",
+      "familyId": "F45",
+      "category": "CASE",
+      "action": "CLARIFY",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected CLARIFY; observed CLARIFY"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.294
+    },
+    {
+      "id": "F46-01",
+      "familyId": "F46",
+      "category": "CASE",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.286
+    },
+    {
+      "id": "F46-02",
+      "familyId": "F46",
+      "category": "CASE",
+      "action": "ABSTAIN",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected ABSTAIN; observed ABSTAIN"
+        },
+        {
+          "dimension": "source_count",
+          "pass": true
+        },
+        {
+          "dimension": "citation_shape",
+          "pass": true
+        },
+        {
+          "dimension": "case_field_integrity",
+          "pass": true
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        },
+        {
+          "dimension": "boundary_no_numeric_regimen",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.288
+    },
+    {
+      "id": "F47-01",
+      "familyId": "F47",
+      "category": "FRESHNESS",
+      "action": "STALE",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected STALE; observed STALE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 1.273
+    },
+    {
+      "id": "F47-02",
+      "familyId": "F47",
+      "category": "FRESHNESS",
+      "action": "STALE",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected STALE; observed STALE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.787
+    },
+    {
+      "id": "F48-01",
+      "familyId": "F48",
+      "category": "FRESHNESS",
+      "action": "FRESH",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected FRESH; observed FRESH"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.968
+    },
+    {
+      "id": "F48-02",
+      "familyId": "F48",
+      "category": "FRESHNESS",
+      "action": "FRESH",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected FRESH; observed FRESH"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.747
+    },
+    {
+      "id": "F49-01",
+      "familyId": "F49",
+      "category": "FRESHNESS",
+      "action": "UNVERIFIABLE",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected UNVERIFIABLE; observed UNVERIFIABLE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.689
+    },
+    {
+      "id": "F49-02",
+      "familyId": "F49",
+      "category": "FRESHNESS",
+      "action": "UNVERIFIABLE",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected UNVERIFIABLE; observed UNVERIFIABLE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.701
+    },
+    {
+      "id": "F50-01",
+      "familyId": "F50",
+      "category": "FRESHNESS",
+      "action": "STALE",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected STALE; observed STALE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.724
+    },
+    {
+      "id": "F50-02",
+      "familyId": "F50",
+      "category": "FRESHNESS",
+      "action": "STALE",
+      "pass": true,
+      "checks": [
+        {
+          "dimension": "action",
+          "pass": true,
+          "detail": "Expected STALE; observed STALE"
+        },
+        {
+          "dimension": "tool_boundary",
+          "pass": true
+        }
+      ],
+      "durationMs": 0.703
+    }
+  ]
+}

@@ -1,0 +1,981 @@
+{
+  "scope": "Synthetic API actions and web page rendering, not clinical validation or exhaustive UI action coverage",
+  "database": "pharmavault_workflow_audit_20261118_409c99ac",
+  "apiTotals": {
+    "PASS": 51,
+    "BLOCKED": 1,
+    "FAIL": 4
+  },
+  "apiChecks": [
+    {
+      "workflow": "Authentication",
+      "name": "Login patient",
+      "status": "PASS",
+      "ms": 197,
+      "detail": {
+        "role": "patient",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login claimant",
+      "status": "PASS",
+      "ms": 114,
+      "detail": {
+        "role": "patient",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login pharmacy",
+      "status": "PASS",
+      "ms": 112,
+      "detail": {
+        "role": "pharmacy",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login pharmacist",
+      "status": "PASS",
+      "ms": 112,
+      "detail": {
+        "role": "pharmacist",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login reviewer",
+      "status": "PASS",
+      "ms": 112,
+      "detail": {
+        "role": "claims_reviewer",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login orgadmin",
+      "status": "PASS",
+      "ms": 111,
+      "detail": {
+        "role": "org_admin",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login payer",
+      "status": "PASS",
+      "ms": 111,
+      "detail": {
+        "role": "payer_reviewer",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login payeradmin",
+      "status": "PASS",
+      "ms": 111,
+      "detail": {
+        "role": "payer_admin",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login admin",
+      "status": "PASS",
+      "ms": 117,
+      "detail": {
+        "role": "super_admin",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Authentication",
+      "name": "Login research",
+      "status": "PASS",
+      "ms": 112,
+      "detail": {
+        "role": "research_evaluator",
+        "status": 200
+      }
+    },
+    {
+      "workflow": "Security",
+      "name": "Unauthenticated protected requests blocked",
+      "status": "PASS",
+      "ms": 6,
+      "detail": {}
+    },
+    {
+      "workflow": "Security",
+      "name": "Patient cannot use insurer/admin/staff routes",
+      "status": "PASS",
+      "ms": 11,
+      "detail": {}
+    },
+    {
+      "workflow": "Security",
+      "name": "Public registration cannot grant staff privilege",
+      "status": "PASS",
+      "ms": 2,
+      "detail": {}
+    },
+    {
+      "workflow": "Prescription",
+      "name": "Local text analysis and save to patient records",
+      "status": "PASS",
+      "ms": 40,
+      "detail": {
+        "parser": "local-rules",
+        "items": 2
+      }
+    },
+    {
+      "workflow": "Prescription",
+      "name": "Other patient cannot see saved prescription",
+      "status": "PASS",
+      "ms": 5,
+      "detail": {}
+    },
+    {
+      "workflow": "Nearby stock",
+      "name": "Pune top-five sorted real inventory",
+      "status": "PASS",
+      "ms": 35,
+      "detail": {
+        "pharmacies": 5
+      }
+    },
+    {
+      "workflow": "Authenticity",
+      "name": "Known ledger batch and unknown batch",
+      "status": "PASS",
+      "ms": 13,
+      "detail": {
+        "known": "verified",
+        "unknown": "suspicious"
+      }
+    },
+    {
+      "workflow": "Orders",
+      "name": "Select prescription stock owned by demo pharmacy",
+      "status": "PASS",
+      "ms": 7,
+      "detail": {
+        "stock": 18,
+        "price": 185
+      }
+    },
+    {
+      "workflow": "Orders",
+      "name": "Missing prescription is refused",
+      "status": "PASS",
+      "ms": 6,
+      "detail": {
+        "http": 400,
+        "requirementEnforced": true,
+        "machineCodeIncluded": false,
+        "note": "Legacy error middleware omits err.code; functional refusal is correct."
+      },
+      "initialAttempt": "FAIL",
+      "note": "Corrected test request/assertion; see preserved raw attempts."
+    },
+    {
+      "workflow": "Orders",
+      "name": "Malformed quantities refused",
+      "status": "PASS",
+      "ms": 7,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "Create synthetic order at server price and await pharmacist",
+      "status": "PASS",
+      "ms": 13,
+      "detail": {
+        "status": "Awaiting Pharmacist",
+        "serverTotal": 185
+      }
+    },
+    {
+      "workflow": "Orders",
+      "name": "Pharmacy sees prescription in own review queue",
+      "status": "PASS",
+      "ms": 14,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "Other pharmacy cannot decide order",
+      "status": "PASS",
+      "ms": 5,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "Pharmacy clarification reaches patient",
+      "status": "PASS",
+      "ms": 21,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "Pharmacy approval and ready status reach patient",
+      "status": "PASS",
+      "ms": 28,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "In-app order notification delivered",
+      "status": "PASS",
+      "ms": 6,
+      "detail": {}
+    },
+    {
+      "workflow": "Orders",
+      "name": "Reject second synthetic order and block repeat stock return",
+      "status": "PASS",
+      "ms": 21,
+      "detail": {}
+    },
+    {
+      "workflow": "Pharmacy",
+      "name": "Inventory and workflow read endpoints",
+      "status": "PASS",
+      "ms": 39,
+      "detail": {}
+    },
+    {
+      "workflow": "Pharmacy",
+      "name": "Stock markdown/reorder/recall on an audit-only batch",
+      "status": "PASS",
+      "ms": 25,
+      "detail": {}
+    },
+    {
+      "workflow": "Pharmacy",
+      "name": "Automation trigger records an audit workflow",
+      "status": "PASS",
+      "ms": 15,
+      "detail": {
+        "statuses": [
+          "active",
+          "completed"
+        ]
+      }
+    },
+    {
+      "workflow": "Claims",
+      "name": "Eligible cases and payer listing",
+      "status": "PASS",
+      "ms": 9,
+      "detail": {
+        "eligibleCases": 2,
+        "precondition": "Seeded verified fixture, not measured OCR or review."
+      }
+    },
+    {
+      "workflow": "Claims",
+      "name": "Consent required before submission",
+      "status": "PASS",
+      "ms": 5,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "Claimant submits synthetic claim",
+      "status": "PASS",
+      "ms": 108,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "Other claimant and other insurer denied",
+      "status": "PASS",
+      "ms": 20,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "Insurer query and claimant response",
+      "status": "PASS",
+      "ms": 42,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "Human partial decision recorded",
+      "status": "PASS",
+      "ms": 10,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "Appeal with independent reviewer and simulated settlement",
+      "status": "PASS",
+      "ms": 40,
+      "detail": {}
+    },
+    {
+      "workflow": "Claims",
+      "name": "FHIR export is structurally valid",
+      "status": "PASS",
+      "ms": 7,
+      "detail": {
+        "validation": "Structural only, not NHCX certification."
+      }
+    },
+    {
+      "workflow": "Claims",
+      "name": "Withdrawal revokes payer access",
+      "status": "PASS",
+      "ms": 37,
+      "detail": {}
+    },
+    {
+      "workflow": "Case verification",
+      "name": "Create case and secure image upload",
+      "status": "PASS",
+      "ms": 679,
+      "detail": {
+        "uploads": 2
+      },
+      "initialAttempt": "FAIL",
+      "note": "Corrected test request/assertion; see preserved raw attempts."
+    },
+    {
+      "workflow": "Case verification",
+      "name": "Authorized image bytes and private isolation",
+      "status": "PASS",
+      "ms": 0,
+      "detail": {
+        "bytes": 14180,
+        "unauthenticated": 401,
+        "crossTenant": 404
+      },
+      "initialAttempt": "BLOCKED",
+      "note": "Corrected test request/assertion; see preserved raw attempts."
+    },
+    {
+      "workflow": "Case verification",
+      "name": "Real local OCR processing of printed images",
+      "status": "BLOCKED",
+      "ms": 9,
+      "detail": {
+        "message": "Required local eng.traineddata language asset is unavailable. Real printed-image OCR workflow is blocked."
+      },
+      "initialAttempt": "FAIL",
+      "note": "Corrected test request/assertion; see preserved raw attempts."
+    },
+    {
+      "workflow": "Case verification",
+      "name": "Incomplete evidence cannot be verified",
+      "status": "PASS",
+      "ms": 28,
+      "detail": {}
+    },
+    {
+      "workflow": "Chatbot",
+      "name": "Local cited answer and follow-up context",
+      "status": "PASS",
+      "ms": 1269,
+      "detail": {
+        "modes": [
+          "PRECISE_LOCAL_EVIDENCE",
+          "PRECISE_LOCAL_EVIDENCE"
+        ],
+        "sources": 1
+      }
+    },
+    {
+      "workflow": "Chatbot",
+      "name": "Official web evidence with visible provenance",
+      "status": "PASS",
+      "ms": 172,
+      "detail": {
+        "mode": "PRECISE_WEB_EVIDENCE",
+        "sources": 1
+      }
+    },
+    {
+      "workflow": "Chatbot",
+      "name": "Brand identity, personal advice and private access boundaries",
+      "status": "PASS",
+      "ms": 18,
+      "detail": {}
+    },
+    {
+      "workflow": "Chatbot",
+      "name": "Opt-in public history saves/reopens and isolates accounts",
+      "status": "PASS",
+      "ms": 25,
+      "detail": {
+        "savedMessages": 2
+      }
+    },
+    {
+      "workflow": "Account security",
+      "name": "Team view is scoped and hides secrets",
+      "status": "PASS",
+      "ms": 5,
+      "detail": {}
+    },
+    {
+      "workflow": "Account security",
+      "name": "MFA setup, recovery sign-in and replay rejection on audit-only user",
+      "status": "PASS",
+      "ms": 577,
+      "detail": {
+        "recoveryCodesIssued": 8,
+        "replayRejected": true
+      }
+    },
+    {
+      "workflow": "Privacy",
+      "name": "Own-data export and erasure request/cancel",
+      "status": "PASS",
+      "ms": 39,
+      "detail": {}
+    },
+    {
+      "workflow": "Audit",
+      "name": "Administrator can verify tamper-evident chain",
+      "status": "PASS",
+      "ms": 13,
+      "detail": {
+        "valid": true,
+        "events": 18
+      }
+    },
+    {
+      "workflow": "Reminders",
+      "name": "Create due reminder and read actual scheduled notification",
+      "status": "PASS",
+      "ms": 15063,
+      "detail": {
+        "delivery": "Actual in-app notification; external email/text disabled."
+      }
+    },
+    {
+      "name": "Multiple pharmacy prescription orders have independent review queue entries",
+      "status": "FAIL",
+      "detail": {
+        "message": "Two Rx orders created but the shared prescription is visible in only 1,0 pharmacy queues; one organizationId/orderId is overwritten (stored orderId: 6afe827dab43d5b1af4ed495)."
+      }
+    },
+    {
+      "name": "Workflow Center required approvals enter the real sign-off queue",
+      "status": "FAIL",
+      "detail": {
+        "message": "Required approval stored as not_required instead of pending, and absent from sign-off queue."
+      }
+    },
+    {
+      "name": "Designated pharmacist can approve a pending workflow control fixture",
+      "status": "FAIL",
+      "detail": {
+        "message": "Designated pharmacist denied: HTTP 403; approval route allows pharmacy/admin, not pharmacist."
+      }
+    },
+    {
+      "name": "Foreign pharmacy cannot reject another pharmacy pending workflow",
+      "status": "FAIL",
+      "detail": {
+        "message": "Foreign pharmacy rejection was accepted: HTTP 200. Tenant ownership was not enforced."
+      }
+    }
+  ],
+  "pageTotals": {
+    "LOAD_PASS": 48,
+    "FUTURE_WORK": 1
+  },
+  "pageChecks": [
+    {
+      "role": "patient",
+      "route": "/patient/dashboard",
+      "actualPath": "/patient/dashboard",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Patient Care & Medication Overview",
+        "Clinical Workflows & Features"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/medicines",
+      "actualPath": "/patient/medicines",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Medicine Directory & Formulary"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/authenticity",
+      "actualPath": "/patient/authenticity",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Medicine Authenticity Verifier"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/health-assistant",
+      "actualPath": "/patient/health-assistant",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Health Assistant / TrustRAG",
+        "What would you like to understand?"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/health-tracker",
+      "actualPath": "/patient/health-tracker",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Personal Health Tracker",
+        "Recent Medical Reports",
+        "AI Health Insights"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/reminders",
+      "actualPath": "/patient/reminders",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Smart Medication Reminders & Adherence Hub",
+        "Active Dose Schedule",
+        "Active Medication Schedule"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/comparisons",
+      "actualPath": "/patient/comparisons",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Medicine Comparison",
+        "Select Medicines"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/prescriptions",
+      "actualPath": "/patient/prescriptions",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Prescription Scanner & OCR Parsing",
+        "Document Upload",
+        "Extracted Formulations (0)"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/cases",
+      "actualPath": "/patient/cases",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Prescription Verifications & Clinical Audits",
+        "Verification Case Records"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/cart",
+      "actualPath": "/patient/cart",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Your Dispensary Cart is Empty"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/orders",
+      "actualPath": "/patient/orders",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Prescription & Medicine Orders"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/doctor-consult",
+      "actualPath": "/patient/doctor-consult",
+      "status": "FUTURE_WORK",
+      "headings": [
+        "Doctor Consultation"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/nearby-medicines",
+      "actualPath": "/patient/nearby-medicines",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Nearby Availability"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/health-records",
+      "actualPath": "/patient/health-records",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Personal Health Records & Archive"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/intelligence",
+      "actualPath": "/patient/intelligence",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Patient Intelligence"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/accessibility",
+      "actualPath": "/patient/accessibility",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Accessibility & Localization"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/claims",
+      "actualPath": "/patient/claims",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Insurance Claims"
+      ]
+    },
+    {
+      "role": "patient",
+      "route": "/patient/security",
+      "actualPath": "/patient/security",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Account Security",
+        " Text alerts",
+        "Your Data"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/dashboard",
+      "actualPath": "/pharmacy/dashboard",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Pharmacy Operations & Inventory Hub"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/inventory",
+      "actualPath": "/pharmacy/inventory",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Dispensary Inventory Catalog"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/orders",
+      "actualPath": "/pharmacy/orders",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Patient Dispensary Orders"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/blockchain",
+      "actualPath": "/pharmacy/blockchain",
+      "status": "LOAD_PASS",
+      "headings": [
+        "CDSCO Blockchain Ledger"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/expiry-risk",
+      "actualPath": "/pharmacy/expiry-risk",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Expiry Risk Intelligence"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/stock-risk",
+      "actualPath": "/pharmacy/stock-risk",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Stock Deficiency & Shortage Predictor"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/prescription-queue",
+      "actualPath": "/pharmacy/prescription-queue",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Prescription Review Queue"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/operations-intelligence",
+      "actualPath": "/pharmacy/operations-intelligence",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Operations Intelligence"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/workflow-center",
+      "actualPath": "/pharmacy/workflow-center",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Healthcare Workflow Center",
+        "Human-in-the-Loop Sign-off Queue",
+        "Operational Execution Trail"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/claims",
+      "actualPath": "/pharmacy/claims",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Insurance Claims on Our Cases"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/security",
+      "actualPath": "/pharmacy/security",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Account Security",
+        "Your Data"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/organization-settings",
+      "actualPath": "/pharmacy/organization-settings",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Organization & Branch Management",
+        "Corporate Dispensary Identity"
+      ]
+    },
+    {
+      "role": "pharmacy",
+      "route": "/pharmacy/accessibility",
+      "actualPath": "/pharmacy/accessibility",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Accessibility & Localization"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/review-queue",
+      "actualPath": "/review-queue",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Reviewer Adjudication Queue"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/cases",
+      "actualPath": "/cases",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Verification Cases"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/cases/new",
+      "actualPath": "/cases/new",
+      "status": "LOAD_PASS",
+      "headings": [
+        "New Verification Case Wizard"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/assistant",
+      "actualPath": "/assistant",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Health Assistant / TrustRAG",
+        "What would you like to understand?"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/account/security",
+      "actualPath": "/account/security",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Account Security",
+        "Your Data"
+      ]
+    },
+    {
+      "role": "pharmacist",
+      "route": "/staff/claims",
+      "actualPath": "/staff/claims",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Insurance Claims on Our Cases"
+      ]
+    },
+    {
+      "role": "org_admin",
+      "route": "/review-queue",
+      "actualPath": "/review-queue",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Reviewer Adjudication Queue"
+      ]
+    },
+    {
+      "role": "org_admin",
+      "route": "/team",
+      "actualPath": "/team",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Team & Access"
+      ]
+    },
+    {
+      "role": "org_admin",
+      "route": "/account/security",
+      "actualPath": "/account/security",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Account Security",
+        "Your Data"
+      ]
+    },
+    {
+      "role": "payer_reviewer",
+      "route": "/payer/dashboard",
+      "actualPath": "/payer/dashboard",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Pharmacy Claims Review"
+      ]
+    },
+    {
+      "role": "payer_reviewer",
+      "route": "/payer/claims",
+      "actualPath": "/payer/claims",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Claims Queue"
+      ]
+    },
+    {
+      "role": "payer_reviewer",
+      "route": "/payer/security",
+      "actualPath": "/payer/security",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Account Security",
+        "Your Data"
+      ]
+    },
+    {
+      "role": "payer_admin",
+      "route": "/payer/team",
+      "actualPath": "/payer/team",
+      "status": "LOAD_PASS",
+      "headings": [
+        " Team & Access"
+      ]
+    },
+    {
+      "role": "super_admin",
+      "route": "/admin/saas",
+      "actualPath": "/admin/saas",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Enterprise Control Center",
+        "Active Tenants",
+        " Data Deletion Requests"
+      ]
+    },
+    {
+      "role": "super_admin",
+      "route": "/research/dashboard",
+      "actualPath": "/research/dashboard",
+      "status": "LOAD_PASS",
+      "headings": [
+        "TrustRAG Research Evidence",
+        "Source retrieval: identical four-source budget",
+        "Answer freshness: same signed-answer cohort"
+      ]
+    },
+    {
+      "role": "super_admin",
+      "route": "/research/knowledge-graph",
+      "actualPath": "/research/knowledge-graph",
+      "status": "LOAD_PASS",
+      "headings": [
+        "Enterprise Knowledge Graph"
+      ]
+    },
+    {
+      "role": "super_admin",
+      "route": "/research/ai-safety",
+      "actualPath": "/research/ai-safety",
+      "status": "LOAD_PASS",
+      "headings": [
+        "AI Safety & Governance"
+      ]
+    },
+    {
+      "role": "research_evaluator",
+      "route": "/research/dashboard",
+      "actualPath": "/research/dashboard",
+      "status": "LOAD_PASS",
+      "headings": [
+        "TrustRAG Research Evidence",
+        "Source retrieval: identical four-source budget",
+        "Answer freshness: same signed-answer cohort"
+      ]
+    }
+  ],
+  "egress": {
+    "officialRequests": 0,
+    "blockedRequests": 0
+  },
+  "notes": [
+    "Original harness failures retained alongside corrected request checks.",
+    "Browser printed-image OCR produced three entries and archive navigation succeeded.",
+    "Download-event browser check stalled; download defect is confirmed by source handler, not a completed download-event test.",
+    "Audit-only Vite port adapter was required because the app forces port 5001 on loopback. No application source changed.",
+    "Original preview database retained; separate audit services stopped and synthetic audit DB retained."
+  ]
+}

@@ -1,0 +1,1113 @@
+{
+  "schemaVersion": "academic-synthetic-case-fixtures/1.0.0",
+  "provenance": "Copied from existing authored development makeSnapshot fixture at capture time. Not patient data, new independent heldout data, measured OCR, or matcher accuracy.",
+  "synthetic": true,
+  "actor": "aaaaaaaaaaaaaaaaaaaaaaaa",
+  "snapshots": {
+    "consistent": {
+      "schemaVersion": "2.0.0-session3",
+      "caseId": "dc1534adca3f7535441c707b",
+      "caseStatus": "NEEDS_REVIEW",
+      "snapshotToken": "rs_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidenceRevision": 2,
+      "prescription": {
+        "schemaVersion": "2.0.0-session1",
+        "caseId": "dc1534adca3f7535441c707b",
+        "documentId": "7bf28a046ec2a5e2fed62f6a",
+        "documentType": "PRESCRIPTION",
+        "groupingStatus": "GROUPED",
+        "detectedGroupCount": 1,
+        "maxAllowedItems": 3,
+        "reviewRequired": false,
+        "coverage": {
+          "status": "COMPLETE",
+          "isComplete": true,
+          "total": 1,
+          "processed": 1,
+          "omitted": 0,
+          "reportedStatus": "COMPLETE"
+        },
+        "medicineItems": [
+          {
+            "itemId": "mi_2fab8950881d079e5f8469f2",
+            "caseId": "dc1534adca3f7535441c707b",
+            "documentId": "7bf28a046ec2a5e2fed62f6a",
+            "documentType": "PRESCRIPTION",
+            "groupingMode": "GROUPED",
+            "anchorFieldId": "0d5e7edf93850b2daca2f211",
+            "fieldIds": [
+              "0d5e7edf93850b2daca2f211",
+              "86f0326d75beec3e43ead66f",
+              "e6ddef154ee4a0d75b41b948",
+              "3a82f65e1385ddb4efb1e507",
+              "b6cb90703001c72367487fd1"
+            ],
+            "pageNumbers": [
+              1
+            ],
+            "needsCorrection": false,
+            "fields": {
+              "medicine_name": {
+                "id": "0d5e7edf93850b2daca2f211",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldType": "medicine_name",
+                "rawValue": "Paracetamol",
+                "normalizedValue": "Paracetamol",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "dosage_strength": {
+                "id": "86f0326d75beec3e43ead66f",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldType": "dosage_strength",
+                "rawValue": "500 mg",
+                "normalizedValue": "500 mg",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "dosage_form": {
+                "id": "e6ddef154ee4a0d75b41b948",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldType": "dosage_form",
+                "rawValue": "tablet",
+                "normalizedValue": "tablet",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "release_type": null,
+              "quantity": {
+                "id": "3a82f65e1385ddb4efb1e507",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldType": "quantity",
+                "rawValue": "10",
+                "normalizedValue": "10",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "quantity_unit": {
+                "id": "b6cb90703001c72367487fd1",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldType": "quantity_unit",
+                "rawValue": "tablet",
+                "normalizedValue": "tablet",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "pack_size": null,
+              "pack_unit": null
+            }
+          }
+        ],
+        "issues": [],
+        "issueCodes": []
+      },
+      "invoice": {
+        "schemaVersion": "2.0.0-session1",
+        "caseId": "dc1534adca3f7535441c707b",
+        "documentId": "cf19afb4cd4c1056c506d08e",
+        "documentType": "PHARMACY_INVOICE",
+        "groupingStatus": "GROUPED",
+        "detectedGroupCount": 1,
+        "maxAllowedItems": 3,
+        "reviewRequired": false,
+        "coverage": {
+          "status": "COMPLETE",
+          "isComplete": true,
+          "total": 1,
+          "processed": 1,
+          "omitted": 0,
+          "reportedStatus": "COMPLETE"
+        },
+        "medicineItems": [
+          {
+            "itemId": "mi_42d40eb636a023dca3039adf",
+            "caseId": "dc1534adca3f7535441c707b",
+            "documentId": "cf19afb4cd4c1056c506d08e",
+            "documentType": "PHARMACY_INVOICE",
+            "groupingMode": "GROUPED",
+            "anchorFieldId": "28ce3e2a219a1a1b0a3332bb",
+            "fieldIds": [
+              "28ce3e2a219a1a1b0a3332bb",
+              "de08287b483e30ad7b10670c",
+              "78b3fe7c5701462316887b3c",
+              "c6f5e86558fa9ed8a01135b5",
+              "404940abaf42d12a36bfd83e"
+            ],
+            "pageNumbers": [
+              1
+            ],
+            "needsCorrection": false,
+            "fields": {
+              "medicine_name": {
+                "id": "28ce3e2a219a1a1b0a3332bb",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldType": "medicine_name",
+                "rawValue": "Paracetamol",
+                "normalizedValue": "Paracetamol",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "dosage_strength": {
+                "id": "de08287b483e30ad7b10670c",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldType": "dosage_strength",
+                "rawValue": "500 mg",
+                "normalizedValue": "500 mg",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "dosage_form": {
+                "id": "78b3fe7c5701462316887b3c",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldType": "dosage_form",
+                "rawValue": "tablet",
+                "normalizedValue": "tablet",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "release_type": null,
+              "quantity": {
+                "id": "c6f5e86558fa9ed8a01135b5",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldType": "quantity",
+                "rawValue": "10",
+                "normalizedValue": "10",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "quantity_unit": {
+                "id": "404940abaf42d12a36bfd83e",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldType": "quantity_unit",
+                "rawValue": "tablet",
+                "normalizedValue": "tablet",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "pack_size": null,
+              "pack_unit": null
+            }
+          }
+        ],
+        "issues": [],
+        "issueCodes": []
+      },
+      "comparison": {
+        "schemaVersion": "2.0.0-session2",
+        "rulesetVersion": "academic-reconciliation/1.0.0",
+        "caseId": "dc1534adca3f7535441c707b",
+        "documentIds": {
+          "prescription": "7bf28a046ec2a5e2fed62f6a",
+          "invoice": "cf19afb4cd4c1056c506d08e"
+        },
+        "status": "CONSISTENT",
+        "reviewRequired": false,
+        "humanDecisionRequired": true,
+        "coverage": {
+          "prescription": "COMPLETE",
+          "invoice": "COMPLETE"
+        },
+        "hasInsufficientEvidence": false,
+        "reasonCodes": [],
+        "rows": [
+          {
+            "rowId": "mr_dad7fcac6fe81c1d44a91933",
+            "prescriptionItemId": "mi_2fab8950881d079e5f8469f2",
+            "invoiceItemId": "mi_42d40eb636a023dca3039adf",
+            "genericName": "Paracetamol",
+            "status": "CONSISTENT",
+            "checks": {
+              "identity": "CONSISTENT",
+              "strength": "CONSISTENT",
+              "form": "CONSISTENT",
+              "release": "NOT_APPLICABLE",
+              "quantity": "CONSISTENT"
+            },
+            "quantity": {
+              "prescriptionBaseQuantity": 10,
+              "invoiceBaseQuantity": 10,
+              "baseUnit": "tablet"
+            },
+            "reasonCodes": [],
+            "evidenceReferences": [
+              {
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldId": "0d5e7edf93850b2daca2f211",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldId": "86f0326d75beec3e43ead66f",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldId": "e6ddef154ee4a0d75b41b948",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldId": "3a82f65e1385ddb4efb1e507",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldId": "b6cb90703001c72367487fd1",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldId": "28ce3e2a219a1a1b0a3332bb",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldId": "de08287b483e30ad7b10670c",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldId": "78b3fe7c5701462316887b3c",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldId": "c6f5e86558fa9ed8a01135b5",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldId": "404940abaf42d12a36bfd83e",
+                "pageNumber": 1
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "consistent": 1,
+          "mismatch": 0,
+          "insufficientEvidence": 0
+        }
+      },
+      "groupingDocuments": [
+        {
+          "documentId": "7bf28a046ec2a5e2fed62f6a",
+          "documentType": "PRESCRIPTION",
+          "processingStatus": "PROCESSED",
+          "mode": "HUMAN_CONFIRMED",
+          "observedItemCount": 1,
+          "confirmedBy": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "confirmedAt": "2026-11-12T08:00:00.000Z",
+          "groups": [
+            {
+              "anchorFieldId": "0d5e7edf93850b2daca2f211",
+              "fieldIds": [
+                "0d5e7edf93850b2daca2f211",
+                "86f0326d75beec3e43ead66f",
+                "e6ddef154ee4a0d75b41b948",
+                "3a82f65e1385ddb4efb1e507",
+                "b6cb90703001c72367487fd1"
+              ]
+            }
+          ],
+          "fields": [
+            {
+              "id": "0d5e7edf93850b2daca2f211",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "7bf28a046ec2a5e2fed62f6a",
+              "fieldType": "medicine_name",
+              "rawValue": "Paracetamol",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "86f0326d75beec3e43ead66f",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "7bf28a046ec2a5e2fed62f6a",
+              "fieldType": "dosage_strength",
+              "rawValue": "500 mg",
+              "normalizedValue": "500 mg",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "e6ddef154ee4a0d75b41b948",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "7bf28a046ec2a5e2fed62f6a",
+              "fieldType": "dosage_form",
+              "rawValue": "tablet",
+              "normalizedValue": "tablet",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "3a82f65e1385ddb4efb1e507",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "7bf28a046ec2a5e2fed62f6a",
+              "fieldType": "quantity",
+              "rawValue": "10",
+              "normalizedValue": "10",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "b6cb90703001c72367487fd1",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "7bf28a046ec2a5e2fed62f6a",
+              "fieldType": "quantity_unit",
+              "rawValue": "tablet",
+              "normalizedValue": "tablet",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            }
+          ]
+        },
+        {
+          "documentId": "cf19afb4cd4c1056c506d08e",
+          "documentType": "PHARMACY_INVOICE",
+          "processingStatus": "PROCESSED",
+          "mode": "HUMAN_CONFIRMED",
+          "observedItemCount": 1,
+          "confirmedBy": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "confirmedAt": "2026-11-12T08:00:00.000Z",
+          "groups": [
+            {
+              "anchorFieldId": "28ce3e2a219a1a1b0a3332bb",
+              "fieldIds": [
+                "28ce3e2a219a1a1b0a3332bb",
+                "de08287b483e30ad7b10670c",
+                "78b3fe7c5701462316887b3c",
+                "c6f5e86558fa9ed8a01135b5",
+                "404940abaf42d12a36bfd83e"
+              ]
+            }
+          ],
+          "fields": [
+            {
+              "id": "28ce3e2a219a1a1b0a3332bb",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "cf19afb4cd4c1056c506d08e",
+              "fieldType": "medicine_name",
+              "rawValue": "Paracetamol",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "de08287b483e30ad7b10670c",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "cf19afb4cd4c1056c506d08e",
+              "fieldType": "dosage_strength",
+              "rawValue": "500 mg",
+              "normalizedValue": "500 mg",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "78b3fe7c5701462316887b3c",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "cf19afb4cd4c1056c506d08e",
+              "fieldType": "dosage_form",
+              "rawValue": "tablet",
+              "normalizedValue": "tablet",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "c6f5e86558fa9ed8a01135b5",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "cf19afb4cd4c1056c506d08e",
+              "fieldType": "quantity",
+              "rawValue": "10",
+              "normalizedValue": "10",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "404940abaf42d12a36bfd83e",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "cf19afb4cd4c1056c506d08e",
+              "fieldType": "quantity_unit",
+              "rawValue": "tablet",
+              "normalizedValue": "tablet",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            }
+          ]
+        }
+      ],
+      "permissions": {
+        "canCorrectFields": true,
+        "canConfirmGroups": true,
+        "canReview": true
+      },
+      "reviewEligibility": {
+        "canVerify": true,
+        "blockerCodes": [],
+        "allowedActions": [
+          "VERIFY",
+          "RETURN_FOR_CORRECTION",
+          "ESCALATE"
+        ]
+      },
+      "notices": [],
+      "legacyFindingsCurrent": false
+    },
+    "mismatch": {
+      "schemaVersion": "2.0.0-session3",
+      "caseId": "dc1534adca3f7535441c707b",
+      "caseStatus": "NEEDS_REVIEW",
+      "snapshotToken": "rs_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidenceRevision": 2,
+      "prescription": {
+        "schemaVersion": "2.0.0-session1",
+        "caseId": "dc1534adca3f7535441c707b",
+        "documentId": "7bf28a046ec2a5e2fed62f6a",
+        "documentType": "PRESCRIPTION",
+        "groupingStatus": "GROUPED",
+        "detectedGroupCount": 1,
+        "maxAllowedItems": 3,
+        "reviewRequired": false,
+        "coverage": {
+          "status": "COMPLETE",
+          "isComplete": true,
+          "total": 1,
+          "processed": 1,
+          "omitted": 0,
+          "reportedStatus": "COMPLETE"
+        },
+        "medicineItems": [
+          {
+            "itemId": "mi_2fab8950881d079e5f8469f2",
+            "caseId": "dc1534adca3f7535441c707b",
+            "documentId": "7bf28a046ec2a5e2fed62f6a",
+            "documentType": "PRESCRIPTION",
+            "groupingMode": "GROUPED",
+            "anchorFieldId": "0d5e7edf93850b2daca2f211",
+            "fieldIds": [
+              "0d5e7edf93850b2daca2f211",
+              "86f0326d75beec3e43ead66f",
+              "e6ddef154ee4a0d75b41b948",
+              "3a82f65e1385ddb4efb1e507",
+              "b6cb90703001c72367487fd1"
+            ],
+            "pageNumbers": [
+              1
+            ],
+            "needsCorrection": false,
+            "fields": {
+              "medicine_name": {
+                "id": "0d5e7edf93850b2daca2f211",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldType": "medicine_name",
+                "rawValue": "Paracetamol",
+                "normalizedValue": "Paracetamol",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "dosage_strength": {
+                "id": "86f0326d75beec3e43ead66f",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldType": "dosage_strength",
+                "rawValue": "500 mg",
+                "normalizedValue": "500 mg",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "dosage_form": {
+                "id": "e6ddef154ee4a0d75b41b948",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldType": "dosage_form",
+                "rawValue": "tablet",
+                "normalizedValue": "tablet",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "release_type": null,
+              "quantity": {
+                "id": "3a82f65e1385ddb4efb1e507",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldType": "quantity",
+                "rawValue": "10",
+                "normalizedValue": "10",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "quantity_unit": {
+                "id": "b6cb90703001c72367487fd1",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldType": "quantity_unit",
+                "rawValue": "tablet",
+                "normalizedValue": "tablet",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "pack_size": null,
+              "pack_unit": null
+            }
+          }
+        ],
+        "issues": [],
+        "issueCodes": []
+      },
+      "invoice": {
+        "schemaVersion": "2.0.0-session1",
+        "caseId": "dc1534adca3f7535441c707b",
+        "documentId": "cf19afb4cd4c1056c506d08e",
+        "documentType": "PHARMACY_INVOICE",
+        "groupingStatus": "GROUPED",
+        "detectedGroupCount": 1,
+        "maxAllowedItems": 3,
+        "reviewRequired": false,
+        "coverage": {
+          "status": "COMPLETE",
+          "isComplete": true,
+          "total": 1,
+          "processed": 1,
+          "omitted": 0,
+          "reportedStatus": "COMPLETE"
+        },
+        "medicineItems": [
+          {
+            "itemId": "mi_42d40eb636a023dca3039adf",
+            "caseId": "dc1534adca3f7535441c707b",
+            "documentId": "cf19afb4cd4c1056c506d08e",
+            "documentType": "PHARMACY_INVOICE",
+            "groupingMode": "GROUPED",
+            "anchorFieldId": "28ce3e2a219a1a1b0a3332bb",
+            "fieldIds": [
+              "28ce3e2a219a1a1b0a3332bb",
+              "de08287b483e30ad7b10670c",
+              "78b3fe7c5701462316887b3c",
+              "c6f5e86558fa9ed8a01135b5",
+              "404940abaf42d12a36bfd83e"
+            ],
+            "pageNumbers": [
+              1
+            ],
+            "needsCorrection": false,
+            "fields": {
+              "medicine_name": {
+                "id": "28ce3e2a219a1a1b0a3332bb",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldType": "medicine_name",
+                "rawValue": "Paracetamol",
+                "normalizedValue": "Paracetamol",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "dosage_strength": {
+                "id": "de08287b483e30ad7b10670c",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldType": "dosage_strength",
+                "rawValue": "650 mg",
+                "normalizedValue": "650 mg",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "dosage_form": {
+                "id": "78b3fe7c5701462316887b3c",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldType": "dosage_form",
+                "rawValue": "tablet",
+                "normalizedValue": "tablet",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "release_type": null,
+              "quantity": {
+                "id": "c6f5e86558fa9ed8a01135b5",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldType": "quantity",
+                "rawValue": "10",
+                "normalizedValue": "10",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "quantity_unit": {
+                "id": "404940abaf42d12a36bfd83e",
+                "caseId": "dc1534adca3f7535441c707b",
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldType": "quantity_unit",
+                "rawValue": "tablet",
+                "normalizedValue": "tablet",
+                "pageNumber": 1,
+                "boundingBox": null,
+                "extractionMethod": "SYNTHETIC_GOLD",
+                "extractionConfidence": 0.9,
+                "needsCorrection": false,
+                "correctedBy": null,
+                "correctedAt": null,
+                "resolution": null
+              },
+              "pack_size": null,
+              "pack_unit": null
+            }
+          }
+        ],
+        "issues": [],
+        "issueCodes": []
+      },
+      "comparison": {
+        "schemaVersion": "2.0.0-session2",
+        "rulesetVersion": "academic-reconciliation/1.0.0",
+        "caseId": "dc1534adca3f7535441c707b",
+        "documentIds": {
+          "prescription": "7bf28a046ec2a5e2fed62f6a",
+          "invoice": "cf19afb4cd4c1056c506d08e"
+        },
+        "status": "MISMATCH",
+        "reviewRequired": true,
+        "humanDecisionRequired": true,
+        "coverage": {
+          "prescription": "COMPLETE",
+          "invoice": "COMPLETE"
+        },
+        "hasInsufficientEvidence": false,
+        "reasonCodes": [
+          "STRENGTH_MISMATCH"
+        ],
+        "rows": [
+          {
+            "rowId": "mr_dad7fcac6fe81c1d44a91933",
+            "prescriptionItemId": "mi_2fab8950881d079e5f8469f2",
+            "invoiceItemId": "mi_42d40eb636a023dca3039adf",
+            "genericName": "Paracetamol",
+            "status": "MISMATCH",
+            "checks": {
+              "identity": "CONSISTENT",
+              "strength": "MISMATCH",
+              "form": "CONSISTENT",
+              "release": "NOT_APPLICABLE",
+              "quantity": "CONSISTENT"
+            },
+            "quantity": {
+              "prescriptionBaseQuantity": 10,
+              "invoiceBaseQuantity": 10,
+              "baseUnit": "tablet"
+            },
+            "reasonCodes": [
+              "STRENGTH_MISMATCH"
+            ],
+            "evidenceReferences": [
+              {
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldId": "0d5e7edf93850b2daca2f211",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldId": "86f0326d75beec3e43ead66f",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldId": "e6ddef154ee4a0d75b41b948",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldId": "3a82f65e1385ddb4efb1e507",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "7bf28a046ec2a5e2fed62f6a",
+                "fieldId": "b6cb90703001c72367487fd1",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldId": "28ce3e2a219a1a1b0a3332bb",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldId": "de08287b483e30ad7b10670c",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldId": "78b3fe7c5701462316887b3c",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldId": "c6f5e86558fa9ed8a01135b5",
+                "pageNumber": 1
+              },
+              {
+                "documentId": "cf19afb4cd4c1056c506d08e",
+                "fieldId": "404940abaf42d12a36bfd83e",
+                "pageNumber": 1
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "consistent": 0,
+          "mismatch": 1,
+          "insufficientEvidence": 0
+        }
+      },
+      "groupingDocuments": [
+        {
+          "documentId": "7bf28a046ec2a5e2fed62f6a",
+          "documentType": "PRESCRIPTION",
+          "processingStatus": "PROCESSED",
+          "mode": "HUMAN_CONFIRMED",
+          "observedItemCount": 1,
+          "confirmedBy": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "confirmedAt": "2026-11-12T08:00:00.000Z",
+          "groups": [
+            {
+              "anchorFieldId": "0d5e7edf93850b2daca2f211",
+              "fieldIds": [
+                "0d5e7edf93850b2daca2f211",
+                "86f0326d75beec3e43ead66f",
+                "e6ddef154ee4a0d75b41b948",
+                "3a82f65e1385ddb4efb1e507",
+                "b6cb90703001c72367487fd1"
+              ]
+            }
+          ],
+          "fields": [
+            {
+              "id": "0d5e7edf93850b2daca2f211",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "7bf28a046ec2a5e2fed62f6a",
+              "fieldType": "medicine_name",
+              "rawValue": "Paracetamol",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "86f0326d75beec3e43ead66f",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "7bf28a046ec2a5e2fed62f6a",
+              "fieldType": "dosage_strength",
+              "rawValue": "500 mg",
+              "normalizedValue": "500 mg",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "e6ddef154ee4a0d75b41b948",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "7bf28a046ec2a5e2fed62f6a",
+              "fieldType": "dosage_form",
+              "rawValue": "tablet",
+              "normalizedValue": "tablet",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "3a82f65e1385ddb4efb1e507",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "7bf28a046ec2a5e2fed62f6a",
+              "fieldType": "quantity",
+              "rawValue": "10",
+              "normalizedValue": "10",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "b6cb90703001c72367487fd1",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "7bf28a046ec2a5e2fed62f6a",
+              "fieldType": "quantity_unit",
+              "rawValue": "tablet",
+              "normalizedValue": "tablet",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            }
+          ]
+        },
+        {
+          "documentId": "cf19afb4cd4c1056c506d08e",
+          "documentType": "PHARMACY_INVOICE",
+          "processingStatus": "PROCESSED",
+          "mode": "HUMAN_CONFIRMED",
+          "observedItemCount": 1,
+          "confirmedBy": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "confirmedAt": "2026-11-12T08:00:00.000Z",
+          "groups": [
+            {
+              "anchorFieldId": "28ce3e2a219a1a1b0a3332bb",
+              "fieldIds": [
+                "28ce3e2a219a1a1b0a3332bb",
+                "de08287b483e30ad7b10670c",
+                "78b3fe7c5701462316887b3c",
+                "c6f5e86558fa9ed8a01135b5",
+                "404940abaf42d12a36bfd83e"
+              ]
+            }
+          ],
+          "fields": [
+            {
+              "id": "28ce3e2a219a1a1b0a3332bb",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "cf19afb4cd4c1056c506d08e",
+              "fieldType": "medicine_name",
+              "rawValue": "Paracetamol",
+              "normalizedValue": "Paracetamol",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "de08287b483e30ad7b10670c",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "cf19afb4cd4c1056c506d08e",
+              "fieldType": "dosage_strength",
+              "rawValue": "650 mg",
+              "normalizedValue": "650 mg",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "78b3fe7c5701462316887b3c",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "cf19afb4cd4c1056c506d08e",
+              "fieldType": "dosage_form",
+              "rawValue": "tablet",
+              "normalizedValue": "tablet",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "c6f5e86558fa9ed8a01135b5",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "cf19afb4cd4c1056c506d08e",
+              "fieldType": "quantity",
+              "rawValue": "10",
+              "normalizedValue": "10",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            },
+            {
+              "id": "404940abaf42d12a36bfd83e",
+              "caseId": "dc1534adca3f7535441c707b",
+              "documentId": "cf19afb4cd4c1056c506d08e",
+              "fieldType": "quantity_unit",
+              "rawValue": "tablet",
+              "normalizedValue": "tablet",
+              "pageNumber": 1,
+              "extractionConfidence": 0.9,
+              "needsCorrection": false,
+              "correctedBy": null,
+              "correctedAt": null
+            }
+          ]
+        }
+      ],
+      "permissions": {
+        "canCorrectFields": true,
+        "canConfirmGroups": true,
+        "canReview": true
+      },
+      "reviewEligibility": {
+        "canVerify": false,
+        "blockerCodes": [
+          "COMPARISON_MISMATCH"
+        ],
+        "allowedActions": [
+          "RETURN_FOR_CORRECTION",
+          "ESCALATE"
+        ]
+      },
+      "notices": [],
+      "legacyFindingsCurrent": false
+    }
+  }
+}

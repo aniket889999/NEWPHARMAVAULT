@@ -40,11 +40,16 @@ const createOrder = asyncHandler(async (req, res) => {
   const wanted = new Map();
   for (const item of items) {
     const id = String(item.medicine || item.id || '');
-    const qty = Number.parseInt(item.qty, 10);
+    // Do not silently turn 1.5, "2units" or scientific notation into a
+    // different order. Numeric strings are allowed only as decimal integers.
+    const qty = typeof item.qty === 'number' ? item.qty
+      : typeof item.qty === 'string' && /^\d+$/.test(item.qty) ? Number(item.qty) : NaN;
     if (!/^[a-f\d]{24}$/i.test(id) || !Number.isInteger(qty) || qty < 1 || qty > 100) fail(res, 400, 'Each item needs a valid medicine and a quantity between 1 and 100.');
-    wanted.set(id, (wanted.get(id) || 0) + qty);
+    const combined = (wanted.get(id) || 0) + qty;
+    if (combined > 100) fail(res, 400, 'The combined quantity for one medicine cannot exceed 100.');
+    wanted.set(id, combined);
   }
-  const medicines = await Medicine.find({ _id: { $in: [...wanted.keys()] } }).lean();
+  const medicines = await Medicine.find({ _id: { $in: [...wanted.keys()] }, recalled: { $ne: true }, expiryDate: { $gt: new Date() } }).lean();
   if (medicines.length !== wanted.size) fail(res, 400, 'Some medicines in your cart are no longer available. Please refresh the cart.');
 
   const needsRx = medicines.filter((m) => m.prescriptionRequired);

@@ -8,6 +8,15 @@ const { loadClient } = require('../rag-v2/load-client.cjs');
 const root = path.resolve(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
+test('v4 gateway exposes the claimant entry and combined staff portal without new account privileges', () => {
+  const gateway = read('src/pages/auth/RoleSelection.tsx');
+  assert.match(gateway, /navigate\('\/login\?role=claimant'\)/);
+  assert.match(gateway, /Reviewer &amp; Insurer/);
+  assert.match(gateway, /Claimant Portal/);
+  assert.doesNotMatch(gateway, />Insurer Portal</);
+  assert.match(read('src/pages/auth/AuthPage.tsx'), /activeRole === 'claimant' \? 'patient'/);
+});
+
 test('all supported portal roles have a reachable home without a pharmacy redirect loop', () => {
   const { portalHome, portalTitle, STAFF_PORTALS } = loadClient('src/features/navigation/portalPolicy.ts');
   const homes = { patient: '/patient/dashboard', pharmacy: '/pharmacy/dashboard', pharmacist: '/review-queue', claims_reviewer: '/review-queue', org_admin: '/review-queue', super_admin: '/admin/saas', research_evaluator: '/research/dashboard', payer_reviewer: '/payer/dashboard', payer_admin: '/payer/dashboard' };

@@ -1,0 +1,25 @@
+{
+  "rows": [
+    {
+      "name": "Workflow Center: designated pharmacist can approve its pending workflow",
+      "status": "FAIL",
+      "detail": {
+        "message": "Pending synthetic workflow missing"
+      }
+    },
+    {
+      "name": "Workflow Center: foreign pharmacy cannot reject another tenant workflow",
+      "status": "FAIL",
+      "detail": {
+        "message": "Pending synthetic workflow missing"
+      }
+    },
+    {
+      "name": "Multiple pharmacy prescription orders have independent review queue entries",
+      "status": "FAIL",
+      "detail": {
+        "message": "Two Rx orders created but the shared prescription is visible in only 1,0 pharmacy queues; one organizationId/orderId is overwritten (stored orderId: 6afe827dab43d5b1af4ed495)."
+      }
+    }
+  ]
+}

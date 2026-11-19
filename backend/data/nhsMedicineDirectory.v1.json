@@ -1,0 +1,1032 @@
+{
+  "schemaVersion": "nhs-public-topic-directory-v1",
+  "sourceUrl": "https://www.nhs.uk/medicines/",
+  "checkedAt": "2026-11-19T06:51:24.841Z",
+  "reviewStatus": "OFFICIAL_INDEX_METADATA_NOT_CLINICAL_APPROVAL",
+  "records": [
+    {
+      "slug": "aciclovir",
+      "label": "Aciclovir"
+    },
+    {
+      "slug": "acrivastine",
+      "label": "Acrivastine"
+    },
+    {
+      "slug": "adalimumab",
+      "label": "Adalimumab"
+    },
+    {
+      "slug": "alendronic-acid",
+      "label": "Alendronic acid"
+    },
+    {
+      "slug": "allopurinol",
+      "label": "Allopurinol"
+    },
+    {
+      "slug": "alogliptin",
+      "label": "Alogliptin"
+    },
+    {
+      "slug": "amitriptyline-for-depression",
+      "label": "Amitriptyline for depression"
+    },
+    {
+      "slug": "amitriptyline-for-pain",
+      "label": "Amitriptyline for pain and migraine"
+    },
+    {
+      "slug": "amlodipine",
+      "label": "Amlodipine"
+    },
+    {
+      "slug": "amoxicillin",
+      "label": "Amoxicillin"
+    },
+    {
+      "slug": "anastrozole",
+      "label": "Anastrozole"
+    },
+    {
+      "slug": "antacids",
+      "label": "Antacids"
+    },
+    {
+      "slug": "antibiotics",
+      "label": "Antibiotics"
+    },
+    {
+      "slug": "anticoagulants",
+      "label": "Anticoagulant medicines"
+    },
+    {
+      "slug": "antidepressants",
+      "label": "Antidepressants"
+    },
+    {
+      "slug": "antifungal-medicines",
+      "label": "Antifungal medicines"
+    },
+    {
+      "slug": "antihistamines",
+      "label": "Antihistamines"
+    },
+    {
+      "slug": "apixaban",
+      "label": "Apixaban"
+    },
+    {
+      "slug": "aripiprazole",
+      "label": "Aripiprazole"
+    },
+    {
+      "slug": "aspirin",
+      "label": "Aspirin"
+    },
+    {
+      "slug": "atenolol",
+      "label": "Atenolol"
+    },
+    {
+      "slug": "atorvastatin",
+      "label": "Atorvastatin"
+    },
+    {
+      "slug": "azathioprine",
+      "label": "Azathioprine"
+    },
+    {
+      "slug": "azithromycin",
+      "label": "Azithromycin"
+    },
+    {
+      "slug": "baclofen",
+      "label": "Baclofen"
+    },
+    {
+      "slug": "beclometasone-inhalers",
+      "label": "Beclometasone inhalers"
+    },
+    {
+      "slug": "beclometasone-nasal-spray",
+      "label": "Beclometasone nasal spray"
+    },
+    {
+      "slug": "beclometasone-skin-creams",
+      "label": "Beclometasone skin cream"
+    },
+    {
+      "slug": "bendroflumethiazide",
+      "label": "Bendroflumethiazide"
+    },
+    {
+      "slug": "benzoyl-peroxide",
+      "label": "Benzoyl peroxide"
+    },
+    {
+      "slug": "benzydamine",
+      "label": "Benzydamine"
+    },
+    {
+      "slug": "beta-blockers",
+      "label": "Beta blockers"
+    },
+    {
+      "slug": "betahistine",
+      "label": "Betahistine"
+    },
+    {
+      "slug": "betamethasone-eyes-ears-and-nose",
+      "label": "Betamethasone for eyes, ears and nose"
+    },
+    {
+      "slug": "betamethasone-skin",
+      "label": "Betamethasone for skin"
+    },
+    {
+      "slug": "bimatoprost",
+      "label": "Bimatoprost"
+    },
+    {
+      "slug": "bisacodyl",
+      "label": "Bisacodyl"
+    },
+    {
+      "slug": "bisoprolol",
+      "label": "Bisoprolol"
+    },
+    {
+      "slug": "brinzolamide",
+      "label": "Brinzolamide"
+    },
+    {
+      "slug": "budesonide-inhalers",
+      "label": "Budesonide inhalers"
+    },
+    {
+      "slug": "bumetanide",
+      "label": "Bumetanide"
+    },
+    {
+      "slug": "buprenorphine-for-pain",
+      "label": "Buprenorphine for pain"
+    },
+    {
+      "slug": "buscopan-hyoscine-butylbromide",
+      "label": "Buscopan"
+    },
+    {
+      "slug": "calcipotriol",
+      "label": "Calcipotriol"
+    },
+    {
+      "slug": "candesartan",
+      "label": "Candesartan"
+    },
+    {
+      "slug": "carbamazepine",
+      "label": "Carbamazepine"
+    },
+    {
+      "slug": "carbimazole",
+      "label": "Carbimazole"
+    },
+    {
+      "slug": "carbocisteine",
+      "label": "Carbocisteine"
+    },
+    {
+      "slug": "carmellose-sodium",
+      "label": "Carmellose sodium eye drops"
+    },
+    {
+      "slug": "carvedilol",
+      "label": "Carvedilol"
+    },
+    {
+      "slug": "cefalexin",
+      "label": "Cefalexin"
+    },
+    {
+      "slug": "cetirizine",
+      "label": "Cetirizine"
+    },
+    {
+      "slug": "chloramphenicol",
+      "label": "Chloramphenicol"
+    },
+    {
+      "slug": "chlorhexidine",
+      "label": "Chlorhexidine"
+    },
+    {
+      "slug": "chlorphenamine-including-piriton",
+      "label": "Chlorphenamine"
+    },
+    {
+      "slug": "cinnarizine",
+      "label": "Cinnarizine"
+    },
+    {
+      "slug": "ciprofloxacin",
+      "label": "Ciprofloxacin"
+    },
+    {
+      "slug": "citalopram",
+      "label": "Citalopram"
+    },
+    {
+      "slug": "clarithromycin",
+      "label": "Clarithromycin"
+    },
+    {
+      "slug": "clobetasol",
+      "label": "Clobetasol"
+    },
+    {
+      "slug": "clobetasone",
+      "label": "Clobetasone"
+    },
+    {
+      "slug": "clonazepam",
+      "label": "Clonazepam"
+    },
+    {
+      "slug": "clonidine",
+      "label": "Clonidine"
+    },
+    {
+      "slug": "clopidogrel",
+      "label": "Clopidogrel"
+    },
+    {
+      "slug": "clotrimazole",
+      "label": "Clotrimazole"
+    },
+    {
+      "slug": "co-amoxiclav",
+      "label": "Co-amoxiclav"
+    },
+    {
+      "slug": "co-beneldopa",
+      "label": "Co-beneldopa"
+    },
+    {
+      "slug": "co-codamol-for-adults",
+      "label": "Co-codamol for adults"
+    },
+    {
+      "slug": "co-codamol-for-children",
+      "label": "Co-codamol for children"
+    },
+    {
+      "slug": "co-dydramol",
+      "label": "Co-dydramol"
+    },
+    {
+      "slug": "codeine",
+      "label": "Codeine"
+    },
+    {
+      "slug": "colchicine",
+      "label": "Colchicine"
+    },
+    {
+      "slug": "colecalciferol",
+      "label": "Colecalciferol"
+    },
+    {
+      "slug": "contraceptive-injections-medroxyprogesterone",
+      "label": "Contraceptive injections"
+    },
+    {
+      "slug": "cyanocobalamin",
+      "label": "Cyanocobalamin"
+    },
+    {
+      "slug": "cyclizine",
+      "label": "Cyclizine"
+    },
+    {
+      "slug": "dapagliflozin",
+      "label": "Dapagliflozin"
+    },
+    {
+      "slug": "decongestants",
+      "label": "Decongestants"
+    },
+    {
+      "slug": "dexamethasone-eye-drops",
+      "label": "Dexamethasone eye drops"
+    },
+    {
+      "slug": "dexamethasone-tablets-and-liquid",
+      "label": "Dexamethasone tablets and liquid"
+    },
+    {
+      "slug": "diazepam",
+      "label": "Diazepam"
+    },
+    {
+      "slug": "diclofenac",
+      "label": "Diclofenac"
+    },
+    {
+      "slug": "digoxin",
+      "label": "Digoxin"
+    },
+    {
+      "slug": "dihydrocodeine",
+      "label": "Dihydrocodeine"
+    },
+    {
+      "slug": "diltiazem",
+      "label": "Diltiazem"
+    },
+    {
+      "slug": "diphenhydramine",
+      "label": "Diphenhydramine"
+    },
+    {
+      "slug": "dipyridamole",
+      "label": "Dipyridamole"
+    },
+    {
+      "slug": "docusate",
+      "label": "Docusate"
+    },
+    {
+      "slug": "domperidone",
+      "label": "Domperidone"
+    },
+    {
+      "slug": "donepezil",
+      "label": "Donepezil"
+    },
+    {
+      "slug": "doxazosin",
+      "label": "Doxazosin"
+    },
+    {
+      "slug": "doxycycline",
+      "label": "Doxycycline"
+    },
+    {
+      "slug": "duloxetine",
+      "label": "Duloxetine"
+    },
+    {
+      "slug": "edoxaban",
+      "label": "Edoxaban"
+    },
+    {
+      "slug": "empagliflozin",
+      "label": "Empagliflozin"
+    },
+    {
+      "slug": "enalapril",
+      "label": "Enalapril"
+    },
+    {
+      "slug": "eplerenone",
+      "label": "Eplerenone"
+    },
+    {
+      "slug": "erythromycin",
+      "label": "Erythromycin"
+    },
+    {
+      "slug": "escitalopram",
+      "label": "Escitalopram"
+    },
+    {
+      "slug": "esomeprazole",
+      "label": "Esomeprazole"
+    },
+    {
+      "slug": "ezetimibe",
+      "label": "Ezetimibe"
+    },
+    {
+      "slug": "felodipine",
+      "label": "Felodipine"
+    },
+    {
+      "slug": "fentanyl",
+      "label": "Fentanyl"
+    },
+    {
+      "slug": "ferrous-fumarate",
+      "label": "Ferrous fumarate"
+    },
+    {
+      "slug": "ferrous-sulfate",
+      "label": "Ferrous sulfate"
+    },
+    {
+      "slug": "fexofenadine",
+      "label": "Fexofenadine"
+    },
+    {
+      "slug": "finasteride",
+      "label": "Finasteride"
+    },
+    {
+      "slug": "flucloxacillin",
+      "label": "Flucloxacillin"
+    },
+    {
+      "slug": "fluconazole",
+      "label": "Fluconazole"
+    },
+    {
+      "slug": "fluoxetine",
+      "label": "Fluoxetine"
+    },
+    {
+      "slug": "fluticasone-inhalers",
+      "label": "Fluticasone inhalers"
+    },
+    {
+      "slug": "fluticasone-nasal-spray-and-drops",
+      "label": "Fluticasone nasal spray and drops"
+    },
+    {
+      "slug": "folic-acid",
+      "label": "Folic acid"
+    },
+    {
+      "slug": "furosemide",
+      "label": "Furosemide"
+    },
+    {
+      "slug": "fusidic-acid",
+      "label": "Fusidic acid"
+    },
+    {
+      "slug": "fybogel-ispaghula-husk",
+      "label": "Fybogel"
+    },
+    {
+      "slug": "gabapentin",
+      "label": "Gabapentin"
+    },
+    {
+      "slug": "gaviscon",
+      "label": "Gaviscon"
+    },
+    {
+      "slug": "gliclazide",
+      "label": "Gliclazide"
+    },
+    {
+      "slug": "glyceryl-trinitrate-gtn",
+      "label": "Glyceryl trinitrate"
+    },
+    {
+      "slug": "hormone-replacement-therapy-hrt",
+      "label": "Hormone replacement therapy"
+    },
+    {
+      "slug": "hydrocortisone",
+      "label": "Hydrocortisone"
+    },
+    {
+      "slug": "hydrocortisone-buccal-tablets",
+      "label": "Hydrocortisone buccal tablets"
+    },
+    {
+      "slug": "hydrocortisone-for-piles-and-itchy-bottom",
+      "label": "Hydrocortisone for piles and itchy bottom"
+    },
+    {
+      "slug": "hydrocortisone-for-skin",
+      "label": "Hydrocortisone for skin"
+    },
+    {
+      "slug": "hydrocortisone-injections",
+      "label": "Hydrocortisone injections"
+    },
+    {
+      "slug": "hydrocortisone-rectal-foam",
+      "label": "Hydrocortisone rectal foam"
+    },
+    {
+      "slug": "hydrocortisone-tablets",
+      "label": "Hydrocortisone tablets"
+    },
+    {
+      "slug": "hydroxocobalamin",
+      "label": "Hydroxocobalamin"
+    },
+    {
+      "slug": "hydroxychloroquine",
+      "label": "Hydroxychloroquine"
+    },
+    {
+      "slug": "hyoscine-hydrobromide",
+      "label": "Hyoscine hydrobromide"
+    },
+    {
+      "slug": "ibuprofen-and-codeine-nurofen-plus",
+      "label": "Ibuprofen and codeine"
+    },
+    {
+      "slug": "ibuprofen-for-adults",
+      "label": "Ibuprofen for adults"
+    },
+    {
+      "slug": "ibuprofen-for-children",
+      "label": "Ibuprofen for children"
+    },
+    {
+      "slug": "indapamide",
+      "label": "Indapamide"
+    },
+    {
+      "slug": "insulin",
+      "label": "Insulin"
+    },
+    {
+      "slug": "irbesartan",
+      "label": "Irbesartan"
+    },
+    {
+      "slug": "isosorbide-mononitrate-dinitrate",
+      "label": "Isosorbide mononitrate and isosorbide dinitrate"
+    },
+    {
+      "slug": "isotretinoin-roaccutane",
+      "label": "Isotretinoin"
+    },
+    {
+      "slug": "ketoconazole-cream-and-shampoo",
+      "label": "Ketoconazole cream and shampoo"
+    },
+    {
+      "slug": "lactulose",
+      "label": "Lactulose"
+    },
+    {
+      "slug": "lamotrigine",
+      "label": "Lamotrigine"
+    },
+    {
+      "slug": "lansoprazole",
+      "label": "Lansoprazole"
+    },
+    {
+      "slug": "latanoprost",
+      "label": "Latanoprost"
+    },
+    {
+      "slug": "laxatives",
+      "label": "Laxatives"
+    },
+    {
+      "slug": "lercanidipine",
+      "label": "Lercanidipine"
+    },
+    {
+      "slug": "letrozole",
+      "label": "Letrozole"
+    },
+    {
+      "slug": "levetiracetam",
+      "label": "Levetiracetam"
+    },
+    {
+      "slug": "levothyroxine",
+      "label": "Levothyroxine"
+    },
+    {
+      "slug": "linagliptin",
+      "label": "Linagliptin"
+    },
+    {
+      "slug": "liraglutide",
+      "label": "Liraglutide"
+    },
+    {
+      "slug": "lisinopril",
+      "label": "Lisinopril"
+    },
+    {
+      "slug": "lithium",
+      "label": "Lithium"
+    },
+    {
+      "slug": "loperamide",
+      "label": "Loperamide"
+    },
+    {
+      "slug": "loratadine",
+      "label": "Loratadine"
+    },
+    {
+      "slug": "lorazepam",
+      "label": "Lorazepam"
+    },
+    {
+      "slug": "losartan",
+      "label": "Losartan"
+    },
+    {
+      "slug": "lymecycline",
+      "label": "Lymecycline"
+    },
+    {
+      "slug": "macrogol",
+      "label": "Macrogol"
+    },
+    {
+      "slug": "mebendazole",
+      "label": "Mebendazole"
+    },
+    {
+      "slug": "mebeverine",
+      "label": "Mebeverine"
+    },
+    {
+      "slug": "medical-cannabis",
+      "label": "Medical cannabis"
+    },
+    {
+      "slug": "medroxyprogesterone-tablets",
+      "label": "Medroxyprogesterone tablets"
+    },
+    {
+      "slug": "melatonin",
+      "label": "Melatonin"
+    },
+    {
+      "slug": "memantine",
+      "label": "Memantine"
+    },
+    {
+      "slug": "mesalazine",
+      "label": "Mesalazine"
+    },
+    {
+      "slug": "metformin",
+      "label": "Metformin"
+    },
+    {
+      "slug": "methadone",
+      "label": "Methadone"
+    },
+    {
+      "slug": "methotrexate",
+      "label": "Methotrexate"
+    },
+    {
+      "slug": "methylphenidate-adults",
+      "label": "Methylphenidate for adults"
+    },
+    {
+      "slug": "methylphenidate-children",
+      "label": "Methylphenidate for children"
+    },
+    {
+      "slug": "metoclopramide",
+      "label": "Metoclopramide"
+    },
+    {
+      "slug": "metoprolol",
+      "label": "Metoprolol"
+    },
+    {
+      "slug": "metronidazole",
+      "label": "Metronidazole"
+    },
+    {
+      "slug": "mirabegron",
+      "label": "Mirabegron"
+    },
+    {
+      "slug": "mirtazapine",
+      "label": "Mirtazapine"
+    },
+    {
+      "slug": "mometasone-for-skin",
+      "label": "Mometasone for skin"
+    },
+    {
+      "slug": "mometasone-nasal-spray",
+      "label": "Mometasone nasal spray"
+    },
+    {
+      "slug": "montelukast",
+      "label": "Montelukast"
+    },
+    {
+      "slug": "morphine",
+      "label": "Morphine"
+    },
+    {
+      "slug": "naproxen",
+      "label": "Naproxen"
+    },
+    {
+      "slug": "nefopam",
+      "label": "Nefopam"
+    },
+    {
+      "slug": "nicorandil",
+      "label": "Nicorandil"
+    },
+    {
+      "slug": "nifedipine",
+      "label": "Nifedipine"
+    },
+    {
+      "slug": "nitrofurantoin",
+      "label": "Nitrofurantoin"
+    },
+    {
+      "slug": "nortriptyline",
+      "label": "Nortriptyline"
+    },
+    {
+      "slug": "nsaids",
+      "label": "NSAIDs"
+    },
+    {
+      "slug": "nystatin",
+      "label": "Nystatin"
+    },
+    {
+      "slug": "oestrogen-tablets-patches-gel-and-spray",
+      "label": "Oestrogen tablets, patches, gel and spray"
+    },
+    {
+      "slug": "olanzapine",
+      "label": "Olanzapine"
+    },
+    {
+      "slug": "omeprazole",
+      "label": "Omeprazole"
+    },
+    {
+      "slug": "orlistat",
+      "label": "Orlistat"
+    },
+    {
+      "slug": "oxybutynin",
+      "label": "Oxybutynin"
+    },
+    {
+      "slug": "oxycodone",
+      "label": "Oxycodone"
+    },
+    {
+      "slug": "pantoprazole",
+      "label": "Pantoprazole"
+    },
+    {
+      "slug": "paracetamol-for-adults",
+      "label": "Paracetamol for adults"
+    },
+    {
+      "slug": "paracetamol-for-children",
+      "label": "Paracetamol for children"
+    },
+    {
+      "slug": "paroxetine",
+      "label": "Paroxetine"
+    },
+    {
+      "slug": "peppermint-oil",
+      "label": "Peppermint oil"
+    },
+    {
+      "slug": "pepto-bismol",
+      "label": "Pepto-Bismol"
+    },
+    {
+      "slug": "perindopril",
+      "label": "Perindopril"
+    },
+    {
+      "slug": "phenoxymethylpenicillin",
+      "label": "Phenoxymethylpenicillin"
+    },
+    {
+      "slug": "pravastatin",
+      "label": "Pravastatin"
+    },
+    {
+      "slug": "pre-exposure-prophylaxis-prep",
+      "label": "Pre-Exposure Prophylaxis"
+    },
+    {
+      "slug": "prednisolone-tablets-and-liquid",
+      "label": "Prednisolone tablets and liquid"
+    },
+    {
+      "slug": "pregabalin",
+      "label": "Pregabalin"
+    },
+    {
+      "slug": "prochlorperazine",
+      "label": "Prochlorperazine"
+    },
+    {
+      "slug": "promethazine",
+      "label": "Promethazine"
+    },
+    {
+      "slug": "propranolol",
+      "label": "Propranolol"
+    },
+    {
+      "slug": "pseudoephedrine",
+      "label": "Pseudoephedrine"
+    },
+    {
+      "slug": "quetiapine",
+      "label": "Quetiapine"
+    },
+    {
+      "slug": "ramipril",
+      "label": "Ramipril"
+    },
+    {
+      "slug": "ranitidine",
+      "label": "Ranitidine"
+    },
+    {
+      "slug": "risperidone",
+      "label": "Risperidone"
+    },
+    {
+      "slug": "rivaroxaban",
+      "label": "Rivaroxaban"
+    },
+    {
+      "slug": "ropinirole",
+      "label": "Ropinirole"
+    },
+    {
+      "slug": "rosuvastatin",
+      "label": "Rosuvastatin"
+    },
+    {
+      "slug": "salbutamol-inhaler",
+      "label": "Salbutamol inhalers"
+    },
+    {
+      "slug": "semaglutide",
+      "label": "Semaglutide"
+    },
+    {
+      "slug": "senna",
+      "label": "Senna"
+    },
+    {
+      "slug": "sequential-combined-hrt-tablets-and-patches",
+      "label": "Sequential HRT tablets and patches"
+    },
+    {
+      "slug": "sertraline",
+      "label": "Sertraline"
+    },
+    {
+      "slug": "sildenafil-viagra",
+      "label": "Sildenafil"
+    },
+    {
+      "slug": "simvastatin",
+      "label": "Simvastatin"
+    },
+    {
+      "slug": "sitagliptin",
+      "label": "Sitagliptin"
+    },
+    {
+      "slug": "sodium-valproate",
+      "label": "Sodium valproate"
+    },
+    {
+      "slug": "solifenacin",
+      "label": "Solifenacin"
+    },
+    {
+      "slug": "sotalol",
+      "label": "Sotalol"
+    },
+    {
+      "slug": "spironolactone",
+      "label": "Spironolactone"
+    },
+    {
+      "slug": "statins",
+      "label": "Statins"
+    },
+    {
+      "slug": "steroids",
+      "label": "Steroids"
+    },
+    {
+      "slug": "sulfasalazine",
+      "label": "Sulfasalazine"
+    },
+    {
+      "slug": "sumatriptan",
+      "label": "Sumatriptan"
+    },
+    {
+      "slug": "tadalafil",
+      "label": "Tadalafil"
+    },
+    {
+      "slug": "tamsulosin",
+      "label": "Tamsulosin"
+    },
+    {
+      "slug": "terbinafine",
+      "label": "Terbinafine"
+    },
+    {
+      "slug": "thiamine-vitamin-b1",
+      "label": "Thiamine"
+    },
+    {
+      "slug": "tibolone",
+      "label": "Tibolone"
+    },
+    {
+      "slug": "timolol-eye-drops",
+      "label": "Timolol eye drops"
+    },
+    {
+      "slug": "tiotropium-inhalers",
+      "label": "Tiotropium inhalers"
+    },
+    {
+      "slug": "tirzepatide",
+      "label": "Tirzepatide"
+    },
+    {
+      "slug": "tolterodine",
+      "label": "Tolterodine"
+    },
+    {
+      "slug": "topiramate",
+      "label": "Topiramate"
+    },
+    {
+      "slug": "tramadol",
+      "label": "Tramadol"
+    },
+    {
+      "slug": "tranexamic-acid",
+      "label": "Tranexamic acid"
+    },
+    {
+      "slug": "trazodone",
+      "label": "Trazodone"
+    },
+    {
+      "slug": "trimethoprim",
+      "label": "Trimethoprim"
+    },
+    {
+      "slug": "utrogestan",
+      "label": "Utrogestan"
+    },
+    {
+      "slug": "valproic-acid",
+      "label": "Valproic acid"
+    },
+    {
+      "slug": "valsartan",
+      "label": "Valsartan"
+    },
+    {
+      "slug": "varenicline",
+      "label": "Varenicline"
+    },
+    {
+      "slug": "venlafaxine",
+      "label": "Venlafaxine"
+    },
+    {
+      "slug": "verapamil",
+      "label": "Verapamil"
+    },
+    {
+      "slug": "warfarin",
+      "label": "Warfarin"
+    },
+    {
+      "slug": "zolpidem",
+      "label": "Zolpidem"
+    },
+    {
+      "slug": "zopiclone",
+      "label": "Zopiclone"
+    }
+  ]
+}

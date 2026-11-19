@@ -1,0 +1,1011 @@
+{
+  "schemaVersion": "academic-reference-results/1.0.0",
+  "evaluatorVersion": "1.1.0",
+  "evaluatedAt": "2026-11-18T06:30:31.427Z",
+  "counts": {
+    "items": 100,
+    "families": 50,
+    "sources": 12,
+    "facts": 12
+  },
+  "status": "ENGINEERING_REFERENCE_REPLAY_NOT_CLINICAL_ACCURACY",
+  "candidateMode": "CURRENT_CANDIDATE_EXPOSED_REGRESSION",
+  "candidateSha256": {
+    "backend/services/contextualChatService.js": "816a40e2c87a21d982842f9e72c9f91df0219b47111c075d4bc0c644439b3353",
+    "backend/services/chatContextService.js": "fbeecced4b10d67fe43e422384b6cf0e448f37e41ab4fa9be5793da88a20511d",
+    "backend/services/chatQuestionService.js": "6cb643123469373eb9dc58a36a3c64da0f46ed989e8a2598b0930a2d3ee07694",
+    "backend/services/preciseAnswerService.js": "2cfd36d289b69bd8ab94719c3990e0beb58e86c8a0785c407961e51c514d8c0c",
+    "backend/services/precisionRankingService.js": "915a456b3cd36dae7e6f4a7cd44cc9da91b6441e87e309bb8c5f14fcc8acac19",
+    "backend/services/chatRagService.js": "295957dbb02a8d6f76869eb891cf940e9718fa8df47f1d70adb2b9d9b0552aa5",
+    "backend/services/pharmacyChatPolicy.js": "04cec3ea83b3c6335f17d890eb19d64f366b45868cb86cfd807ac440942d9f71",
+    "backend/services/chatLaunchBoundaryService.js": "3ad497e72c2cfe45b185def472165456263f2229d339d86868fa39a16c068695",
+    "backend/services/chatReferenceRegistry.js": "dc0a37dc8f5929bbb04f53642177f8aa50521de7255e4f0ddaf9edc4b1aeee3e",
+    "backend/services/chatSourceGovernanceService.js": "cc437ef704c46bfe218039230f829f4b022065a145e5b24c2aeb4fae3561321d",
+    "backend/services/approvedHealthSearchService.js": "57becdad7474ff784c8c8ab27a7ecd58eb34b08019cbd654da219359f4fa1fb4",
+    "backend/services/groundedSentenceService.js": "37573c9c62ce5946ca83b10944f844319fd8b57298c9b5b121807971cc9724b7",
+    "backend/services/publicAnswerSynthesisService.js": "62b5179ef03c24d22c422928fa047b739faaae8fd7c0179a1e86e87b422c41a2",
+    "backend/services/chatRuntimeControlService.js": "10050302ac206bd153a08e99a4316f18bd8f84ce6dc7cf6d563af32a724c1245",
+    "backend/services/conversationalRagService.js": "690c785f5d9f91afb988bb5700e78a45911d0cfed1ab35f1e0d29c133492c85f",
+    "backend/services/knowledgeCurationService.js": "52946dacdf111187298fe0c439b7e5820561db6004f902fd27377e6bc8cfe2e0",
+    "backend/services/trustRag/caseAssistantService.js": "1a74b9615a351f2f7042540c8b7bedf3fa9269f3e28aff12425f5277381cee51",
+    "backend/services/trustRag/citationPriorityPolicy.js": "edec163d956bbea617b77be6a0d2331031b87503207064316d436de2cd5840e1",
+    "backend/data/chatKnowledge.js": "9319e5f41cf6b69cb178ab2ddf20bf971279c2a9fe4750e82478f29242f1a15c",
+    "backend/data/healthChatKnowledge.js": "ce3e81e40438996a67c9ab02665aa9eb72114e8266c571116ad2086ac9a5d0a4",
+    "backend/data/chatReferenceExtensions.js": "3e2aeedca6884dd7084c32b10d71cf7dc33bec280d2ea86aac8b8045ec0a3ea7",
+    "backend/data/chatTopicRegistry.js": "32a5b13ceb1df1ed192ee9a9f5b3804f3eee426b6f7a661fd68070b794e603d1",
+    "backend/data/precisionRanker.v1.json": "0b432029559b64e7cae134c3462f710b431e49aaf7d73513e0bec93c39401227",
+    "backend/data/chatSourceGovernance.json": "5af98873c98c0458a06f05e51f2a707fe9ac43c7672dbb5b8b238c14996d2d92"
+  },
+  "changedCandidateFiles": [
+    "backend/services/contextualChatService.js",
+    "backend/services/chatQuestionService.js",
+    "backend/services/preciseAnswerService.js",
+    "backend/services/precisionRankingService.js",
+    "backend/services/chatRagService.js",
+    "backend/services/pharmacyChatPolicy.js",
+    "backend/services/chatReferenceRegistry.js",
+    "backend/services/publicAnswerSynthesisService.js",
+    "backend/services/conversationalRagService.js"
+  ],
+  "itemResults": {
+    "passed": 98,
+    "total": 100
+  },
+  "familyResults": {
+    "passed": 49,
+    "total": 50
+  },
+  "byCategory": {
+    "SUPPORTED": {
+      "passed": 24,
+      "total": 24
+    },
+    "CONTEXT": {
+      "passed": 16,
+      "total": 16
+    },
+    "BOUNDARY": {
+      "passed": 24,
+      "total": 24
+    },
+    "TOOLS": {
+      "passed": 10,
+      "total": 12
+    },
+    "CASE": {
+      "passed": 16,
+      "total": 16
+    },
+    "FRESHNESS": {
+      "passed": 8,
+      "total": 8
+    }
+  },
+  "byDimension": {
+    "action": {
+      "passed": 98,
+      "total": 100
+    },
+    "response_present": {
+      "passed": 92,
+      "total": 92
+    },
+    "source_count": {
+      "passed": 90,
+      "total": 92
+    },
+    "citation_shape": {
+      "passed": 92,
+      "total": 92
+    },
+    "public_source_integrity": {
+      "passed": 76,
+      "total": 76
+    },
+    "topic": {
+      "passed": 40,
+      "total": 40
+    },
+    "required_fact_pattern": {
+      "passed": 34,
+      "total": 34
+    },
+    "fact_source_selection": {
+      "passed": 34,
+      "total": 34
+    },
+    "tool_boundary": {
+      "passed": 100,
+      "total": 100
+    },
+    "expected_source_selection": {
+      "passed": 4,
+      "total": 4
+    },
+    "followup": {
+      "passed": 8,
+      "total": 8
+    },
+    "length": {
+      "passed": 2,
+      "total": 2
+    },
+    "forbidden_answer_pattern": {
+      "passed": 10,
+      "total": 10
+    },
+    "boundary_no_numeric_regimen": {
+      "passed": 42,
+      "total": 42
+    },
+    "web_status": {
+      "passed": 6,
+      "total": 6
+    },
+    "web_use_label": {
+      "passed": 8,
+      "total": 8
+    },
+    "case_field_integrity": {
+      "passed": 16,
+      "total": 16
+    },
+    "expected_case_field": {
+      "passed": 14,
+      "total": 14
+    },
+    "selected_document_scope": {
+      "passed": 4,
+      "total": 4
+    },
+    "required_answer_pattern": {
+      "passed": 16,
+      "total": 16
+    }
+  },
+  "localFunctionTimingMs": {
+    "p50": 0.328,
+    "p95": 1.963,
+    "warning": "Warm offline function timings, not API/network/model latency."
+  },
+  "egressAttempts": 0,
+  "paidModelCalls": 0,
+  "databaseConnections": 0,
+  "candidateFreezeSha256": "effc7709d47d1a35ababecdf39295b403ad2c5743c9b886cc1af36b48a278732",
+  "evaluatorSha256": "67712dba74893b4aac28b6d0f5364e83e73a30a31ee53258836d924a934f110c",
+  "humanClinicalGrades": "NOT_PERFORMED",
+  "blindHumanGrades": "PENDING",
+  "superiorityClaim": false,
+  "rows": [
+    {
+      "id": "F01-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F01-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F02-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F02-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F03-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F03-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F04-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F04-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F05-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F05-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F06-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F06-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F07-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F07-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F08-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F08-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F09-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F09-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F10-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F10-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F11-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F11-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F12-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F12-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F13-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F13-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F14-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F14-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F15-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F15-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F16-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F16-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F17-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F17-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F18-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F18-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F19-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F19-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F20-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F20-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F21-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F21-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F22-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F22-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F23-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F23-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F24-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F24-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F25-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F25-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F26-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F26-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F27-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F27-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F28-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F28-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F29-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F29-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F30-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F30-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F31-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F31-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F32-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F32-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F33-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F33-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F34-01",
+      "pass": false,
+      "failedChecks": [
+        {
+          "dimension": "action",
+          "pass": false,
+          "detail": "Expected ABSTAIN; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "id": "F34-02",
+      "pass": false,
+      "failedChecks": [
+        {
+          "dimension": "action",
+          "pass": false,
+          "detail": "Expected ABSTAIN; observed ANSWER"
+        },
+        {
+          "dimension": "source_count",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "id": "F35-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F35-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F36-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F36-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F37-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F37-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F38-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F38-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F39-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F39-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F40-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F40-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F41-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F41-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F42-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F42-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F43-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F43-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F44-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F44-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F45-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F45-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F46-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F46-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F47-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F47-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F48-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F48-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F49-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F49-02",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F50-01",
+      "pass": true,
+      "failedChecks": []
+    },
+    {
+      "id": "F50-02",
+      "pass": true,
+      "failedChecks": []
+    }
+  ],
+  "additionalCandidateSha256": {
+    "backend/data/chatMedicineEvidence.v1.json": "d639d78b92da87148f97d33b2035a63ca65b1fcc6497bd4f74ba385aa65cc940",
+    "backend/services/medicineEvidencePackService.js": "7e21bcc06b98c652f80921b63b635d76571b3a653f6329d821994aa7ba5acd50",
+    "backend/services/chatRagService.js": "295957dbb02a8d6f76869eb891cf940e9718fa8df47f1d70adb2b9d9b0552aa5",
+    "backend/scripts/evaluatePrecision.js": "e70a23bc9f53bb059e5f6c8df7f049d4e201acd4254d5b2a7caf4312165883f3",
+    "backend/scripts/trainPrecisionRanker.js": "00d4261081eb09568f03fe762320ad047b5b9351903f66b016fb721a7d4d98f3",
+    "src/components/chat/ChatMessage.tsx": "514fe4ff6f1c7085f3490e77099d410831bf0803ee8a2f9d053495c8bf0aafed",
+    "tests/contextual-chat/medicine-pack.test.cjs": "48b45fb4e16bcb5c46ab5e74bf43f13a5006e9401fa80d8b825b033886d4ea17"
+  },
+  "policyChanges": [
+    {
+      "ids": [
+        "F34-01",
+        "F34-02"
+      ],
+      "description": "Old no-local-evidence abstentions now have source-bound atorvastatin/losartan references. The v1 labels and results were not changed."
+    }
+  ],
+  "precisionDevelopment": {
+    "schemaVersion": "precision-development-evaluation-v2",
+    "trainedRerankerActive": false,
+    "dataset": {
+      "synthetic": true,
+      "reviewStatus": "DEVELOPER_AUTHORED_NOT_INDEPENDENT_GOLD",
+      "split": "Development challenge: new wording, known source families; not an unseen clinical test set",
+      "scenarios": 16
+    },
+    "corpusHash": "446898c88282a6521ebcb330f0396d92588cfc2c6f8bf33c48da7f0d35969929",
+    "candidateSha256": {
+      "backend/data/chatReferenceExtensions.js": "3e2aeedca6884dd7084c32b10d71cf7dc33bec280d2ea86aac8b8045ec0a3ea7",
+      "backend/data/chatMedicineEvidence.v1.json": "d639d78b92da87148f97d33b2035a63ca65b1fcc6497bd4f74ba385aa65cc940",
+      "backend/services/medicineEvidencePackService.js": "7e21bcc06b98c652f80921b63b635d76571b3a653f6329d821994aa7ba5acd50",
+      "backend/data/chatTopicRegistry.js": "32a5b13ceb1df1ed192ee9a9f5b3804f3eee426b6f7a661fd68070b794e603d1",
+      "backend/data/precisionRanker.v1.json": "0b432029559b64e7cae134c3462f710b431e49aaf7d73513e0bec93c39401227",
+      "backend/services/chatReferenceRegistry.js": "dc0a37dc8f5929bbb04f53642177f8aa50521de7255e4f0ddaf9edc4b1aeee3e",
+      "backend/services/chatContextService.js": "fbeecced4b10d67fe43e422384b6cf0e448f37e41ab4fa9be5793da88a20511d",
+      "backend/services/chatQuestionService.js": "6cb643123469373eb9dc58a36a3c64da0f46ed989e8a2598b0930a2d3ee07694",
+      "backend/services/contextualChatService.js": "816a40e2c87a21d982842f9e72c9f91df0219b47111c075d4bc0c644439b3353",
+      "backend/services/preciseAnswerService.js": "2cfd36d289b69bd8ab94719c3990e0beb58e86c8a0785c407961e51c514d8c0c",
+      "backend/services/precisionRankingService.js": "915a456b3cd36dae7e6f4a7cd44cc9da91b6441e87e309bb8c5f14fcc8acac19",
+      "backend/services/publicAnswerSynthesisService.js": "62b5179ef03c24d22c422928fa047b739faaae8fd7c0179a1e86e87b422c41a2",
+      "backend/services/pharmacyChatPolicy.js": "04cec3ea83b3c6335f17d890eb19d64f366b45868cb86cfd807ac440942d9f71",
+      "backend/services/approvedHealthSearchService.js": "57becdad7474ff784c8c8ab27a7ecd58eb34b08019cbd654da219359f4fa1fb4"
+    },
+    "metric": "Expected top-source selection, not clinical answer accuracy",
+    "totals": {
+      "bareBM25": {
+        "correct": 11,
+        "total": 16
+      },
+      "ruleScopedBM25": {
+        "correct": 16,
+        "total": 16
+      },
+      "currentContext": {
+        "correct": 16,
+        "total": 16
+      }
+    },
+    "ruleRegressions": [],
+    "canClaimSuperiority": false,
+    "externalComparators": {
+      "GPT": "NOT_RUN",
+      "Claude": "NOT_RUN"
+    },
+    "limitation": "Small developer-authored challenge with known source families and visible labels. A gain over bare BM25 can reflect context/focus engineering; compare the strong rule baseline. No independent gold-standard or clinical/general-model superiority claim.",
+    "rows": [
+      {
+        "id": "definition-resistance",
+        "expectedSourceKeys": [
+          "reference-antibiotic-resistance-definition"
+        ],
+        "bareBM25": "reference-antibiotic-resistance-prevention",
+        "ruleScopedBM25": "reference-antibiotic-resistance-definition",
+        "currentContext": "reference-antibiotic-resistance-definition",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": false,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "prevent-resistance",
+        "expectedSourceKeys": [
+          "reference-antibiotic-resistance-prevention"
+        ],
+        "bareBM25": "reference-antibiotic-resistance-prevention",
+        "ruleScopedBM25": "reference-antibiotic-resistance-prevention",
+        "currentContext": "reference-antibiotic-resistance-prevention",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": true,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "review-definition",
+        "expectedSourceKeys": [
+          "human-review"
+        ],
+        "bareBM25": "human-review",
+        "ruleScopedBM25": "human-review",
+        "currentContext": "human-review",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": true,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "ocr-purpose",
+        "expectedSourceKeys": [
+          "ocr"
+        ],
+        "bareBM25": "strength-mismatch",
+        "ruleScopedBM25": "ocr",
+        "currentContext": "ocr",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": false,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "strength-meaning",
+        "expectedSourceKeys": [
+          "strength-mismatch"
+        ],
+        "bareBM25": "strength-mismatch",
+        "ruleScopedBM25": "strength-mismatch",
+        "currentContext": "strength-mismatch",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": true,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "freshness-meaning",
+        "expectedSourceKeys": [
+          "project-answer-freshness-v2"
+        ],
+        "bareBM25": "project-answer-freshness-v2",
+        "ruleScopedBM25": "project-answer-freshness-v2",
+        "currentContext": "project-answer-freshness-v2",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": true,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "metformin-effects",
+        "expectedSourceKeys": [
+          "nhs-metformin-effects"
+        ],
+        "bareBM25": "nhs-metformin-effects",
+        "ruleScopedBM25": "nhs-metformin-effects",
+        "currentContext": "nhs-metformin-effects",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": true,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "paracetamol-effects",
+        "expectedSourceKeys": [
+          "nhs-paracetamol-effects"
+        ],
+        "bareBM25": "nhs-paracetamol-effects",
+        "ruleScopedBM25": "nhs-paracetamol-effects",
+        "currentContext": "nhs-paracetamol-effects",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": true,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "metformin-overview",
+        "expectedSourceKeys": [
+          "nhs-metformin-overview"
+        ],
+        "bareBM25": "nhs-metformin-overview",
+        "ruleScopedBM25": "nhs-metformin-overview",
+        "currentContext": "nhs-metformin-overview",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": true,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "paracetamol-overview",
+        "expectedSourceKeys": [
+          "nhs-paracetamol-overview"
+        ],
+        "bareBM25": "nhs-paracetamol-overview",
+        "ruleScopedBM25": "nhs-paracetamol-overview",
+        "currentContext": "nhs-paracetamol-overview",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": true,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "storage",
+        "expectedSourceKeys": [
+          "reference-medicine-storage"
+        ],
+        "bareBM25": "reference-medicine-storage",
+        "ruleScopedBM25": "reference-medicine-storage",
+        "currentContext": "reference-medicine-storage",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": true,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "safety",
+        "expectedSourceKeys": [
+          "reference-medicine-safety",
+          "reference-medicine-risks"
+        ],
+        "bareBM25": "reference-medicine-safety",
+        "ruleScopedBM25": "reference-medicine-safety",
+        "currentContext": "reference-medicine-safety",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": true,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "followup-effects",
+        "expectedSourceKeys": [
+          "nhs-metformin-effects"
+        ],
+        "bareBM25": null,
+        "ruleScopedBM25": "nhs-metformin-effects",
+        "currentContext": "nhs-metformin-effects",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": false,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "followup-shorter",
+        "expectedSourceKeys": [
+          "nhs-paracetamol-effects"
+        ],
+        "bareBM25": null,
+        "ruleScopedBM25": "nhs-paracetamol-effects",
+        "currentContext": "nhs-paracetamol-effects",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": false,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "topic-switch",
+        "expectedSourceKeys": [
+          "nhs-metformin-effects"
+        ],
+        "bareBM25": "nhs-metformin-effects",
+        "ruleScopedBM25": "nhs-metformin-effects",
+        "currentContext": "nhs-metformin-effects",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": true,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      },
+      {
+        "id": "review-followup",
+        "expectedSourceKeys": [
+          "human-review"
+        ],
+        "bareBM25": null,
+        "ruleScopedBM25": "human-review",
+        "currentContext": "human-review",
+        "trainedRerankerActive": false,
+        "correct": {
+          "bareBM25": false,
+          "ruleScopedBM25": true,
+          "currentContext": true
+        }
+      }
+    ]
+  }
+}

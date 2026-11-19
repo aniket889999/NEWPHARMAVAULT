@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "academic-reference-freeze/1.0.0",
+  "capturedAt": "2026-11-18T05:40:27.712Z",
+  "authorship": "DEVELOPER_AUTHORED_NOT_INDEPENDENT_HELDOUT",
+  "clinicalApproval": "NOT_ESTABLISHED",
+  "candidateSha256": {
+    "backend/services/contextualChatService.js": "c70280afd67f466c84d9571b61f88ef634a36e6563fb9ec35b812e0c4cc9a391",
+    "backend/services/chatContextService.js": "fbeecced4b10d67fe43e422384b6cf0e448f37e41ab4fa9be5793da88a20511d",
+    "backend/services/chatQuestionService.js": "5a4f6bd62c650caaa8401c5f432f5a664d3be566d0b5638bc49df69c0f2fc4d7",
+    "backend/services/preciseAnswerService.js": "87e0d228770760bd9448a0a139e683d9deab77b12fa5812649a00f866ab9b515",
+    "backend/services/precisionRankingService.js": "497b8051d1cf1a6529f9e138a55a8986f96dec4a8aeed55a623798c9544732a7",
+    "backend/services/chatRagService.js": "4426ba60ad61e52da81ab0c19443f76aac014146e63432e75608e42d328a2cd5",
+    "backend/services/pharmacyChatPolicy.js": "bd4ababb228b0cd19373e4169475058d59aac1edfbbb41522eda7898801881c9",
+    "backend/services/chatLaunchBoundaryService.js": "3ad497e72c2cfe45b185def472165456263f2229d339d86868fa39a16c068695",
+    "backend/services/chatReferenceRegistry.js": "6979eb5a99d4f5299ec15fb9d7dc46b85ba5fbfc0069454ee9535afce613119b",
+    "backend/services/chatSourceGovernanceService.js": "cc437ef704c46bfe218039230f829f4b022065a145e5b24c2aeb4fae3561321d",
+    "backend/services/approvedHealthSearchService.js": "57becdad7474ff784c8c8ab27a7ecd58eb34b08019cbd654da219359f4fa1fb4",
+    "backend/services/groundedSentenceService.js": "37573c9c62ce5946ca83b10944f844319fd8b57298c9b5b121807971cc9724b7",
+    "backend/services/publicAnswerSynthesisService.js": "0998780a755dbaa6612b18d8df8fde9c52d26c2e8b714acc08b8330569a06043",
+    "backend/services/chatRuntimeControlService.js": "10050302ac206bd153a08e99a4316f18bd8f84ce6dc7cf6d563af32a724c1245",
+    "backend/services/conversationalRagService.js": "27c53644eba403a0ec2b560754d9461a769e5d454a9549b7a4501d8551f7fb38",
+    "backend/services/knowledgeCurationService.js": "52946dacdf111187298fe0c439b7e5820561db6004f902fd27377e6bc8cfe2e0",
+    "backend/services/trustRag/caseAssistantService.js": "1a74b9615a351f2f7042540c8b7bedf3fa9269f3e28aff12425f5277381cee51",
+    "backend/services/trustRag/citationPriorityPolicy.js": "edec163d956bbea617b77be6a0d2331031b87503207064316d436de2cd5840e1",
+    "backend/data/chatKnowledge.js": "9319e5f41cf6b69cb178ab2ddf20bf971279c2a9fe4750e82478f29242f1a15c",
+    "backend/data/healthChatKnowledge.js": "ce3e81e40438996a67c9ab02665aa9eb72114e8266c571116ad2086ac9a5d0a4",
+    "backend/data/chatReferenceExtensions.js": "3e2aeedca6884dd7084c32b10d71cf7dc33bec280d2ea86aac8b8045ec0a3ea7",
+    "backend/data/chatTopicRegistry.js": "32a5b13ceb1df1ed192ee9a9f5b3804f3eee426b6f7a661fd68070b794e603d1",
+    "backend/data/precisionRanker.v1.json": "0b432029559b64e7cae134c3462f710b431e49aaf7d73513e0bec93c39401227",
+    "backend/data/chatSourceGovernance.json": "5af98873c98c0458a06f05e51f2a707fe9ac43c7672dbb5b8b238c14996d2d92"
+  },
+  "referenceSha256": {
+    "docs/chatbot-reference-standard/v1/source-catalog.json": "39cf49b2bafefd3ab18619a07e1a4d202df6d61dc467585de3716e37fbac0787",
+    "docs/chatbot-reference-standard/v1/benchmark.json": "f532239fce272da077e0c3185f9dddf731ecb7551732eec531fbe29058e416e7",
+    "docs/chatbot-reference-standard/v1/case-fixtures.json": "30c421c19141b08ac6a4b156b8b1af81ab8164d834c0e5b87d7b6f804193cefe"
+  },
+  "note": "Expected labels and candidate captured before first scoring. Do not change these inputs to improve a published score; create a new version and retain earlier results."
+}

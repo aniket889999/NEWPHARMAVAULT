@@ -78,11 +78,14 @@ export interface PrescribedMedicine {
 }
 
 export interface RagChatResponse {
+  contextToken?: string;
+  memoryPolicy?: string;
   reply: string;
+  savedConversation?: { id: string; saved: boolean };
   mode: 'ABSTAIN' | 'SAFETY' | 'LOCAL_EXTRACTIVE' | 'LOCAL_CASE_EVIDENCE' | 'GEMINI_GROUNDED_QUOTES' | 'GEMINI_RAG' | 'CONVERSATIONAL_HELP' | 'CLARIFY' | 'OFFICIAL_WEB_EXTRACTIVE' | 'PRECISE_LOCAL_EVIDENCE' | 'PRECISE_WEB_EVIDENCE';
   caseAnswer?: CaseAssistantAnswer;
   routing?: { intent: string; reasonCode: string; policyVersion: string };
-  retrieval: { method: 'BM25' | 'HYBRID_BM25_VECTOR' | 'CASE_ITEM_EVIDENCE' | 'APPROVED_WEB_BM25' | 'CONTEXT_RERANKED_BM25'; matchedPassages: number };
+  retrieval: { method: 'NONE' | 'BM25' | 'HYBRID_BM25_VECTOR' | 'BM25_CONCEPT_RERANK' | 'CASE_ITEM_EVIDENCE' | 'APPROVED_WEB_BM25' | 'CONTEXT_RERANKED_BM25' | 'EXACT_TOPIC_SECTION' | 'SCOPED_BM25'; matchedPassages: number };
   sources: {
     citation: string;
     sourceId: string;
@@ -91,12 +94,21 @@ export interface RagChatResponse {
     kind: 'PROJECT_GUIDE' | 'ACADEMIC_CATALOGUE' | 'CASE_RECORD' | 'HEALTH_REFERENCE' | 'OFFICIAL_WEB';
     version: string;
     score: number;
+    reviewStatus?: string;
+    publisher?: string;
+    jurisdiction?: string;
+    checkedAt?: string;
+    licensingNote?: string;
+    attribution?: string;
     href?: string;
     sourceUrl?: string;
     documentId?: string;
     pageNumber?: number;
   }[];
   warnings: string[];
+  sourcePolicy?: { mode: 'ACADEMIC_DEMO' | 'REVIEWED_ONLY'; clinicalValidation: 'NOT_ESTABLISHED' };
+  webLookup?: { policy: 'ALWAYS_PUBLIC' | 'FALLBACK'; status: string; relevantSources: number; usedInAnswer: boolean; checkedAt: string; provider: string };
+  evidenceCoverage?: { attribute: string; status: 'AVAILABLE' | 'MISSING' }[];
   disclaimer: string;
   model?: string;
   followupResolved?: boolean;
@@ -167,6 +179,7 @@ export interface MessageAttachment {
 }
 
 export interface Conversation {
+  contextToken?: string;
   id: string;
   title: string;
   messages: ChatMessage[];
@@ -175,6 +188,8 @@ export interface Conversation {
   type: 'general' | 'prescription' | 'comparison' | 'interaction_check';
   caseId?: string;
   medicineItemId?: string | null;
+  savedId?: string;
+  historyLoaded?: boolean;
 }
 
 export interface User {

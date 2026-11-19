@@ -6,7 +6,7 @@ const { rankPassages } = require('../services/chatRagService');
 const { focusOf } = require('../services/precisionRankingService');
 const tasks = require('../data/precisionTrainingTasks');
 const challenge = require('../../tests/contextual-chat/precision-challenge.dev.json');
-const CANDIDATE_FILES = ['backend/data/chatReferenceExtensions.js', 'backend/data/chatTopicRegistry.js', 'backend/data/precisionRanker.v1.json', 'backend/services/chatReferenceRegistry.js', 'backend/services/chatContextService.js', 'backend/services/chatQuestionService.js', 'backend/services/contextualChatService.js', 'backend/services/preciseAnswerService.js', 'backend/services/precisionRankingService.js', 'backend/services/publicAnswerSynthesisService.js', 'backend/services/pharmacyChatPolicy.js', 'backend/services/approvedHealthSearchService.js'];
+const CANDIDATE_FILES = ['backend/data/chatReferenceExtensions.js', 'backend/data/chatMedicineEvidence.v1.json', 'backend/services/medicineEvidencePackService.js', 'backend/data/chatTopicRegistry.js', 'backend/data/precisionRanker.v1.json', 'backend/services/chatReferenceRegistry.js', 'backend/services/chatContextService.js', 'backend/services/chatQuestionService.js', 'backend/services/contextualChatService.js', 'backend/services/preciseAnswerService.js', 'backend/services/precisionRankingService.js', 'backend/services/publicAnswerSynthesisService.js', 'backend/services/pharmacyChatPolicy.js', 'backend/services/approvedHealthSearchService.js'];
 const root = path.resolve(__dirname, '../..');
 function hashes() { return Object.fromEntries(CANDIDATE_FILES.map(file => [file, crypto.createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')])); }
 function evaluate() {
@@ -21,13 +21,14 @@ function evaluate() {
     // Strong baseline gets the same context/focus labels and falls back to a
     // deterministic source order when a tiny-pool BM25 threshold removes all.
     const scoped = rankPassages(context.localQuestion, pool)[0] || [...pool].sort((a, b) => a.id.localeCompare(b.id))[0];
-    const trained = retrievePrecise(context.localQuestion, context).passages[0];
-    return { id: value.id, expectedSourceKeys: value.expected, bareBM25: lexical?.key || null, ruleScopedBM25: scoped?.key || null, trainedContext: trained?.key || null,
-      correct: { bareBM25: Boolean(lexical && value.expected.includes(lexical.key)), ruleScopedBM25: Boolean(scoped && value.expected.includes(scoped.key)), trainedContext: Boolean(trained && value.expected.includes(trained.key)) } };
+    const current = retrievePrecise(context.localQuestion, context);
+    const selected = current.passages[0];
+    return { id: value.id, expectedSourceKeys: value.expected, bareBM25: lexical?.key || null, ruleScopedBM25: scoped?.key || null, currentContext: selected?.key || null, trainedRerankerActive: current.trained,
+      correct: { bareBM25: Boolean(lexical && value.expected.includes(lexical.key)), ruleScopedBM25: Boolean(scoped && value.expected.includes(scoped.key)), currentContext: Boolean(selected && value.expected.includes(selected.key)) } };
   });
-  const totals = Object.fromEntries(['bareBM25', 'ruleScopedBM25', 'trainedContext'].map(name => [name, { correct: rows.filter(value => value.correct[name]).length, total: rows.length }]));
-  const ruleRegressions = rows.filter(value => value.correct.ruleScopedBM25 && !value.correct.trainedContext).map(value => value.id);
-  return { schemaVersion: 'precision-development-evaluation-v1', dataset: { synthetic: true, reviewStatus: challenge.reviewStatus, split: challenge.split, scenarios: rows.length }, corpusHash, candidateSha256: hashes(), metric: 'Expected top-source selection, not clinical answer accuracy', totals, ruleRegressions,
+  const totals = Object.fromEntries(['bareBM25', 'ruleScopedBM25', 'currentContext'].map(name => [name, { correct: rows.filter(value => value.correct[name]).length, total: rows.length }]));
+  const ruleRegressions = rows.filter(value => value.correct.ruleScopedBM25 && !value.correct.currentContext).map(value => value.id);
+  return { schemaVersion: 'precision-development-evaluation-v2', trainedRerankerActive: rows.some(value => value.trainedRerankerActive), dataset: { synthetic: true, reviewStatus: challenge.reviewStatus, split: challenge.split, scenarios: rows.length }, corpusHash, candidateSha256: hashes(), metric: 'Expected top-source selection, not clinical answer accuracy', totals, ruleRegressions,
     canClaimSuperiority: false, externalComparators: { GPT: 'NOT_RUN', Claude: 'NOT_RUN' }, limitation: 'Small developer-authored challenge with known source families and visible labels. A gain over bare BM25 can reflect context/focus engineering; compare the strong rule baseline. No independent gold-standard or clinical/general-model superiority claim.', rows };
 }
 if (require.main === module) {

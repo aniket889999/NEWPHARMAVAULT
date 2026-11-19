@@ -10,7 +10,7 @@ function officialLink(url?: string) {
   if (!url) return undefined;
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'https:' && ['www.nhs.uk', 'medlineplus.gov', 'www.cdc.gov', 'www.fda.gov'].includes(parsed.hostname) && !parsed.port && !parsed.username && !parsed.password ? parsed.href : undefined;
+    return parsed.protocol === 'https:' && ['www.nhs.uk', 'medlineplus.gov', 'www.cdc.gov', 'www.fda.gov', 'api.fda.gov', 'dailymed.nlm.nih.gov'].includes(parsed.hostname) && !parsed.port && !parsed.username && !parsed.password ? parsed.href : undefined;
   } catch { return undefined; }
 }
 
@@ -19,8 +19,11 @@ const ChatMessage: React.FC<{ message: Message; onCheckEvidence?: () => void; on
   const [showSources, setShowSources] = useState(false);
   const isUser = message.role === 'user';
   const rag = message.rag;
-  // Sources that came from the approved official web search (shown openly, not hidden behind the toggle).
-  const webSources = (rag?.sources || []).filter(source => Boolean(officialLink(source.sourceUrl)));
+  // A URL is attribution, not proof of a network request. Stored NHS summaries
+  // must never be presented as live MedlinePlus search results.
+  const officialSources = (rag?.sources || []).filter(source => Boolean(officialLink(source.sourceUrl)));
+  const webEvidenceLabel = rag?.webLookup?.usedInAnswer && rag.webLookup.status === 'CACHED' ? 'Cached official web evidence'
+    : rag?.webLookup?.usedInAnswer && rag.webLookup.status === 'RETRIEVED' ? 'Official web evidence retrieved' : 'Official web reference';
   const streaming = message.deliveryStatus === 'streaming';
   const caseAnswer = rag?.caseAnswer;
   const request = rag?.context?.request;
@@ -51,6 +54,7 @@ const ChatMessage: React.FC<{ message: Message; onCheckEvidence?: () => void; on
         {!streaming && rag?.context?.topicSwitchResolved && <p className="mb-2 text-xs text-teal-800">Switched to your new topic.</p>}
         {!streaming && request && request.evidenceStatus !== 'NOT_ASSESSED' && <p className={'mb-2 rounded-lg px-3 py-2 text-xs ' + (request.evidenceStatus === 'MISSING' ? 'bg-amber-50 text-amber-900' : 'bg-slate-50 text-slate-600')}>{detailLabels[request.attribute] || 'Requested detail'} · {request.evidenceStatus === 'MISSING' ? 'No supporting passage found for this request.' : 'Supporting text found. Please verify the source.'}</p>}
         {!streaming && rag?.answerQuality && <p className="mb-2 text-[10px] text-slate-400">Focus: {rag.answerQuality.focus.replace(/_/g, ' ').toLowerCase()} · {rag.answerQuality.words} words · {rag.answerQuality.sourceCount} cited source(s){rag.context?.knowledgeRevision ? ' · reviewed retrieval policy v' + rag.context.knowledgeRevision : ''} · Not a clinical accuracy score</p>}
+        {!streaming && rag?.webLookup && <p className="mb-2 text-xs text-slate-500">Official lookup: {rag.webLookup.status === 'CACHED' ? 'fresh cached result checked' : rag.webLookup.status.replace(/_/g, ' ').toLowerCase()} · {rag.webLookup.usedInAnswer ? 'Web evidence supports this answer' : 'Web evidence not used; local evidence or an explicit gap is shown'}</p>}
         <div className={'prose prose-sm max-w-none break-words leading-7 text-slate-800 prose-headings:font-semibold prose-a:text-teal-700 ' + (message.freshness?.status === 'STALE' ? 'border-l-2 border-amber-300 pl-3' : '')}>
           {message.content ? <ReactMarkdown skipHtml components={caseAnswer ? { a: ({ children }) => <span>{children}</span> } : undefined}>{message.content}</ReactMarkdown> : <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-teal-600" />}
         </div>
@@ -58,16 +62,17 @@ const ChatMessage: React.FC<{ message: Message; onCheckEvidence?: () => void; on
         {message.deliveryStatus === 'stopped' && <p className="mt-2 text-xs text-slate-400">Stopped. Any displayed paragraphs are partial.</p>}
         {message.deliveryStatus === 'error' && <p className="mt-2 text-xs text-rose-600">Please retry or check your session.</p>}
         {!!rag?.warnings.length && <div className="mt-3 space-y-1">{rag.warnings.map((w, i) => <p key={i} className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">{w}</p>)}</div>}
-        {!streaming && !caseAnswer && webSources.length > 0 && (
-          <div className="mt-4 rounded-xl border border-teal-200 bg-teal-50/60 p-3" aria-label="Web sources searched">
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-teal-900"><Globe size={13} /> Searched the web · MedlinePlus (U.S. National Library of Medicine)</p>
+        {!streaming && !caseAnswer && officialSources.length > 0 && (
+          <div className="mt-4 rounded-xl border border-teal-200 bg-teal-50/60 p-3" aria-label="Evidence source websites">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-teal-900"><Globe size={13} /> Evidence sources · open the original reference</p>
             <ul className="mt-2 space-y-1.5">
-              {webSources.map(source => <li key={source.sourceId} className="text-xs">
+              {officialSources.map(source => <li key={source.sourceId} className="text-xs">
+                <p className="mb-1 text-[10px] font-medium text-slate-600">{source.kind === 'OFFICIAL_WEB' ? webEvidenceLabel : 'Stored source-linked reference · not fetched live'}</p>
                 <a href={officialLink(source.sourceUrl)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-teal-800 underline">[{source.citation}] {source.title.replace(/^MedlinePlus:\s*/, '')} <ExternalLink size={11} /></a>
                 <span className="ml-1 text-[10px] text-slate-500">{officialLink(source.sourceUrl)?.replace('https://', '')}{source.version ? ' · ' + source.version : ''}</span>
               </li>)}
             </ul>
-            <p className="mt-2 text-[10px] text-slate-500">Only the medicine or topic name was sent to the search, never your question, chat history or case documents.</p>
+            {rag?.webLookup && <p className="mt-2 text-[10px] text-slate-500">Official sources: {rag.webLookup.provider.replace(/_/g, ' ').replace(/\+/g, ' + ')}. Lookup uses only registered public topics and detail categories, never your raw question, chat history or case documents. A stored reference link does not mean its page was fetched for this answer.</p>}
           </div>
         )}
         {!!rag?.sources.length && (
@@ -81,11 +86,15 @@ const ChatMessage: React.FC<{ message: Message; onCheckEvidence?: () => void; on
                 <p className="text-xs font-semibold text-slate-800">[{source.citation}] {source.title}</p>
                 <p className="mt-1 text-xs leading-6 text-slate-600">{source.excerpt}</p>
                 <p className="mt-2 text-[10px] text-slate-400">{source.version}{source.pageNumber ? ' · Page ' + source.pageNumber : ''}</p>
+                {source.reviewStatus && <p className="mt-1 text-[10px] text-slate-500">Source review: {source.reviewStatus === 'CURRENT_REVIEW_RECORD' ? 'Current review record; not product certification' : source.reviewStatus === 'FIRST_PARTY_PROJECT_GUIDE' ? 'Project documentation, not medical guidance' : 'Not clinically approved · academic reference'}</p>}
+                {source.publisher && <p className="mt-1 text-[10px] text-slate-500">{source.publisher}{source.jurisdiction ? ' · ' + source.jurisdiction + ' reference, not Indian approval' : ''}{source.checkedAt ? ' · Checked ' + source.checkedAt : ''}</p>}
+                {source.licensingNote && <p className="mt-1 text-[10px] text-slate-500">{source.licensingNote}</p>}
+                {source.attribution && <p className="mt-1 text-[10px] text-slate-500">{source.attribution}</p>}
                 {officialLink(source.sourceUrl) && <a href={officialLink(source.sourceUrl)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-teal-700 underline">Read original reference <ExternalLink size={11} /></a>}
                 {source.href && /^\/cases\/[a-f0-9]{24}$/i.test(source.href) && <a href={source.href} className="mt-2 inline-block text-xs text-teal-700 underline">Open protected case</a>}
               </div>)}
             </div>}
-            <p className="mt-2 text-[10px] text-slate-400">{rag.retrieval.method === 'CASE_ITEM_EVIDENCE' ? 'Case- and medicine-bound local evidence' : rag.retrieval.method === 'CONTEXT_RERANKED_BM25' ? 'BM25 + locally trained context reranker' : rag.retrieval.method === 'APPROVED_WEB_BM25' ? 'Approved official-source search + keyword ranking' : rag.retrieval.method === 'HYBRID_BM25_VECTOR' ? 'Hybrid keyword + semantic retrieval' : 'Keyword retrieval'} · Citations are traceability, not a guarantee of correctness.</p>
+            <p className="mt-2 text-[10px] text-slate-400">{rag.retrieval.method === 'CASE_ITEM_EVIDENCE' ? 'Case- and medicine-bound local evidence' : rag.retrieval.method === 'EXACT_TOPIC_SECTION' ? 'Exact registered topic + evidence section lookup' : rag.retrieval.method === 'SCOPED_BM25' ? 'Topic- and focus-scoped keyword ranking' : rag.retrieval.method === 'CONTEXT_RERANKED_BM25' ? 'BM25 + locally trained context reranker' : rag.retrieval.method === 'APPROVED_WEB_BM25' ? 'Approved official-source search + keyword ranking' : rag.retrieval.method === 'HYBRID_BM25_VECTOR' ? 'Hybrid keyword + semantic retrieval' : 'Keyword retrieval'} · Citations are traceability, not a guarantee of correctness.</p>
           </div>
         )}
         {message.content && !streaming && <button onClick={() => void copy()} aria-label="Copy answer" className="mt-3 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">{copied ? <Check size={14} /> : <Copy size={14} />}</button>}

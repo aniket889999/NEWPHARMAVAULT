@@ -19,7 +19,7 @@ export function parseChatEvent(block: string): ChatStreamEvent | null {
 }
 
 export async function streamChat(
-  payload: { message: string; caseId?: string; medicineItemId?: string | null; history: { role: 'user' | 'assistant'; text: string }[] },
+  payload: { message: string; caseId?: string; conversationId?: string; contextId?: string; contextToken?: string; medicineItemId?: string | null; history: { role: 'user' | 'assistant'; text: string }[] },
   signal: AbortSignal,
   onEvent: (event: ChatStreamEvent) => void,
 ): Promise<void> {
@@ -32,13 +32,19 @@ export async function streamChat(
     return;
   }
   const base = String(apiClient.defaults.baseURL || '/api').replace(/\/$/, '');
-  const response = await fetch(`${base}/v1/chat/stream`, {
+  if (payload.conversationId && !/^[a-f0-9-]{36}$/i.test(payload.conversationId)) throw new Error('Invalid saved conversation.');
+  const endpoint = payload.conversationId ? `/v1/chat/history/conversations/${payload.conversationId}/stream` : '/v1/chat/stream';
+  const response = await fetch(base + endpoint, {
     method: 'POST', signal, credentials: 'include',
     headers: { 'Content-Type': 'application/json', 'X-PharmaVault-Client': 'web' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(payload.conversationId ? {message:payload.message} : payload),
   });
   if (response.status === 401) notifySessionExpired();
-  if (!response.ok || !response.body) throw new Error(response.status === 401 ? 'Please sign in again.' : 'Evidence chat is unavailable or this case is not accessible.');
+  if (response.status === 400) {
+    const value = await response.clone().json().catch(() => null);
+    if (typeof value?.message === 'string' && /conversation context|chat context/i.test(value.message)) throw Object.assign(new Error('Conversation context expired or changed. Restate the medicine, or start a new chat.'), { code: 'CONTEXT_EXPIRED' });
+  }
+  if (!response.ok || !response.body) throw new Error(response.status === 401 ? 'Please sign in again.' : response.status === 409 && payload.conversationId ? 'Saved chat is busy or full. Wait for the previous answer or start a new chat.' : 'Evidence chat is unavailable or this case is not accessible.');
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '', bytes = 0, completed = false;

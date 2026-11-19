@@ -1,0 +1,12 @@
+const router=require('express').Router();
+const asyncHandler=require('../middleware/asyncHandler');
+const {aiLimiter}=require('../middleware/rateLimiter');
+const history=require('../services/chatHistoryService');
+router.use((req,res,next)=>{res.set('Cache-Control','private, no-store');next();});
+router.get('/',asyncHandler(async(req,res)=>res.json(await history.state(req.user))));
+router.post('/consent',aiLimiter,asyncHandler(async(req,res)=>res.json(await history.enable(req.user,req.body))));
+router.delete('/',aiLimiter,asyncHandler(async(req,res)=>res.json(await history.clear(req.user))));
+router.post('/conversations',aiLimiter,asyncHandler(async(req,res)=>res.status(201).json(await history.createConversation(req.user,req.body))));
+router.get('/conversations/:conversationId',asyncHandler(async(req,res)=>res.json(await history.getConversation(req.user,req.params.conversationId))));
+router.delete('/conversations/:conversationId',aiLimiter,asyncHandler(async(req,res)=>res.json(await history.removeConversation(req.user,req.params.conversationId))));
+module.exports=router;

@@ -12,18 +12,21 @@ import { ChatReadinessNotice } from '../../features/chatReadiness/ChatReadinessN
 import { parseChatCapabilities } from '../../features/chatReadiness/presentation';
 import type { ChatCapabilities } from '../../features/chatReadiness/presentation';
 import { KnowledgeReviewPanel } from '../../features/chatReadiness/KnowledgeReviewPanel';
+import { SavedHistoryControls } from '../../components/chat/SavedHistoryControls';
 
 const HealthAssistant: React.FC = () => {
   const { user } = useAuth();
   const userId = user?._id;
   const [params, setParams] = useSearchParams();
   const caseId = params.get('caseId') || undefined;
-  const { activeConversation, conversations, createConversation, setActiveConversation, deleteConversation, isLoading } = useChatStore();
+  const { activeConversation, conversations, createConversation, setActiveConversation, deleteConversation, isLoading,initializeHistory } = useChatStore();
   const [cases, setCases] = useState<VerificationCase[]>([]);
   const [capabilities, setCapabilities] = useState<ChatCapabilities | null>(null);
   const [officialWebEnabled, setOfficialWebEnabled] = useState<boolean | null>(null);
+  const [officialWebPolicy, setOfficialWebPolicy] = useState('FALLBACK');
   const [caseLoadError, setCaseLoadError] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  useEffect(()=>{if(userId)void initializeHistory();},[userId,initializeHistory]);
 
   useEffect(() => {
     if (!userId) return;
@@ -44,8 +47,9 @@ const HealthAssistant: React.FC = () => {
       void apiClient.get<unknown>('/v1/chat/status', { signal: controller.signal })
         .then(({ data }) => { if (!cancelled && request === sequence) {
           setCapabilities(parseChatCapabilities(data));
-          const extra = data as { contextualChat?: { version?: string; webEnabled?: boolean } };
+          const extra = data as { contextualChat?: { version?: string; webEnabled?: boolean; webLookupPolicy?: string } };
           setOfficialWebEnabled(extra?.contextualChat?.version === 'contextual-chat-v1' && typeof extra.contextualChat.webEnabled === 'boolean' ? extra.contextualChat.webEnabled : null);
+          setOfficialWebPolicy(extra?.contextualChat?.webLookupPolicy === 'ALWAYS_PUBLIC' ? 'ALWAYS_PUBLIC' : 'FALLBACK');
         } })
         .catch(() => { if (!cancelled && request === sequence) { setCapabilities(null); setOfficialWebEnabled(null); } });
     };
@@ -91,14 +95,14 @@ const HealthAssistant: React.FC = () => {
         <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3">
           {conversations.map(c => <div key={c.id} className={'group flex items-center rounded-xl ' + (c.id === activeConversation?.id ? 'bg-slate-200/70' : 'hover:bg-slate-200/50')}>
             <button onClick={() => selectChat(c.id)} className="flex min-w-0 flex-1 items-center gap-2 p-3 text-left text-xs text-slate-700">
-              <MessageSquare size={13} className="shrink-0 text-slate-400" /><span className="truncate">{c.title}</span>
+              <MessageSquare size={13} className="shrink-0 text-slate-400" /><span className="truncate">{c.title}{c.savedId?' · saved':''}</span>
             </button>
             <button aria-label={'Delete chat: ' + c.title} onClick={() => deleteConversation(c.id)} className="mr-1 rounded p-2 text-slate-400 opacity-0 hover:text-rose-600 focus:opacity-100 group-hover:opacity-100"><Trash2 size={12} /></button>
           </div>)}
         </div>
         <div className="space-y-3 border-t border-slate-200 p-4">
           <p className="flex items-center gap-2 text-[11px] text-teal-800"><ShieldCheck size={14} /> Private cases stay local</p>
-          <p className="text-[10px] leading-4 text-slate-400">Up to 20 chats in memory. Refreshing or signing out clears them. No chat is saved to your browser storage.</p>
+          <SavedHistoryControls />
           <Link to="/cases" className="flex items-center gap-2 text-xs text-slate-600 hover:text-teal-700"><ArrowLeft size={13} /> Verification cases</Link>
           <Link to={portalHome(user?.role)} className="block text-xs text-slate-400">Return to portal</Link>
         </div>
@@ -122,10 +126,11 @@ const HealthAssistant: React.FC = () => {
               {caseId && !cases.some(c => c.id === caseId) && <option value={caseId}>Selected case - server checks access</option>}
               {cases.map(c => <option key={c.id} value={c.id}>{c.caseReference} · {c.status}</option>)}
             </select>
-            {!caseId && officialWebEnabled !== null && <span className="text-[10px] text-slate-500">Official-source fallback: {officialWebEnabled ? 'enabled for approved public topics' : 'disabled'} · Feedback requires review, not automatic training</span>}
+            {!caseId && officialWebEnabled !== null && <span className="text-[10px] text-slate-500">Official-source lookup: {officialWebEnabled ? officialWebPolicy === 'ALWAYS_PUBLIC' ? 'checked for eligible public questions · fresh cache reused' : 'fallback for approved public topics' : 'disabled'} · Private cases never searched online</span>}
             {capabilities?.embeddingEnabled && !caseId && <span className="rounded-full bg-teal-50 px-2 py-1 text-[10px] text-teal-700">Semantic retrieval configured · checked per answer</span>}
           </div>
           {caseLoadError && <p className="mt-2 text-xs text-amber-800">Could not load case choices. Public reference chat remains available.</p>}
+          {activeConversation?.savedId && <p className="mt-2 text-[11px] text-slate-500">Saved public conversation · earlier answers retain their original sources and dates, not a new evidence check. Ask again to retrieve current references.</p>}
         </header>
         <div className="min-h-0 flex-1"><ChatInterface /></div>
       </div>

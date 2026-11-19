@@ -1,6 +1,8 @@
 const rag = require('./chatRagService');
 const FEATURES = ['lexical', 'topicMatch', 'focusMatch', 'titleOverlap', 'kindMatch', 'lengthPenalty'];
 function focusOf(message, context = {}) {
+  // Asking what a reference says is not necessarily a definition request.
+  message=String(message).replace(/^\s*what does (?:the )?(?:public )?reference(?: (?:catalogue|guide))? say about\s+/i,'Explain ');
   if (context.intent === 'SIDE_EFFECTS') return 'SIDE_EFFECTS';
   if (/prevent|avoid|reduce|bach|rok/i.test(message)) return 'PREVENTION';
   if (/\bwhat (?:is|are|does)\b|meaning|define|definition|matlab/i.test(message)) return 'DEFINITION';

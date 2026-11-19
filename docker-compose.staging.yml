@@ -1,5 +1,5 @@
-# STAGING stack for one VM (synthetic data only). Two API replicas prove the
-# multi-instance settings: MongoDB lease locks + shared rate-limit counters.
+# STAGING stack for one VM (synthetic data only). Shared locks/limits are
+# configured, but keep one API until frozen case-answer receipts also migrate.
 # Secrets live in ./backend/.env.staging (git-ignored). Caddy terminates HTTPS.
 services:
   mongo:
@@ -25,17 +25,23 @@ services:
       TRUSTRAG_TESSDATA_PATH: /opt/tessdata
       CASE_LOCK_BACKEND: mongo
       RATE_LIMIT_STORE: mongo
+      CHAT_RECEIPT_STORE: mongo
+      CHAT_SOURCE_POLICY: REVIEWED_ONLY
+      CHAT_TOOL_MAX_CONCURRENCY: 2
+      CHAT_TOOL_REQUESTS_PER_MINUTE: 20
       TRUST_PROXY: 1
       TRUSTRAG_LLM_ENABLED: "false"
       TRUSTRAG_LLM_EXPORT_ALLOWED: "false"
       RAG_CHAT_LLM_ENABLED: "false"
       RAG_CHAT_PUBLIC_EXPORT_ALLOWED: "false"
+      RAG_CHAT_EMBEDDINGS_ENABLED: "false"
+      RAG_CHAT_WEB_ENABLED: "false"
       E2E_SETUP_ENABLED: "false"
       DOCUMENT_ENCRYPTION_REQUIRED: "true"
       RETENTION_JOB_ENABLED: "true"
       RETENTION_DRY_RUN: "true"
     deploy:
-      replicas: 2
+      replicas: 1
     volumes:
       - pharmavault_staging_documents:/var/lib/pharmavault/documents
       - ./backend/tessdata:/opt/tessdata:ro

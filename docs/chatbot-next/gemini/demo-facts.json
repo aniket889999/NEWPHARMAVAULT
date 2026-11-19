@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "synthetic-academic-demo-facts/1.0.0",
+  "banner": "SYNTHETIC ACADEMIC DEMO — NOT FOR CLINICAL USE",
+  "clinicalApproval": "NOT_CLINICALLY_APPROVED",
+  "caseReference": "CASE-DEMO-2026-0042",
+  "subjectReference": "SYNTHETIC-SUBJECT-REF-0042",
+  "documents": {
+    "prescription": {
+      "file": "prescription.html",
+      "documentType": "PRESCRIPTION",
+      "documentId": "SYNTHETIC-RX-0042",
+      "prescriptionDate": "2026-11-01",
+      "medicineItems": [
+        {
+          "rowKey": "row_1",
+          "medicine_name": "Paracetamol",
+          "dosage_strength": "500 mg",
+          "dosage_form": "tablet",
+          "quantity": 10,
+          "quantity_unit": "tablets"
+        }
+      ]
+    },
+    "invoice": {
+      "file": "invoice.html",
+      "documentType": "PHARMACY_INVOICE",
+      "documentId": "SYNTHETIC-INV-0042",
+      "invoiceDate": "2026-11-02",
+      "totalAmount": "120.00",
+      "medicineItems": [
+        {
+          "rowKey": "row_1",
+          "medicine_name": "Paracetamol",
+          "dosage_strength": "650 mg",
+          "dosage_form": "tablet",
+          "quantity": 10,
+          "quantity_unit": "tablets"
+        }
+      ]
+    },
+    "claimForm": {
+      "file": "claim-form.html",
+      "documentType": "CLAIM_FORM",
+      "documentId": "SYNTHETIC-CLM-0042",
+      "optional": true,
+      "claimDate": "2026-11-03",
+      "claimedAmount": "120.00",
+      "medicineItems": []
+    }
+  },
+  "expectedOutcome": {
+    "comparisonStatus": "MISMATCH",
+    "reasonCodes": [
+      "STRENGTH_MISMATCH"
+    ],
+    "strengthComparison": {
+      "prescriptionStrength": "500 mg",
+      "invoiceStrength": "650 mg",
+      "status": "MISMATCH"
+    },
+    "quantityComparison": {
+      "prescriptionBaseQuantity": 10,
+      "invoiceBaseQuantity": 10,
+      "baseUnit": "tablet",
+      "status": "CONSISTENT"
+    },
+    "humanReviewRequired": true,
+    "canVerify": false,
+    "blockerCodes": [
+      "COMPARISON_MISMATCH"
+    ],
+    "allowedReviewActions": [
+      "RETURN_FOR_CORRECTION",
+      "ESCALATE"
+    ]
+  }
+}

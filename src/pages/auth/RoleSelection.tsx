@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Store, ShieldCheck, ArrowRight, ChevronLeft, Building2 } from 'lucide-react';
+import { User, Store, ShieldCheck, ArrowRight, ChevronLeft, FileText } from 'lucide-react';
 
 const RoleSelection: React.FC = () => {
   const navigate = useNavigate();
@@ -82,33 +82,33 @@ const RoleSelection: React.FC = () => {
               <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 mb-5 group-hover:bg-slate-800 group-hover:text-white transition-colors">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">Reviewer Portal</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Reviewer &amp; Insurer</h2>
               <p className="text-xs text-slate-500 leading-relaxed mb-6">
-                TrustRAG verification queue, cross-document reconciliation, evidence lineage, and human-in-the-loop review workstation.
+                Case evidence and consent-based insurance review. Choose your provisioned staff role; each account sees only its authorised sections.
               </p>
             </div>
             <div className="flex items-center text-xs font-semibold text-slate-800 group-hover:text-slate-900 pt-4 border-t border-slate-100">
-              <span>Sign In as Reviewer</span>
+              <span>Sign In as Staff</span>
               <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
 
-          {/* Insurer Card */}
+          {/* Claimants are patients; this entry opens the v4 claimant sign-in tab. */}
           <div
-            onClick={() => navigate('/login?role=claims_reviewer&staffRole=payer_reviewer')}
+            onClick={() => navigate('/login?role=claimant')}
             className="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer flex flex-col justify-between group"
           >
             <div>
               <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 mb-5 group-hover:bg-indigo-700 group-hover:text-white transition-colors">
-                <Building2 className="w-6 h-6" />
+                <FileText className="w-6 h-6" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">Insurer Portal</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Claimant Portal</h2>
               <p className="text-xs text-slate-500 leading-relaxed mb-6">
-                Consent-based pharmacy claims queue, evidence workspace, claimant queries and recorded human decisions.
+                Submit a verified case with consent, respond to insurer queries, and track claim decisions and appeals.
               </p>
             </div>
             <div className="flex items-center text-xs font-semibold text-indigo-700 group-hover:text-indigo-800 pt-4 border-t border-slate-100">
-              <span>Sign In as Insurer</span>
+              <span>Sign In as Claimant</span>
               <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>

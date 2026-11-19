@@ -43,7 +43,7 @@ const publicChunks = [
 ].flatMap(chunkPassage);
 
 // BM25 lexical retrieval. Scores are ranking values, never clinical confidence.
-function rankPassages(query, chunks, limit = 6) {
+function rankPassages(query, chunks, limit = 6, { minScore = 0.8, minMatchedTerms } = {}) {
   const terms = [...new Set(tokens(query))];
   if (!terms.length || !chunks.length) return [];
   const docs = chunks.map(chunk => tokens(`${chunk.title} ${chunk.excerpt}`));
@@ -59,7 +59,7 @@ function rankPassages(query, chunks, limit = 6) {
       score += idf * tf * 2.2 / (tf + 1.2 * (0.25 + 0.75 * docs[index].length / avg));
     });
     return { ...chunk, score: Number((score * (chunk.private ? 1.25 : 1)).toFixed(3)), matched };
-  }).filter(c => c.score >= 0.8 && c.matched >= Math.min(2, terms.length))
+  }).filter(c => c.score >= minScore && c.matched >= (minMatchedTerms ?? Math.min(2, terms.length)))
     .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, limit);
 }
 
@@ -120,12 +120,15 @@ async function retrieveCase(caseId, user, tenantContext) {
 
 function validateInput(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw controlledError(400, 'A JSON object is required.');
-  if (Object.keys(body).some(k => !['message', 'caseId', 'history'].includes(k))) throw controlledError(400, 'Unsupported chat request field.');
+  if (Object.keys(body).some(k => !['message', 'caseId', 'history', 'contextId', 'contextToken'].includes(k))) throw controlledError(400, 'Unsupported chat request field.');
   if (typeof body.message !== 'string' || !body.message.trim() || body.message.length > 2000) throw controlledError(400, 'Message must contain 1 to 2000 characters.');
   if (body.caseId !== undefined && (typeof body.caseId !== 'string' || !/^[a-f0-9]{24}$/i.test(body.caseId))) throw controlledError(400, 'Invalid case ID.');
   if (body.history !== undefined && (!Array.isArray(body.history) || body.history.length > 10 || body.history.some(h => !h || !['user', 'assistant'].includes(h.role) || typeof h.text !== 'string' || h.text.length > 2000))) throw controlledError(400, 'Invalid chat history.');
+  if (body.contextId !== undefined && (typeof body.contextId !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(body.contextId))) throw controlledError(400, 'Invalid chat context ID.');
+  if (body.contextToken !== undefined && (typeof body.contextToken !== 'string' || body.contextToken.length > 6000 || !body.contextId)) throw controlledError(400, 'Invalid chat context token.');
+  if (body.caseId && (body.contextId || body.contextToken)) throw controlledError(400, 'Public conversation context cannot be applied to private cases.');
   // History is deliberately not a retrieval source and is never exported.
-  return { message: body.message.trim(), caseId: body.caseId };
+  return { message: body.message.trim(), caseId: body.caseId, ...(body.contextId ? {contextId:body.contextId} : {}), ...(body.contextToken ? {contextToken:body.contextToken} : {}) };
 }
 
 const markdownEscape = value => value.replace(/[\\`*_{}\[\]<>#|]/g, '\\$&');

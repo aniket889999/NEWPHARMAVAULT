@@ -19,8 +19,10 @@ async function available(port) {
 }
 async function main() {
   await available(5001); await available(5173);
+  const publicChat = process.env.PHARMAVAULT_PUBLIC_CHAT === '1';
   const environment = { ...process.env, PORT: '5001', NODE_ENV: 'development', FRONTEND_URL: 'http://127.0.0.1:5173', CORS_ALLOWED_ORIGINS: 'http://127.0.0.1:5173,http://localhost:5173',
-    TRUSTRAG_LLM_ENABLED: 'false', TRUSTRAG_LLM_EXPORT_ALLOWED: 'false', RAG_CHAT_LLM_ENABLED: 'false', RAG_CHAT_PUBLIC_EXPORT_ALLOWED: 'false', RAG_CHAT_EMBEDDINGS_ENABLED: 'false',
+    TRUSTRAG_LLM_ENABLED: 'false', TRUSTRAG_LLM_EXPORT_ALLOWED: 'false', RAG_CHAT_LLM_ENABLED: String(publicChat), RAG_CHAT_PUBLIC_EXPORT_ALLOWED: String(publicChat), RAG_CHAT_EMBEDDINGS_ENABLED: String(publicChat), RAG_CHAT_EMBEDDING_MODEL: process.env.RAG_CHAT_EMBEDDING_MODEL || 'gemini-embedding-001',
+    RAG_CHAT_WEB_SYNTHESIS_ALLOWED: String(publicChat), RAG_CHAT_ANSWER_STYLE: publicChat ? 'GROUNDED_PARAPHRASE' : 'EXTRACTIVE',
     // Public questions may use the fixed MedlinePlus (U.S. National Library of Medicine) health-topic search.
     // Only a registered topic term is sent: never the question, chat history or case data.
     RAG_CHAT_WEB_ENABLED: process.env.RAG_CHAT_WEB_ENABLED || 'true' };
@@ -37,7 +39,11 @@ async function main() {
     { cwd: root, env: { ...environment, VITE_API_URL: 'http://127.0.0.1:5001/api' }, stdio: 'inherit' }); children.push(frontend);
   frontend.once('exit', code => { if (!stopping) stop(code || 1); });
   console.log('PharmaVault: http://127.0.0.1:5173 — Evidence Chat and Verification Cases are in the same app.');
-  console.log('Local evidence-only mode: external AI/document export is disabled. Stop both services with Ctrl+C.');
+  console.log(publicChat
+    ? 'Public hybrid RAG mode: at most one public embedding batch plus two generation/review calls per answer; configuration is not live verification. Private case/document export remains disabled. Stop with Ctrl+C.'
+    : environment.RAG_CHAT_WEB_ENABLED === 'true'
+    ? 'Official public-topic web lookup enabled; external AI and private-document export remain disabled. Stop both services with Ctrl+C.'
+    : 'Local evidence-only mode: external AI/document export is disabled. Stop both services with Ctrl+C.');
 }
 process.once('SIGINT', () => stop()); process.once('SIGTERM', () => stop());
 main().catch(error => { console.error(error.message); stop(1); });
