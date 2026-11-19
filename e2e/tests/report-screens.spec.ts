@@ -27,16 +27,26 @@ test('report screenshots', async ({ browser, page }) => {
   test.setTimeout(600_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await as(browser, { tab: 'patient', email: 'ananya.verma@claimant.example', home: '**/patient/**' }, async (p) => {
+    await visit(p, '/patient/dashboard', '03-patient-dashboard');
+    await visit(p, '/patient/prescriptions', '04-prescription-upload');
+    try {
+      await p.getByRole('button', { name: /Load Demo Prescription/ }).click();
+      await p.waitForTimeout(1000);
+      await p.getByRole('button', { name: /Run Local OCR/ }).click();
+      await p.waitForTimeout(20000);
+    } catch {}
+    await snap(p, '05-prescription-parsed');
+    await visit(p, '/patient/reminders', '06-reminders');
+    await visit(p, '/patient/nearby-medicines', '07-nearby');
+    await p.waitForTimeout(3000); await snap(p, '07-nearby');
     await visit(p, '/patient/health-assistant', '08-assistant');
     try {
       const box = p.getByPlaceholder(/Ask about a medicine/);
       await box.fill('What is Paracetamol used for?'); await box.press('Enter');
-      await p.waitForTimeout(8000);
+      await p.waitForTimeout(9000);
     } catch {}
     await snap(p, '09-assistant-answer');
     await visit(p, '/patient/authenticity', '10-authenticity');
-    await visit(p, '/patient/orders', '11-orders');
-    await visit(p, '/patient/health-records', '12-health-records');
     await visit(p, '/patient/claims', '13-claims');
   });
 
