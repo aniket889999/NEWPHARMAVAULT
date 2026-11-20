@@ -14,7 +14,7 @@
     "test:readiness:http": "node --test backend/tests/chatProviderReadinessIntegration.test.js",
     "check:chat-provider": "node backend/scripts/checkChatProvider.js",
     "dev:chat:backend": "node backend/scripts/startChatDemo.js",
-    "test:chat": "node --test backend/tests/chatRag.test.js backend/tests/conversationalRag.test.js backend/tests/pharmacyChatPolicy.test.js tests/chatClient.test.cjs",
+    "test:chat": "node --test backend/tests/chatRag.test.js backend/tests/conversationalRag.test.js backend/tests/pharmacyChatPolicy.test.js backend/tests/chatMentorScenarios.test.js tests/chatClient.test.cjs",
     "build": "npm run check:ts && vite build",
     "build:frontend": "npm run check:ts && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",

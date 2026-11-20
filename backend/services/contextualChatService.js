@@ -43,6 +43,46 @@ async function answerFromPassages(input, context, passages, retrieval, options, 
     return fallback;
   }
 }
+// "What is X used for, and what are its side effects?" is answered one part at a time:
+// each part runs the same retrieval and evidence checks as a single question, and the
+// parts are joined with renumbered citations. A part without evidence says so.
+const PART_QUESTIONS = { USES: label => 'What is ' + label + ' used for?', SIDE_EFFECTS: label => 'What are the common side effects of ' + label + '?', STORAGE: label => 'How should ' + label + ' be stored?', MECHANISM: label => 'How does ' + label + ' work?' };
+const PART_LABELS = { USES: 'Uses', SIDE_EFFECTS: 'Possible side effects', STORAGE: 'Storage', MECHANISM: 'How it works' };
+async function answerEachPart(input, context, options) {
+  const attributes = (context.questionPlan.requestedAttributes || []).filter(value => PART_QUESTIONS[value]);
+  if (attributes.length < 2 || attributes.length > 3) return null;
+  const label = context.topics[0].label;
+  const emit = options.emit || (() => {});
+  const parts = [];
+  for (const attribute of attributes) {
+    options.signal?.throwIfAborted();
+    const result = await answer({ ...input, message: PART_QUESTIONS[attribute](label), history: [] }, { ...options, splitPart: true, emit: (event, data) => { if (event === 'status') emit(event, data); } });
+    parts.push({ attribute, result });
+  }
+  const supported = parts.filter(value => value.result.sources?.length && !['CLARIFY', 'ABSTAIN', 'SAFETY'].includes(value.result.mode));
+  if (!supported.length) return null;
+  const sources = [], citationBySource = new Map();
+  const replies = parts.map(({ attribute, result }) => {
+    if (!supported.some(value => value.attribute === attribute)) return PART_LABELS[attribute] + ': no approved source supported this part, so it is not answered.';
+    const renumber = {};
+    for (const source of result.sources) {
+      let citation = citationBySource.get(source.sourceId);
+      if (!citation) { citation = 'S' + (sources.length + 1); citationBySource.set(source.sourceId, citation); sources.push({ ...source, citation }); }
+      renumber[source.citation] = citation;
+    }
+    return PART_LABELS[attribute] + ': ' + String(result.reply).replace(/\[(S\d+)\]/g, (match, citation) => '[' + (renumber[citation] || citation) + ']');
+  });
+  const first = supported[0].result;
+  context.requestEvidence = supported.length === parts.length ? 'MATCHED_TEXT' : 'PARTIAL';
+  return {
+    trace: [{ tool: 'QUESTION_SPLIT', status: attributes.join('_AND_') }, ...parts.flatMap(({ result }) => (result.agentTrace || []).filter(step => step.tool !== 'CONTEXT_RESOLUTION'))],
+    result: { reply: replies.join('\n\n'), mode: first.mode, sources, disclaimer: DISCLAIMER,
+      warnings: [...new Set(supported.flatMap(value => value.result.warnings || []))],
+      retrieval: { method: first.retrieval?.method || 'BM25', matchedPassages: sources.length },
+      answerQuality: { ...(first.answerQuality || {}), sourceCount: sources.length, parts: attributes.length, partsAnswered: supported.length },
+      routing: { intent: context.intent, reasonCode: 'MULTI_PART_ANSWERED_SEPARATELY', policyVersion: 'contextual-chat-v2' } }
+  };
+}
 async function answer(input, options = {}) {
   const { signal, emit = () => {}, localAnswer, webSearch = searchApprovedHealth } = options;
   signal?.throwIfAborted();
@@ -57,6 +97,10 @@ async function answer(input, options = {}) {
   if (context.privateReference) return basic('Select the verification case under Evidence scope first. Chat history and public web pages cannot establish what your private documents contain.', 'CLARIFY', 'CASE_SELECTION_REQUIRED');
   if (context.questionPlan.language !== 'ENGLISH') return basic('I currently provide evidence-backed answers in English only. I cannot provide a verified translation into the requested language yet. Would you like an English answer? For personal medicine decisions, ask a qualified pharmacist who speaks your preferred language.', 'CLARIFY', 'UNSUPPORTED_ANSWER_LANGUAGE');
   if (context.ambiguous) return basic('Which topic should I use: ' + context.topics.map(value => value.label).join(' or ') + '? I will not guess which medicine “it” refers to or recommend a substitution.', 'CLARIFY', 'AMBIGUOUS_TOPIC');
+  if (context.questionPlan.multipleAttributes && context.topics.length === 1 && !context.topics[0].id.startsWith('workflow-') && !options.splitPart) {
+    const split = await answerEachPart(input, context, options);
+    if (split) { trace.push(...split.trace); return attach(split.result); }
+  }
   if (context.questionPlan.multipleAttributes && context.topics.some(value => !value.id.startsWith('workflow-'))) return basic('You asked about more than one medicine detail. Which should I check first: uses, possible side effects, storage or how it works? I will check the evidence for each question separately.', 'CLARIFY', 'MULTIPLE_DETAILS_NEED_SCOPE');
   if (context.needsTopic) return basic('Which medicine or pharmacy topic do you mean? Please name it so I can retrieve the correct evidence.', 'CLARIFY', 'TOPIC_REQUIRED');
   if (policy.action === 'RESPOND' && !['REFERENCE_OR_MEDICINE_NAME_NEEDED', 'IDENTITY_REFERENCE_NOT_RESOLVED'].includes(policy.reasonCode)) return basic(policy.reply, policy.mode, policy.reasonCode);

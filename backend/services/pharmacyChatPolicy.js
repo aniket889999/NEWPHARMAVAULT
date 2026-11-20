@@ -25,7 +25,9 @@ function routePharmacyQuestion({ message, caseId, resolved }) {
   if (!caseId && /\bmy\s+(?:verification\s+)?(case|claim|prescription|invoice|bill|rx)\b|\b(our|this)\s+case\b/i.test(current)) {
     return result('CASE_DOCUMENT_QUERY', 'CASE_SELECTION_REQUIRED', 'Which verification case should I use? Select it under Evidence scope first. I won’t treat a general example or chat history as evidence about your documents.');
   }
-  if (/\b(swap|substitute|replace|interchangeable|switch to|take instead)\b/i.test(current)) {
+  // "Now switch to Cetirizine. Can it ...?" changes the conversation topic; it is not a request to swap medicines.
+  const withoutTopicSwitch = current.replace(/^\s*(?:ok(?:ay)?[,\s]+)?(?:now\s+)?(?:let[’']?s\s+)?(?:switch|change|move)(?:\s+the)?(?:\s+topic)?\s+to\s+[a-z][\w-]*(?:\s+[a-z][\w-]*)?\s*[.:;!?]\s+(?=\S)/i, '');
+  if (/\b(swap|substitute|replace|interchangeable|switch to|take instead)\b/i.test(withoutTopicSwitch)) {
     return result('MEDICINE_IDENTITY', 'SUBSTITUTION_NEEDS_PROFESSIONAL_REVIEW', 'I can compare recorded medicine identities, but I can’t recommend a substitution. What are the exact generic names, strengths and dosage forms shown on the two products? A pharmacist must decide whether substitution is appropriate.');
   }
   const brandOnly = /\b(dolo|crocin|calpol|glycomet|glucophage|cetzine|zyrtec)\b/i.test(current) && !/\b(paracetamol|metformin|cetirizine)\b/i.test(current);
