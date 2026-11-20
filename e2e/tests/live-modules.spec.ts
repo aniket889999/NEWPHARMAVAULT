@@ -44,6 +44,19 @@ test('nearby medicines lists real pharmacy stock, nearest first', async ({ page,
   await page.screenshot({ path: 'showcase/20-nearby-medicines.png', fullPage: true });
 });
 
+test('nearby medicines is a sidebar section under Dispensary & Orders, with its own search', async ({ page }) => {
+  await signIn(page, { tab: 'patient', email: 'ananya.verma@claimant.example' });
+  await page.waitForURL('**/patient/dashboard');
+  await page.getByRole('link', { name: 'Nearby Medicines' }).click();
+  await page.waitForURL('**/patient/nearby-medicines');
+  await expect(page.getByText('Nearby Availability')).toBeVisible();
+  await page.getByLabel('Medicine to find nearby').fill('Augmentin');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.waitForURL('**/patient/nearby-medicines?medicine=Augmentin');
+  await expect(page.getByText(/Searching for:\s*Augmentin/)).toBeVisible();
+  await expect(page.getByText(/units available/).first()).toBeVisible();
+});
+
 test('smart reminder is delivered as a notification at its time', async ({ request }) => {
   test.setTimeout(150_000);
   const login = await request.post(`${API}/users/login`, { data: { email: 'ananya.verma@claimant.example', password: DEMO_PASSWORD, role: 'patient' } });

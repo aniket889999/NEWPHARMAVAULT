@@ -19,6 +19,7 @@ import {
   ChevronRight,
   ExternalLink,
   Receipt,
+  MapPin,
   KeyRound
 } from 'lucide-react';
 
@@ -41,6 +42,7 @@ const PatientLayout: React.FC = () => {
     if (segment === 'reminders') return 'Medication Reminders';
     if (segment === 'health-records') return 'Health Records';
     if (segment === 'medicines') return 'Medicine Directory';
+    if (segment === 'nearby-medicines') return 'Nearby Medicines';
     if (segment === 'comparisons') return 'Compare Formulations';
     if (segment === 'cart') return 'Dispensary Cart';
     if (segment === 'orders') return 'My Orders';
@@ -155,6 +157,11 @@ const PatientLayout: React.FC = () => {
               <Link to="/patient/medicines" className={navItemClass('/patient/medicines')}>
                 <Pill className="w-4 h-4 mr-2.5 text-slate-500" />
                 <span>Medicine Directory</span>
+              </Link>
+
+              <Link to="/patient/nearby-medicines" className={navItemClass('/patient/nearby-medicines')}>
+                <MapPin className="w-4 h-4 mr-2.5 text-slate-500" />
+                <span>Nearby Medicines</span>
               </Link>
 
               <Link to="/patient/comparisons" className={navItemClass('/patient/comparisons')}>
