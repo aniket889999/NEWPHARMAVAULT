@@ -43,7 +43,7 @@
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.6.0",
     "react-leaflet": "^4.2.1",
-    "react-markdown": "^9.0.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "7.18.5",
     "tesseract.js": "^7.0.0",
     "zustand": "^4.4.7"
