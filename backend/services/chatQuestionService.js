@@ -4,7 +4,7 @@ const ATTRIBUTES = Object.freeze(['GENERAL', 'USES', 'SIDE_EFFECTS', 'STORAGE', 
 const languages = ['Marathi', 'Hindi', 'Tamil', 'Telugu', 'Bengali', 'Gujarati', 'Kannada', 'Malayalam', 'Punjabi', 'Urdu', 'Spanish', 'French', 'German'];
 const registry = require('../data/chatTopicRegistry');
 const words = text => String(text || '').normalize('NFKC').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
-const STOP = new Set(('what which how why when where who is are was were do does did can could would should will may might a an the i me my you your it its that this those them about for of to from on in at by and or with without please tell explain describe list give briefly briefly general information reference available recorded possible associated affect affects effect effects cause causes causing make makes have has having need needs mean means more less simply simple simpler shorter short briefly exactly level levels regarding related also now old previous asking asked question answer respond translate english speak').split(/\s+/));
+const STOP = new Set(('what which how why when where who is are was were do does did can could would should will may might a an the i me my you your it its that this those them about for of to from on in at by and or with without please tell explain describe list give briefly briefly general information reference available recorded possible associated affect affects effect effects cause causes causing make makes have has having need needs mean means more less simply simple simpler shorter short briefly exactly level levels regarding related also now old previous asking asked question answer respond translate english speak cite cited citing citation citations evidence source sources supporting supported concise brief switch instead topic link links').split(/\s+/));
 function concept(word) {
   return ({ drowsiness: 'sleep', drowsy: 'sleep', sleepy: 'sleep', sleepiness: 'sleep', sleeping: 'sleep', diarrhoea: 'diarrhea', vomiting: 'vomit', vitamins: 'vitamin', b: 'vitamin', deficiency: 'deficiency', uses: 'use', used: 'use' })[word] || word;
 }
@@ -22,7 +22,7 @@ function planQuestion(message, topics, { previous, inherit = false } = {}) {
     ['SIDE_EFFECTS', /side effects?|adverse effects?/i],
     ['USES', /\buses\b|used for|indications?/i],
     ['MECHANISM', /how (?:does|do).*work|mechanism/i]
-  ].filter(([, pattern]) => pattern.test(text)).map(([attribute]) => attribute);
+  ].map(([attribute, pattern]) => [attribute, text.search(pattern)]).filter(([, index]) => index >= 0).sort((a, b) => a[1] - b[1]).map(([attribute]) => attribute);
   let attribute = /stor(?:e|age|ing)|refrigerat|freez|temperature|shelf life|expiry|expiration/i.test(text) ? 'STORAGE'
     : /side effects?|adverse|risks?|nuksan|nuksaan/i.test(text) ? 'SIDE_EFFECTS'
     : /used for|uses? of|indications?|purpose of|what (?:does|is).*(?:treat|used)|what.*\bfor\b/i.test(text) ? 'USES'
@@ -40,7 +40,7 @@ function planQuestion(message, topics, { previous, inherit = false } = {}) {
   if (/\bb\s*12\b/i.test(text) && !anchors.includes('b12')) anchors.push('b12');
   if (anchors.length && attribute === 'GENERAL') attribute = 'SPECIFIC_FACT';
   if (inherit && previous && !anchors.length && !/stor(?:e|age|ing)|refrigerat|freez|temperature|side effects?|adverse|risks?|prevent|used for|uses? of|mechanism|how.*work/i.test(text)) return { ...previous, language: requestedLanguage(text), inherited: true };
-  return { version: 'question-plan-v1', attribute, anchors, language: requestedLanguage(text), exactTemperature: /temperature|degrees?|celsius|fahrenheit|\bc\b|\bf\b/i.test(text) && attribute === 'STORAGE', multipleAttributes: explicitAttributes.length > 1, inherited: false };
+  return { version: 'question-plan-v1', attribute, anchors, language: requestedLanguage(text), exactTemperature: /temperature|degrees?|celsius|fahrenheit|\bc\b|\bf\b/i.test(text) && attribute === 'STORAGE', multipleAttributes: explicitAttributes.length > 1, requestedAttributes: explicitAttributes, inherited: false };
 }
 function sentences(text) { return (String(text || '').match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) || []).map(value => value.trim()).filter(value => /[.!?]$/.test(value)); }
 function sentenceSupports(text, plan) {

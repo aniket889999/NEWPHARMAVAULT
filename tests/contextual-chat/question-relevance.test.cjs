@@ -83,9 +83,15 @@ test('same-turn switch discards the old topic intent, not just its medicine name
   const result = await answer({ message: 'Earlier I asked about Paracetamol side effects. Now explain Metformin.' }, { webSearch: noWeb });
   assert.equal(result.context.intent, 'OVERVIEW'); assert.match(result.reply, /commonly used for type 2 diabetes/); assert.doesNotMatch(result.reply, /nausea|Paracetamol/);
 });
-test('multiple requested attributes are clarified instead of silently answering only one', async () => {
-  const result = await answer({ message: 'What are Metformin uses and side effects?' }, { webSearch: async () => { throw new Error('must clarify first'); } });
-  assert.equal(result.mode, 'CLARIFY'); assert.equal(result.routing.reasonCode, 'MULTIPLE_DETAILS_NEED_SCOPE');
+test('multiple requested attributes are each answered with their own evidence, never silently only one', async () => {
+  const result = await answer({ message: 'What are Metformin uses and side effects?' }, { webSearch: async () => { throw new Error('local evidence covers both parts'); } });
+  assert.equal(result.routing.reasonCode, 'MULTI_PART_ANSWERED_SEPARATELY');
+  assert.match(result.reply, /^Uses: .*\[S\d\]/m); assert.match(result.reply, /^Possible side effects: .*\[S\d\]/m);
+  assert.ok(result.sources.length >= 2);
+});
+test('multiple attributes across two medicines still ask which medicine first', async () => {
+  const result = await answer({ message: 'What are the uses and side effects of Metformin and Cetirizine?' }, { webSearch: async () => { throw new Error('must clarify first'); } });
+  assert.equal(result.mode, 'CLARIFY');
 });
 test('a caveat cannot stand in for an over-budget supporting sentence', () => {
   const context = resolveContext('Can Metformin affect vitamin B12?');
