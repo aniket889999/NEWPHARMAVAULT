@@ -37,7 +37,7 @@
     "gsap": "^3.14.2",
     "html5-qrcode": "^2.3.8",
     "leaflet": "^1.9.4",
-    "lucide-react": "^0.309.0",
+    "lucide-react": "^1.73.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
