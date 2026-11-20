@@ -21,6 +21,8 @@ const ChatMessage: React.FC<{ message: Message; onCheckEvidence?: () => void; on
   const rag = message.rag;
   // Sources that came from the approved official web search (shown openly, not hidden behind the toggle).
   const webSources = (rag?.sources || []).filter(source => Boolean(officialLink(source.sourceUrl)));
+  // Local NHS snapshots also carry an official link; only OFFICIAL_WEB sources came from a live search.
+  const searchedWeb = webSources.some(source => source.kind === 'OFFICIAL_WEB');
   const streaming = message.deliveryStatus === 'streaming';
   const caseAnswer = rag?.caseAnswer;
   const request = rag?.context?.request;
@@ -60,14 +62,14 @@ const ChatMessage: React.FC<{ message: Message; onCheckEvidence?: () => void; on
         {!!rag?.warnings.length && <div className="mt-3 space-y-1">{rag.warnings.map((w, i) => <p key={i} className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">{w}</p>)}</div>}
         {!streaming && !caseAnswer && webSources.length > 0 && (
           <div className="mt-4 rounded-xl border border-teal-200 bg-teal-50/60 p-3" aria-label="Web sources searched">
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-teal-900"><Globe size={13} /> Searched the web · MedlinePlus (U.S. National Library of Medicine)</p>
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-teal-900"><Globe size={13} /> {searchedWeb ? 'Searched the web · MedlinePlus (U.S. National Library of Medicine)' : 'Official reference links · local reference snapshot, no web search for this answer'}</p>
             <ul className="mt-2 space-y-1.5">
               {webSources.map(source => <li key={source.sourceId} className="text-xs">
                 <a href={officialLink(source.sourceUrl)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-teal-800 underline">[{source.citation}] {source.title.replace(/^MedlinePlus:\s*/, '')} <ExternalLink size={11} /></a>
                 <span className="ml-1 text-[10px] text-slate-500">{officialLink(source.sourceUrl)?.replace('https://', '')}{source.version ? ' · ' + source.version : ''}</span>
               </li>)}
             </ul>
-            <p className="mt-2 text-[10px] text-slate-500">Only the medicine or topic name was sent to the search, never your question, chat history or case documents.</p>
+            {searchedWeb && <p className="mt-2 text-[10px] text-slate-500">Only the medicine or topic name was sent to the search, never your question, chat history or case documents.</p>}
           </div>
         )}
         {!!rag?.sources.length && (
