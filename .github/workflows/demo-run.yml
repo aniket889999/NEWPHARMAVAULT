@@ -56,7 +56,7 @@ jobs:
         run: |
           sudo apt-get install -y -qq ffmpeg >/dev/null
           : > list.txt
-          for d in raw/*/; do f=$(ls "$d"*.webm | head -1); [ -n "$f" ] && echo "file '$PWD/$f'" >> list.txt; done
+          for d in raw/*/; do for f in "$d"*.webm; do [ -e "$f" ] && echo "file '$PWD/$f'" >> list.txt; break; done; done
           ffmpeg -y -loglevel error -f concat -safe 0 -i list.txt -vf "scale=1440:900,fps=25,format=yuv420p" -c:v libx264 -preset veryfast -crf 26 -movflags +faststart PharmaVault_live_demo.mp4
           rm -rf raw list.txt
           ls -la . shots
